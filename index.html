@@ -190,6 +190,25 @@ svg.sp{overflow:visible;display:block}
     <div><label class="inp-lbl">Max rizik (%)</label><input id="s-risk" class="inp" type="number" value="3" min="1" max="10" step="0.5"></div>
     <div><label class="inp-lbl">Min R/R omjer</label><input id="s-rr" class="inp" type="number" value="1.2" min="0.8" max="5" step="0.1"></div>
   </div>
+  <div style="margin-bottom:14px">
+    <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:10px 12px;background:rgba(255,255,255,.04);border-radius:10px;border:.5px solid var(--sep)">
+      <span style="font-size:13px;font-weight:700;color:var(--t2)">🔑 API ključevi (opcionalno)</span>
+      <span style="font-size:11px;color:var(--t3)">▼ proširi</span>
+    </div>
+    <div style="display:none;padding:12px;background:rgba(255,255,255,.02);border-radius:0 0 10px 10px;border:.5px solid var(--sep);border-top:none">
+      <p style="font-size:11px;color:var(--t3);margin-bottom:10px">Dodaj API ključeve za exchange netflow, likvidacijske mape i social sentiment. Bez ključa ovi signali nisu dostupni.</p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div>
+          <label class="inp-lbl">CryptoQuant API key <span style="color:var(--t3)">(exchange netflow BTC/ETH)</span></label>
+          <input id="s-cq" class="inp" type="password" placeholder="Bearer token..." style="font-size:12px">
+        </div>
+        <div>
+          <label class="inp-lbl">LunarCrush API key <span style="color:var(--t3)">(social sentiment)</span></label>
+          <input id="s-lc" class="inp" type="password" placeholder="API key..." style="font-size:12px">
+        </div>
+      </div>
+    </div>
+  </div>
   <div style="display:flex;gap:10px">
     <button class="btn-c" onclick="closeModal()">Odustani</button>
     <button class="btn-p" onclick="applySettings()">Primijeni</button>
@@ -266,6 +285,19 @@ var ta4h={};  // {sym:{rsi,trend,ema50}} — 4h timeframe za trend potvrdu
 var taDaily={}; // {sym:{rsi,trend}} — daily timeframe za macro trend
 var vwapData={}; // {sym:{vwap,distPct,bullish}} — VWAP iz 1h klines
 var futuresData={}; // {sym:{basis,lsRatio,takerRatio,skew25d}} — institucijski derivs signali
+var liquidations={};    // {sym:{buyLiq,sellLiq,ts}} — Binance force orders WS (real-time likvidacije)
+var topTraderRatio={};  // {sym:{longPct,shortPct,ratio}} — Binance top traders (institucijski)
+var netflowData={};     // {sym:{inflow,outflow,netflow}} — CryptoQuant (zahtijeva API ključ)
+var socialSentiment={}; // {sym:{score,volume,volumeChange}} — LunarCrush (zahtijeva API ključ)
+var spxData={ret5d:null,bullish:null,last:null}; // S&P500 5d povrat — macro korelacija
+var tokenUnlocks={      // Poznati unlock eventi — bearish pritisak pred unlock
+  SUI:{date:"2026-05-01",pct:6.8,usd:310000000,reason:"Team/investor vesting"},
+  AVAX:{date:"2026-06-15",pct:4.2,usd:180000000,reason:"Foundation vesting cliff"},
+  SOL:{date:"2026-04-20",pct:2.1,usd:420000000,reason:"FTX estate distribucija"},
+  ARB:{date:"2026-03-16",pct:11.6,usd:950000000,reason:"Team unlock cliff"}
+};
+var apiKeys={cryptoquant:"",coinglass:"",lunarcrush:""};
+try{var _ak=JSON.parse(lsGet("ad3d_apikeys")||"{}");if(_ak&&typeof _ak==="object")Object.assign(apiKeys,_ak);}catch(e){}
 const CG_IDS={BTC:"bitcoin",ETH:"ethereum",XRP:"ripple",BNB:"binancecoin",ADA:"cardano",LINK:"chainlink",SOL:"solana",AVAX:"avalanche-2",SUI:"sui",DOGE:"dogecoin",SHIB:"shiba-inu",PEPE:"pepe",WIF:"dogwifhat",BONK:"bonk",FLOKI:"floki"};
 
 // ── TOP 100 ENGINE ───────────────────────────────────────────────
@@ -458,6 +490,62 @@ function scoreMarketSignals(sym,signals,warnings){
     else if(oi.trend==="RISING_FAST"&&priceDown){delta-=2;warnings.push({txt:"OI +"+oi.oiChange24h+"% + cijena pada — shorteri otvaraju, bearish",type:"bear"});}
     else if(oi.trend==="FALLING_FAST"&&priceUp){delta-=1;warnings.push({txt:"OI -"+Math.abs(oi.oiChange24h)+"% — rast od short coveringa, nije pravi bullish",type:"warn"});}
     else if(oi.trend==="FALLING"&&priceDown){delta+=1;signals.push({txt:"OI pada uz cijenu — pozicije se zatvaraju, dno blizu",type:"bull"});}
+  }
+  // 12. FUNDING RATE po tokenu — negativan = bearish sentiment = kontrarian BUY
+  var fundR=fr[sym];
+  if(fundR&&fundR.rate!==undefined){
+    var fRate=+(fundR.rate*100).toFixed(4);
+    if(fRate<-0.05){delta+=2;signals.push({txt:"Funding "+fRate+"% — ekstremno negativan = shorts dominiraju, squeeze potencijal",type:"bull"});}
+    else if(fRate<-0.01){delta+=1;signals.push({txt:"Funding "+fRate+"% — negativan = bearish sentiment u derivatima",type:"bull"});}
+    else if(fRate>0.08){delta-=1.5;warnings.push({txt:"Funding +"+fRate+"% — visok = longs preplati, oprez",type:"warn"});}
+    else if(fRate>0.04){delta-=0.5;warnings.push({txt:"Funding +"+fRate+"% — pozitivan funding, blagi oprez",type:"warn"});}
+  }
+  // 13. LIKVIDACIJE — Binance force orders real-time (short squeeze / capitulation)
+  var liq=liquidations[sym];
+  if(liq&&(liq.buyLiq+liq.sellLiq)>500000){
+    var fmtU=function(v){return v>=1000000?"$"+(v/1000000).toFixed(1)+"M":"$"+(v/1000).toFixed(0)+"K";};
+    if(liq.buyLiq>liq.sellLiq*2.5){delta+=2.5;signals.push({txt:"Short squeeze: "+fmtU(liq.buyLiq)+" shortova likvidirano — momentum raste",type:"bull"});}
+    else if(liq.sellLiq>liq.buyLiq*2.5){delta+=1.5;signals.push({txt:"Capitulation: "+fmtU(liq.sellLiq)+" longova likvidirano — panic bottom signal",type:"bull"});}
+    else if(liq.sellLiq>liq.buyLiq*1.5){delta+=0.5;signals.push({txt:"Više longova likvidirano ("+fmtU(liq.sellLiq)+") — potencijalni dno",type:"bull"});}
+  }
+  // 14. TOP TRADER L/S RATIO — institucionalno pozicioniranje (pametan novac)
+  var ttr=topTraderRatio[sym];
+  if(ttr){
+    if(ttr.ratio<0.7){delta-=1.5;warnings.push({txt:"Top traderi "+Math.round(ttr.shortPct*100)+"% short — pametni novac bearish",type:"bear"});}
+    else if(ttr.ratio<0.9){delta-=0.5;warnings.push({txt:"Top traderi blago short ("+ttr.ratio+") — institucijski oprez",type:"warn"});}
+    else if(ttr.ratio>1.8){delta+=2;signals.push({txt:"Top traderi "+Math.round(ttr.longPct*100)+"% long — institucionalna kupnja",type:"bull"});}
+    else if(ttr.ratio>1.3){delta+=1;signals.push({txt:"Top traderi bullish lean ("+ttr.ratio+") — povoljno",type:"bull"});}
+  }
+  // 15. EXCHANGE NETFLOW (CryptoQuant — ako API ključ dostupan)
+  var nf=netflowData[sym];
+  if(nf){
+    if(nf.netflow<-500){delta+=2.5;signals.push({txt:"Netflow -"+Math.abs(nf.netflow).toFixed(0)+" — masovni odliv s burzi = akumulacija waleta",type:"bull"});}
+    else if(nf.netflow<-100){delta+=1.5;signals.push({txt:"Netflow -"+Math.abs(nf.netflow).toFixed(0)+" — odliv s burzi = HODLing",type:"bull"});}
+    else if(nf.netflow>500){delta-=2;warnings.push({txt:"Netflow +"+nf.netflow.toFixed(0)+" — veliki priljevi na burze = prodajni pritisak",type:"bear"});}
+    else if(nf.netflow>100){delta-=1;warnings.push({txt:"Netflow +"+nf.netflow.toFixed(0)+" — priljevi na burze, oprez",type:"warn"});}
+  }
+  // 16. SOCIAL SENTIMENT (LunarCrush — ako API ključ dostupan)
+  var ss=socialSentiment[sym];
+  if(ss){
+    if(ss.score>70&&ss.volumeChange>50){delta+=1;signals.push({txt:"Social score "+ss.score+"/100 (vol +"+ss.volumeChange+"%) — rastući interes",type:"bull"});}
+    else if(ss.score>60){delta+=0.5;signals.push({txt:"Social score "+ss.score+"/100 — pozitivna pažnja",type:"bull"});}
+    else if(ss.score<20){delta-=0.5;warnings.push({txt:"Social score "+ss.score+"/100 — malo interesa zajednice",type:"warn"});}
+  }
+  // 17. TOKEN UNLOCK upozorenje — prodajni pritisak pred unlock
+  var unlock=tokenUnlocks[sym];
+  if(unlock){
+    var daysUntil=Math.round((new Date(unlock.date)-Date.now())/86400000);
+    if(daysUntil>=0&&daysUntil<=14){
+      var uPenalty=daysUntil<=3?-3:daysUntil<=7?-2:-1;
+      delta+=uPenalty;
+      warnings.push({txt:"Token unlock za "+daysUntil+"d: $"+(unlock.usd/1000000).toFixed(0)+"M ("+unlock.pct+"%) — "+unlock.reason,type:"bear"});
+    }
+  }
+  // 18. SPX korelacija — pad burzi = macro risk-off = kripto pati
+  if(spxData.ret5d!==null){
+    if(spxData.ret5d<-5){delta-=1.5;warnings.push({txt:"S&P500 "+spxData.ret5d.toFixed(1)+"% (5d) — risk-off, kripto pati",type:"bear"});}
+    else if(spxData.ret5d<-2){delta-=0.5;warnings.push({txt:"S&P500 "+spxData.ret5d.toFixed(1)+"% (5d) — blagi macro pritisak",type:"warn"});}
+    else if(spxData.ret5d>3){delta+=0.5;signals.push({txt:"S&P500 +"+spxData.ret5d.toFixed(1)+"% (5d) — risk-on, povoljno za kripto",type:"bull"});}
   }
   return delta;
 }
@@ -2193,7 +2281,12 @@ function setPct(pct){
 }
 
 // ── SETTINGS ────────────────────────────────────────────────────
-function openSettings(){document.getElementById("modal").classList.add("open");}
+function openSettings(){
+  document.getElementById("modal").classList.add("open");
+  var cq=document.getElementById("s-cq");var lc=document.getElementById("s-lc");
+  if(cq&&apiKeys.cryptoquant)cq.value=apiKeys.cryptoquant;
+  if(lc&&apiKeys.lunarcrush)lc.value=apiKeys.lunarcrush;
+}
 function closeModal(){document.getElementById("modal").classList.remove("open");}
 function applySettings(){
   settings.minConf=parseInt(document.getElementById("s-conf").value)||55;
@@ -2201,6 +2294,11 @@ function applySettings(){
   settings.maxRisk=parseFloat(document.getElementById("s-risk").value)||3;
   settings.minRR=parseFloat(document.getElementById("s-rr").value)||1.5;
   lsSet("ad3d_s",JSON.stringify(settings));
+  var cq=document.getElementById("s-cq");var lc=document.getElementById("s-lc");
+  if(cq&&cq.value.trim())apiKeys.cryptoquant=cq.value.trim();
+  if(lc&&lc.value.trim())apiKeys.lunarcrush=lc.value.trim();
+  lsSet("ad3d_apikeys",JSON.stringify(apiKeys));
+  fetchNetflow();fetchSocialData();
   closeModal();render();
 }
 
@@ -2400,6 +2498,132 @@ function fetchFuturesSignals(){
           futuresData[sym].takerRatio=+avg.toFixed(3);
         }).catch(function(){});
 
+    },idx*400);
+  });
+}
+
+// ── SVE FUNDING RATES — jedan REST poziv, svi futures tokeni ────────
+function fetchAllFundingRates(){
+  fetch("https://fapi.binance.com/fapi/v1/premiumIndex")
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!Array.isArray(data))return;
+      data.forEach(function(d){
+        if(!d.symbol||!d.symbol.endsWith("USDT"))return;
+        var sym=d.symbol.replace("USDT","");
+        var rate=parseFloat(d.lastFundingRate);
+        if(!isNaN(rate))fr[sym]={rate:rate};
+      });
+    }).catch(function(){});
+}
+
+// ── TOP TRADER L/S RATIO (Binance besplatno) — institucijski sentiment ──
+function fetchTopTraderRatio(){
+  var syms=["BTC","ETH","XRP","SOL","BNB","ADA","LINK","AVAX","DOGE","SUI"];
+  syms.forEach(function(sym,idx){
+    setTimeout(function(){
+      fetch("https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol="+sym+"USDT&period=1h&limit=4")
+        .then(function(r){return r.json();})
+        .then(function(d){
+          if(!d||!d.length)return;
+          var latest=d[d.length-1];
+          topTraderRatio[sym]={
+            ratio:+parseFloat(latest.longShortRatio).toFixed(3),
+            longPct:+parseFloat(latest.longAccount).toFixed(3),
+            shortPct:+parseFloat(latest.shortAccount).toFixed(3)
+          };
+        }).catch(function(){});
+    },idx*350);
+  });
+}
+
+// ── LIKVIDACIJSKI WebSocket — Binance Force Orders (real-time) ───────
+// BUY = short liquidated (short squeeze = bullish)
+// SELL = long liquidated (capitulation/panic = potencijalni dno)
+function connectLiqWS(){
+  if(typeof WebSocket==="undefined")return;
+  try{
+    var ws=new WebSocket("wss://fstream.binance.com/stream?streams=!forceOrder@arr");
+    var LIQ_WIN=3600000; // 1h rolling window
+    ws.onmessage=function(e){
+      try{
+        var msg=JSON.parse(e.data);
+        var o=(msg.data&&msg.data.o)||msg.o;
+        if(!o||!o.s)return;
+        var sym=o.s.replace("USDT","");
+        var usd=parseFloat(o.q)*parseFloat(o.ap||o.p||0);
+        if(!usd||isNaN(usd))return;
+        var now=Date.now();
+        if(!liquidations[sym]||now-liquidations[sym].ts>LIQ_WIN)
+          liquidations[sym]={buyLiq:0,sellLiq:0,ts:now};
+        if(o.S==="BUY")liquidations[sym].buyLiq+=usd;
+        else liquidations[sym].sellLiq+=usd;
+      }catch(ex){}
+    };
+    ws.onclose=function(){setTimeout(connectLiqWS,15000);};
+    ws.onerror=function(){};
+  }catch(e){}
+}
+
+// ── SPX (S&P500) KORELACIJA — Yahoo Finance besplatno ────────────────
+function fetchSPX(){
+  fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1d&range=7d")
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var result=d&&d.chart&&d.chart.result&&d.chart.result[0];
+      if(!result)return;
+      var prices=result.indicators&&result.indicators.quote&&result.indicators.quote[0]&&result.indicators.quote[0].close;
+      if(!prices||prices.length<2)return;
+      var valid=prices.filter(function(p){return p!=null;});
+      if(valid.length<2)return;
+      var ret=+((valid[valid.length-1]-valid[0])/valid[0]*100).toFixed(2);
+      spxData={ret5d:ret,bullish:ret>0,last:+valid[valid.length-1].toFixed(2)};
+    }).catch(function(){});
+}
+
+// ── EXCHANGE NETFLOW (CryptoQuant — zahtijeva API ključ) ─────────────
+function fetchNetflow(){
+  var key=apiKeys.cryptoquant;
+  if(!key)return;
+  [{sym:"BTC",coin:"btc"},{sym:"ETH",coin:"eth"}].forEach(function(c){
+    fetch("https://api.cryptoquant.com/v1/"+c.coin+"/exchange-flows/netflow?window=hour&limit=24",{
+      headers:{"Authorization":"Bearer "+key}
+    }).then(function(r){return r.json();})
+    .then(function(d){
+      if(!d||!d.result||!d.result.data||!d.result.data.length)return;
+      var rows=d.result.data;
+      var latest=rows[rows.length-1];
+      netflowData[c.sym]={
+        netflow:parseFloat(latest.netflow_total||latest.netflow||0),
+        inflow:parseFloat(latest.inflow_total||latest.inflow||0),
+        outflow:parseFloat(latest.outflow_total||latest.outflow||0),
+        ts:Date.now()
+      };
+    }).catch(function(){});
+  });
+}
+
+// ── SOCIAL SENTIMENT (LunarCrush — zahtijeva API ključ) ──────────────
+function fetchSocialData(){
+  var key=apiKeys.lunarcrush;
+  if(!key)return;
+  var slugs={BTC:"bitcoin",ETH:"ethereum",SOL:"solana",XRP:"xrp",BNB:"bnb",
+             ADA:"cardano",LINK:"chainlink",AVAX:"avalanche",DOGE:"dogecoin"};
+  Object.keys(slugs).forEach(function(sym,idx){
+    setTimeout(function(){
+      fetch("https://lunarcrush.com/api4/public/coins/"+slugs[sym]+"/v1",{
+        headers:{"Authorization":"Bearer "+key}
+      }).then(function(r){return r.json();})
+      .then(function(d){
+        if(!d||!d.data)return;
+        var data=d.data;
+        socialSentiment[sym]={
+          score:Math.round(data.galaxy_score||50),
+          volume:data.social_volume_24h||0,
+          volumeChange:Math.round(data.social_volume_24h_rank||0),
+          sentiment:Math.round(data.sentiment_absolute||50)
+        };
+      }).catch(function(){});
     },idx*400);
   });
 }
@@ -2618,15 +2842,21 @@ function updWs(){
 // ── INIT ────────────────────────────────────────────────────────
 connectWS();         // odmah poveži sa SYMS (dok TOP100 se učitava)
 connectFR();
+connectLiqWS();      // real-time likvidacije — short squeeze / capitulation detekcija
 loadTop100();        // async: dohvati top 100 → reconnect WS → VP → OB
 fetchOptions3D();
 fetchMacro3D();
 fetchFearGreed();
 fetchMacroContext();
 fetchDXY();
+fetchSPX();          // S&P500 5d povrat — macro korelacija
 fetchOpenInterest();
 fetch4hTA();
 fetchFuturesSignals();
+fetchAllFundingRates(); // svi funding rates odjednom (sve futures parove)
+fetchTopTraderRatio();  // institucijski L/S ratio — pametan novac
+fetchNetflow();         // exchange netflow — samo ako CryptoQuant API key dostupan
+fetchSocialData();      // social sentiment — samo ako LunarCrush API key dostupan
 // ── OPEN INTEREST (Binance Futures) ─────────────────────────────
 // OI raste + cijena raste = zdrav trend (novi kapital ulazi)
 // OI pada + cijena raste = short covering, ne pravi bullish (slabiji signal)
@@ -2664,9 +2894,14 @@ setInterval(fetchMacroContext, 600000);// svako 10 min
 setInterval(fetchOrderBooks, 300000);  // svako 5 min (batched)
 setInterval(loadTop100, 900000);       // svako 15 min — osvježi top 100 + CoinGecko podaci
 setInterval(fetchDXY, 1800000);        // svako 30 min
-setInterval(fetchOpenInterest, 600000);  // svako 10 min
-setInterval(fetch4hTA, 1800000);         // svako 30 min (4h+daily sporije se mijenjaju)
-setInterval(fetchFuturesSignals, 300000);// svako 5 min (basis/LS/taker brzo se mijenjaju)
+setInterval(fetchOpenInterest, 600000);    // svako 10 min
+setInterval(fetch4hTA, 1800000);           // svako 30 min (4h+daily sporije se mijenjaju)
+setInterval(fetchFuturesSignals, 300000);  // svako 5 min (basis/LS/taker brzo se mijenjaju)
+setInterval(fetchAllFundingRates, 300000); // svako 5 min — funding rates svih tokena
+setInterval(fetchTopTraderRatio, 600000);  // svako 10 min — institucijski L/S
+setInterval(fetchSPX, 1800000);            // svako 30 min — SPX macro korelacija
+setInterval(fetchNetflow, 600000);         // svako 10 min — exchange netflow (ako key)
+setInterval(fetchSocialData, 900000);      // svako 15 min — social sentiment (ako key)
 // ── BACKGROUND AUTO-TRACK (neovisno o aktivnom tabu) ─────────────
 function backgroundAutoTrack(){
   var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});

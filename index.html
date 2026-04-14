@@ -206,6 +206,11 @@ svg.sp{overflow:visible;display:block}
           <label class="inp-lbl">LunarCrush API key <span style="color:var(--t3)">(social sentiment)</span></label>
           <input id="s-lc" class="inp" type="password" placeholder="API key..." style="font-size:12px">
         </div>
+        <div>
+          <label class="inp-lbl">GitHub Personal Access Token <span style="color:var(--t3)">(sync rezultata između uređaja)</span></label>
+          <input id="s-gh" class="inp" type="password" placeholder="ghp_..." style="font-size:12px">
+          <div style="font-size:10px;color:var(--t3);margin-top:4px">github.com → Settings → Developer settings → Personal access tokens → repo scope</div>
+        </div>
       </div>
     </div>
   </div>
@@ -296,8 +301,13 @@ var tokenUnlocks={      // Poznati unlock eventi — bearish pritisak pred unloc
   SOL:{date:"2026-04-20",pct:2.1,usd:420000000,reason:"FTX estate distribucija"},
   ARB:{date:"2026-03-16",pct:11.6,usd:950000000,reason:"Team unlock cliff"}
 };
-var apiKeys={cryptoquant:"",coinglass:"",lunarcrush:""};
+var apiKeys={cryptoquant:"",coinglass:"",lunarcrush:"",github:""};
 try{var _ak=JSON.parse(lsGet("ad3d_apikeys")||"{}");if(_ak&&typeof _ak==="object")Object.assign(apiKeys,_ak);}catch(e){}
+// GitHub sync
+var GH_REPO="ttovernic/alphadesk";
+var GH_FILE="tracker.json";
+var ghSha=null; // SHA trenutne verzije fajla na GitHubu (potreban za PUT)
+var ghSync={status:"idle",lastSync:null,error:null}; // "idle"|"syncing"|"ok"|"error"
 var polyData={};  // {sym:[{question,prob,volume,endDate}]} — Polymarket prediction markets
 var polyRaw=[];   // raw lista aktivnih kripto marketa s Polymarketa
 var lastRefresh={ // timestamp zadnjeg osvježavanja po izvoru
@@ -339,6 +349,17 @@ function renderRefreshStatus(){
     {lbl:"Polymarket",ts:lastRefresh.polymarket},
     {lbl:"SPX",ts:lastRefresh.spx}
   ];
+  // GH sync badge
+  var ghBadge="";
+  if(apiKeys.github){
+    var ghCol=ghSync.status==="ok"?"var(--gr)":ghSync.status==="error"?"var(--re)":ghSync.status==="syncing"?"var(--ye)":"var(--t4)";
+    var ghLbl=ghSync.status==="ok"?"✓ synced":ghSync.status==="error"?"✗ greška":ghSync.status==="syncing"?"↻ sync...":"—";
+    var ghAgo=ghSync.lastSync?" · "+fmtTsAgo(ghSync.lastSync):"";
+    ghBadge='<div style="background:var(--s2);border-radius:6px;padding:3px 8px;font-size:10px;border:.5px solid rgba(99,102,241,.3)">'
+      +'<span style="color:var(--t3)">GitHub</span> '
+      +'<span style="color:'+ghCol+';font-weight:700">'+ghLbl+ghAgo+'</span>'
+      +'</div>';
+  }
   var now=new Date();
   var pad=function(n){return n<10?"0"+n:n;};
   var timeStr=pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
@@ -356,6 +377,7 @@ function renderRefreshStatus(){
     h+='<span style="color:'+col+';font-weight:700">'+ago+'</span>';
     h+='</div>';
   });
+  if(ghBadge)h+=ghBadge;
   h+='</div></div>';
   return h;
 }
@@ -1073,6 +1095,7 @@ function recordPred(sym,entryPrice,targetPrice,stopPrice,conf,forcePct,d1T,d2T){
   predTracker.unshift(p);
   if(predTracker.length>50)predTracker=predTracker.slice(0,50);
   try{localStorage.setItem("ad3d_track",JSON.stringify(predTracker));}catch(e){}
+  syncToGH();
   render();
   alert("✅ "+sym+" zabilježen! Target: $"+targetPrice.toFixed(4)+" | Stop: $"+stopPrice.toFixed(4));
 }
@@ -1085,6 +1108,7 @@ function closePred(id,hit){
     return Object.assign({},p,{status:hit?"POGODAK":"PROMAŠAJ",closePrice:cur,closePct:+pct.toFixed(2)});
   });
   try{localStorage.setItem("ad3d_track",JSON.stringify(predTracker));}catch(e){}
+  syncToGH();
   render();
 }
 
@@ -1092,6 +1116,7 @@ function clearTracker(){
   if(!confirm("Obriši sve predikcije?"))return;
   predTracker=[];
   try{localStorage.setItem("ad3d_track","[]");}catch(e){}
+  syncToGH();
   render();
 }
 
@@ -1172,7 +1197,8 @@ function autoClosePreds(){
   });
   if(changed){
     try{localStorage.setItem("ad3d_track",JSON.stringify(predTracker));}catch(e){}
-    refreshWeights(); // rekalibracija težina kad se zatvori predikcija
+    refreshWeights();
+    syncToGH();
   }
   return changed;
 }
@@ -1222,6 +1248,7 @@ function autoTrackOpps(opps, source){
   if(added){
     if(predTracker.length>100)predTracker=predTracker.slice(0,100);
     try{localStorage.setItem("ad3d_track",JSON.stringify(predTracker));}catch(e){}
+    syncToGH();
   }
 }
 
@@ -2388,9 +2415,10 @@ function setPct(pct){
 // ── SETTINGS ────────────────────────────────────────────────────
 function openSettings(){
   document.getElementById("modal").classList.add("open");
-  var cq=document.getElementById("s-cq");var lc=document.getElementById("s-lc");
+  var cq=document.getElementById("s-cq");var lc=document.getElementById("s-lc");var gh=document.getElementById("s-gh");
   if(cq&&apiKeys.cryptoquant)cq.value=apiKeys.cryptoquant;
   if(lc&&apiKeys.lunarcrush)lc.value=apiKeys.lunarcrush;
+  if(gh&&apiKeys.github)gh.value=apiKeys.github;
 }
 function closeModal(){document.getElementById("modal").classList.remove("open");}
 function applySettings(){
@@ -2399,9 +2427,18 @@ function applySettings(){
   settings.maxRisk=parseFloat(document.getElementById("s-risk").value)||3;
   settings.minRR=parseFloat(document.getElementById("s-rr").value)||1.5;
   lsSet("ad3d_s",JSON.stringify(settings));
-  var cq=document.getElementById("s-cq");var lc=document.getElementById("s-lc");
+  var cq=document.getElementById("s-cq");var lc=document.getElementById("s-lc");var gh=document.getElementById("s-gh");
   if(cq&&cq.value.trim())apiKeys.cryptoquant=cq.value.trim();
   if(lc&&lc.value.trim())apiKeys.lunarcrush=lc.value.trim();
+  var newGhToken=gh?gh.value.trim():"";
+  if(newGhToken&&newGhToken!==apiKeys.github){
+    apiKeys.github=newGhToken;
+    lsSet("ad3d_apikeys",JSON.stringify(apiKeys));
+    closeModal();
+    syncFromGH(function(){render();});
+    fetchNetflow();fetchSocialData();
+    return;
+  }
   lsSet("ad3d_apikeys",JSON.stringify(apiKeys));
   fetchNetflow();fetchSocialData();
   closeModal();render();
@@ -2605,6 +2642,53 @@ function fetchFuturesSignals(){
         }).catch(function(){});
 
     },idx*400);
+  });
+}
+
+// ── GITHUB SYNC — čitanje i pisanje tracker.json u repo ─────────────
+function ghHeaders(){
+  return{"Authorization":"token "+apiKeys.github,"Accept":"application/vnd.github.v3+json","Content-Type":"application/json"};
+}
+function syncFromGH(onDone){
+  if(!apiKeys.github){if(onDone)onDone();return;}
+  ghSync.status="syncing";
+  fetch("https://api.github.com/repos/"+GH_REPO+"/contents/"+GH_FILE,{headers:ghHeaders()})
+    .then(function(r){
+      if(r.status===404){ghSha=null;if(onDone)onDone();ghSync.status="ok";ghSync.lastSync=Date.now();return;}
+      return r.json().then(function(d){
+        ghSha=d.sha;
+        var remote=JSON.parse(atob(d.content.replace(/\n/g,"")));
+        // Merge: spoji lokalne i remote predikcije po ID-u — uzmi sve jedinstvene
+        var localIds=new Set(predTracker.map(function(p){return p.id;}));
+        var remoteOnly=(remote.predictions||[]).filter(function(p){return !localIds.has(p.id);});
+        predTracker=predTracker.concat(remoteOnly);
+        predTracker.sort(function(a,b){return (parseInt(b.id)||0)-(parseInt(a.id)||0);});
+        if(predTracker.length>200)predTracker=predTracker.slice(0,200);
+        try{localStorage.setItem("ad3d_track",JSON.stringify(predTracker));}catch(e){}
+        if(remote.signalWeights)signalWeights=remote.signalWeights;
+        ghSync.status="ok";ghSync.lastSync=Date.now();ghSync.error=null;
+        if(onDone)onDone();
+      });
+    }).catch(function(err){
+      ghSync.status="error";ghSync.error="Čitanje neuspješno";
+      if(onDone)onDone();
+    });
+}
+function syncToGH(){
+  if(!apiKeys.github)return;
+  ghSync.status="syncing";
+  var payload={predictions:predTracker,signalWeights:signalWeights,updatedAt:new Date().toISOString()};
+  var content=btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))));
+  var body={message:"sync: tracker "+new Date().toISOString().slice(0,16),content:content};
+  if(ghSha)body.sha=ghSha;
+  fetch("https://api.github.com/repos/"+GH_REPO+"/contents/"+GH_FILE,{
+    method:"PUT",headers:ghHeaders(),body:JSON.stringify(body)
+  }).then(function(r){return r.json();})
+  .then(function(d){
+    if(d.content&&d.content.sha)ghSha=d.content.sha;
+    ghSync.status="ok";ghSync.lastSync=Date.now();ghSync.error=null;
+  }).catch(function(){
+    ghSync.status="error";ghSync.error="Pisanje neuspješno";
   });
 }
 
@@ -3078,7 +3162,7 @@ function backgroundAutoTrack(){
   });
 }
 
-render();
+syncFromGH(function(){render();}); // učitaj sa GitHuba pri startu, pa renderiraj
 setInterval(render,10000);
 setInterval(backgroundAutoTrack, 120000); // svako 2 min, neovisno o tabu
 setInterval(refreshWeights, 1800000);    // rekalibracija težina svako 30 min

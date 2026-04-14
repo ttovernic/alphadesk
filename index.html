@@ -35,8 +35,13 @@ html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF P
 .pg{padding:14px 16px 70px}
 
 /* TABS */
-.filter-wrap{padding:0 16px;flex-shrink:0;background:rgba(0,0,0,.85);backdrop-filter:blur(20px);border-bottom:.5px solid var(--sep2);display:flex;align-items:center;justify-content:space-between}
-.tab-row{display:flex}
+.filter-wrap{padding:0;flex-shrink:0;background:rgba(0,0,0,.85);backdrop-filter:blur(20px);border-bottom:.5px solid var(--sep2);display:flex;flex-direction:column}
+.filter-top{display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.tab-row{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1;min-width:0}
+.tab-row::-webkit-scrollbar{display:none}
+.pct-row{display:flex;justify-content:center;padding:6px 16px 8px;border-top:.5px solid var(--sep2)}
+#pct-desktop{display:none}
+@media(min-width:600px){.filter-wrap{flex-direction:row;align-items:center;padding:0 16px}.filter-top{flex:1;min-width:0}.pct-row{display:none}#pct-desktop{display:flex}}
 .tab{padding:13px 16px;font-size:13px;font-weight:600;border:none;background:none;color:var(--t3);cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
 .tab.on{color:var(--t1);border-bottom-color:var(--ye)}
 .hd-gear{background:none;border:.5px solid var(--sep);border-radius:10px;padding:5px 9px;font-size:15px;cursor:pointer;color:var(--t3);transition:all .2s;flex-shrink:0}
@@ -148,17 +153,26 @@ svg.sp{overflow:visible;display:block}
     </div>
   </div>
   <div class="filter-wrap">
-    <div class="tab-row">
-      <button class="tab on" id="tab-pregled" onclick="setTab('pregled')">Pregled</button>
-      <button class="tab" id="tab-ulaz" onclick="setTab('ulaz')">Ulaz</button>
-      <button class="tab" id="tab-watch" onclick="setTab('watch')">Watch</button>
-      <button class="tab" id="tab-meme" onclick="setTab('meme')">🎰 Meme</button>
-      <button class="tab" id="tab-rezultati" onclick="setTab('rezultati')">Rezultati</button>
+    <div class="filter-top">
+      <div class="tab-row">
+        <button class="tab on" id="tab-pregled" onclick="setTab('pregled')">Pregled</button>
+        <button class="tab" id="tab-ulaz" onclick="setTab('ulaz')">Ulaz</button>
+        <button class="tab" id="tab-watch" onclick="setTab('watch')">Watch</button>
+        <button class="tab" id="tab-meme" onclick="setTab('meme')">🎰 Meme</button>
+        <button class="tab" id="tab-rezultati" onclick="setTab('rezultati')">Rezultati</button>
+      </div>
+      <div class="pct-toggle" id="pct-desktop">
+        <button class="pct-btn on" id="btn5d" onclick="setPct(5)">5%</button>
+        <button class="pct-btn" id="btn3d" onclick="setPct(3)">3%</button>
+        <button class="pct-btn" id="btn10d" onclick="setPct(10)">10%</button>
+      </div>
     </div>
-    <div class="pct-toggle">
-      <button class="pct-btn on" id="btn5" onclick="setPct(5)">5%</button>
-      <button class="pct-btn" id="btn3" onclick="setPct(3)">3%</button>
-      <button class="pct-btn" id="btn10" onclick="setPct(10)">10%</button>
+    <div class="pct-row">
+      <div class="pct-toggle">
+        <button class="pct-btn on" id="btn5" onclick="setPct(5)">5%</button>
+        <button class="pct-btn" id="btn3" onclick="setPct(3)">3%</button>
+        <button class="pct-btn" id="btn10" onclick="setPct(10)">10%</button>
+      </div>
     </div>
   </div>
   <div class="sc" id="sc"></div>
@@ -2169,9 +2183,10 @@ function setTab(t){
 }
 function setPct(pct){
   activePct=pct;
-  document.getElementById("btn5").classList.toggle("on",pct===5);
-  document.getElementById("btn3").classList.toggle("on",pct===3);
-  document.getElementById("btn10").classList.toggle("on",pct===10);
+  ["btn5","btn3","btn10"].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.classList.toggle("on",id==="btn"+pct);
+    var eld=document.getElementById(id+"d"); if(eld) eld.classList.toggle("on",id==="btn"+pct);
+  });
   var onPregled=activeFilter==="all"||activeFilter==="pct3"||activeFilter==="pct10";
   if(onPregled) activeFilter=pct===3?"pct3":pct===10?"pct10":"all";
   render();

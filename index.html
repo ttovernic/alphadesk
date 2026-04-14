@@ -300,6 +300,9 @@ var apiKeys={cryptoquant:"",coinglass:"",lunarcrush:""};
 try{var _ak=JSON.parse(lsGet("ad3d_apikeys")||"{}");if(_ak&&typeof _ak==="object")Object.assign(apiKeys,_ak);}catch(e){}
 var polyData={};  // {sym:[{question,prob,volume,endDate}]} — Polymarket prediction markets
 var polyRaw=[];   // raw lista aktivnih kripto marketa s Polymarketa
+var lastRefresh={ // timestamp zadnjeg osvježavanja po izvoru
+  analysis:null, prices:null, fg:null, futures:null, polymarket:null, spx:null, oi:null
+};
 const CG_IDS={BTC:"bitcoin",ETH:"ethereum",XRP:"ripple",BNB:"binancecoin",ADA:"cardano",LINK:"chainlink",SOL:"solana",AVAX:"avalanche-2",SUI:"sui",DOGE:"dogecoin",SHIB:"shiba-inu",PEPE:"pepe",WIF:"dogwifhat",BONK:"bonk",FLOKI:"floki"};
 
 // ── TOP 100 ENGINE ───────────────────────────────────────────────
@@ -313,6 +316,49 @@ function hslForSym(s){var h=0;for(var i=0;i<s.length;i++)h=(s.charCodeAt(i)+((h<
 function getCfg(sym){if(!CFG[sym])CFG[sym]={i:sym.length<=3?sym:sym.slice(0,3),c:hslForSym(sym),cn:sym};return CFG[sym];}
 
 // ── FORMAT ──────────────────────────────────────────────────────
+function fmtTs(ts){
+  if(!ts)return"—";
+  var d=new Date(ts);
+  var pad=function(n){return n<10?"0"+n:n;};
+  return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+}
+function fmtTsAgo(ts){
+  if(!ts)return"—";
+  var sec=Math.round((Date.now()-ts)/1000);
+  if(sec<60)return sec+"s";
+  if(sec<3600)return Math.floor(sec/60)+"min";
+  return Math.floor(sec/3600)+"h";
+}
+function renderRefreshStatus(){
+  var items=[
+    {lbl:"Analiza",ts:lastRefresh.analysis},
+    {lbl:"Cijene",ts:lastRefresh.prices},
+    {lbl:"F&G",ts:lastRefresh.fg},
+    {lbl:"Futures",ts:lastRefresh.futures},
+    {lbl:"OI",ts:lastRefresh.oi},
+    {lbl:"Polymarket",ts:lastRefresh.polymarket},
+    {lbl:"SPX",ts:lastRefresh.spx}
+  ];
+  var now=new Date();
+  var pad=function(n){return n<10?"0"+n:n;};
+  var timeStr=pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
+  var h='<div style="background:var(--s1);border-radius:12px;padding:10px 14px;margin-bottom:12px;border:.5px solid var(--sep)">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  h+='<span style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">🕐 Zadnji refresh</span>';
+  h+='<span style="font-size:12px;font-weight:800;color:var(--ye)">'+timeStr+'</span>';
+  h+='</div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+  items.forEach(function(it){
+    var ago=it.ts?fmtTsAgo(it.ts):"—";
+    var col=it.ts&&(Date.now()-it.ts)<120000?"var(--gr)":it.ts?"var(--ye)":"var(--t4)";
+    h+='<div style="background:var(--s2);border-radius:6px;padding:3px 8px;font-size:10px">';
+    h+='<span style="color:var(--t3)">'+it.lbl+'</span> ';
+    h+='<span style="color:'+col+';font-weight:700">'+ago+'</span>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+  return h;
+}
 function fp(n){if(!n||isNaN(n))return"—";if(n>=10000)return"$"+Math.round(n).toLocaleString("en");if(n>=100)return"$"+n.toFixed(2);if(n>=1)return"$"+n.toFixed(3);if(n>=0.01)return"$"+n.toFixed(5);return"$"+n.toFixed(8);}
 function fc(n){return n==null?"—":(n>=0?"+":"")+n.toFixed(2)+"%";}
 function gc(n){return n>=0?"var(--gr)":"var(--re)";}
@@ -2237,14 +2283,16 @@ function rMeme(){
 }
 
 function render(){
+  lastRefresh.analysis=Date.now();
   var sc=document.getElementById("sc");
-  if(activeFilter==="tracker"){sc.innerHTML=rTracker();return;}
-  if(activeFilter==="pct3"){sc.innerHTML=r3pct();return;}
-  if(activeFilter==="pct10"){sc.innerHTML=r10pct();return;}
-  if(activeFilter==="meme"){sc.innerHTML=rMeme();return;}
+  var rs=renderRefreshStatus();
+  if(activeFilter==="tracker"){sc.innerHTML=rs+rTracker();return;}
+  if(activeFilter==="pct3"){sc.innerHTML=rs+r3pct();return;}
+  if(activeFilter==="pct10"){sc.innerHTML=rs+r10pct();return;}
+  if(activeFilter==="meme"){sc.innerHTML=rs+rMeme();return;}
   var opps=getOpportunities();
 
-  var h='<div class="pg">';
+  var h='<div class="pg">'+rs;
 
   // Legend
   h+='<div class="legend">';
@@ -2524,6 +2572,7 @@ function fetchFuturesSignals(){
           if(!futuresData[sym])futuresData[sym]={};
           futuresData[sym].basis=basis;
           futuresData[sym].basisTrend=basis<-0.05?"BACKWARDATION":basis>0.1?"CONTANGO_HIGH":basis>0.03?"CONTANGO":"FLAT";
+          lastRefresh.futures=Date.now();
         }).catch(function(){});
 
       // 2. LONG/SHORT RATIO — omjer long vs short pozicija
@@ -2600,6 +2649,7 @@ function fetchPolymarket(){
         polyData[sym].sort(function(a,b){return b.volume-a.volume;});
         polyData[sym]=polyData[sym].slice(0,5);
       });
+      lastRefresh.polymarket=Date.now();
     }).catch(function(){});
 }
 
@@ -2679,6 +2729,7 @@ function fetchSPX(){
       if(valid.length<2)return;
       var ret=+((valid[valid.length-1]-valid[0])/valid[0]*100).toFixed(2);
       spxData={ret5d:ret,bullish:ret>0,last:+valid[valid.length-1].toFixed(2)};
+      lastRefresh.spx=Date.now();
     }).catch(function(){});
 }
 
@@ -2850,7 +2901,7 @@ function fetchFearGreed(){
     .then(function(d){
       if(d&&d.data&&d.data[0]){
         var val=parseInt(d.data[0].value);
-        if(!isNaN(val)){MACRO.fg=val;}
+        if(!isNaN(val)){MACRO.fg=val;lastRefresh.fg=Date.now();}
       }
     }).catch(function(){});
 }
@@ -2890,7 +2941,7 @@ function onWsMsg(e){
   try{
     var d=JSON.parse(e.data);if(d.data)d=d.data;if(!d.s)return;
     var s=d.s.replace("USDT",""),p=parseFloat(d.c);if(isNaN(p)||p<=0)return;
-    px[s]={p:p,c24:parseFloat(d.P),ws:true};
+    px[s]={p:p,c24:parseFloat(d.P),ws:true};lastRefresh.prices=Date.now();
     // hist = samo za sparkline prikaz (WS ticks)
     // ta/macd/atr se NE računaju ovdje — dolaze iz 1h klines (fetchVP3D)
     // jer RSI/MACD iz sekundnih tick-ova nema smisla za 3-dnevne predikcije
@@ -2982,6 +3033,7 @@ function fetchOpenInterest(){
               var oiChg=+((curOI-oldOI)/oldOI*100).toFixed(2);
               var trend=oiChg>5?"RISING_FAST":oiChg>2?"RISING":oiChg<-5?"FALLING_FAST":oiChg<-2?"FALLING":"FLAT";
               openInterest[sym]={oiChange24h:oiChg,trend:trend,ts:Date.now()};
+              lastRefresh.oi=Date.now();
             }).catch(function(){});
         }).catch(function(){});
     },idx*300);

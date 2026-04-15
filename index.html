@@ -248,7 +248,12 @@ function showToast(msg,isErr){
 }
 
 const SYMS=["BTC","ETH","XRP","BNB","ADA","LINK","SOL","AVAX","SUI"];
-const MEME_SYMS=["DOGE","SHIB","PEPE","WIF","BONK","FLOKI"];
+const MEME_SYMS=["DOGE","SHIB","PEPE","WIF","BONK","FLOKI"]; // baza — uvijek uključeni
+// Svi poznati meme coini — dinamički se dodaju ako se nađu u TOP100
+const KNOWN_MEME=["DOGE","SHIB","PEPE","WIF","BONK","FLOKI",
+  "TRUMP","MELANIA","FARTCOIN","MOG","POPCAT","BRETT","TURBO","MEW",
+  "NEIRO","PONKE","BOME","SLERF","MYRO","MEME","COQ","GROK","AI16Z",
+  "GOAT","PNUT","ACT","VIRTUAL","PENGU","BABYDOGE","ELON","SAMO"];
 const CFG={
   BTC:{i:"₿",c:"#f7931a",cn:"Bitcoin"},ETH:{i:"Ξ",c:"#c77dff",cn:"Ethereum"},
   XRP:{i:"✕",c:"#00e676",cn:"XRP"},BNB:{i:"B",c:"#f0b90b",cn:"BNB"},
@@ -257,8 +262,23 @@ const CFG={
   SUI:{i:"◈",c:"#4fc3f7",cn:"Sui"},
   DOGE:{i:"Ð",c:"#c2a633",cn:"Dogecoin"},SHIB:{i:"🐕",c:"#ff6b35",cn:"Shiba Inu"},
   PEPE:{i:"🐸",c:"#00c853",cn:"Pepe"},WIF:{i:"🎩",c:"#9c27b0",cn:"dogwifhat"},
-  BONK:{i:"🔨",c:"#ff9800",cn:"Bonk"},FLOKI:{i:"⚡",c:"#ffeb3b",cn:"Floki"}
+  BONK:{i:"🔨",c:"#ff9800",cn:"Bonk"},FLOKI:{i:"⚡",c:"#ffeb3b",cn:"Floki"},
+  TRUMP:{i:"🇺🇸",c:"#ff4444",cn:"TRUMP"},MELANIA:{i:"👑",c:"#ff69b4",cn:"MELANIA"},
+  FARTCOIN:{i:"💨",c:"#8bc34a",cn:"Fartcoin"},MOG:{i:"😼",c:"#ab47bc",cn:"Mog Coin"},
+  POPCAT:{i:"🐱",c:"#ef5350",cn:"Popcat"},BRETT:{i:"🐸",c:"#42a5f5",cn:"Brett"},
+  TURBO:{i:"🚀",c:"#ff7043",cn:"Turbo"},MEW:{i:"🐱",c:"#26c6da",cn:"cat in a dogs world"},
+  NEIRO:{i:"🐕",c:"#ffa726",cn:"Neiro"},MEME:{i:"💎",c:"#7c4dff",cn:"Memecoin"},
+  GOAT:{i:"🐐",c:"#66bb6a",cn:"Goat"},PNUT:{i:"🥜",c:"#a1887f",cn:"Peanut"},
+  PENGU:{i:"🐧",c:"#4fc3f7",cn:"Pudgy Penguins"},VIRTUAL:{i:"🤖",c:"#b2ff59",cn:"Virtuals"},
+  AI16Z:{i:"🤖",c:"#69f0ae",cn:"ai16z"},GROK:{i:"✦",c:"#e040fb",cn:"Grok"}
 };
+// Dinamička lista aktivnih meme coina (baza + iz TOP100)
+function getMemeSYMS(){
+  var extra=KNOWN_MEME.filter(function(s){
+    return MEME_SYMS.indexOf(s)<0&&TOP100.indexOf(s)>-1;
+  });
+  return MEME_SYMS.concat(extra);
+}
 
 // Settings
 var settings={minConf:40,targetPct:5,maxRisk:3,minRR:1.2};
@@ -1110,7 +1130,7 @@ function refreshWeights(){
 refreshWeights();
 
 function recordPred(sym,entryPrice,targetPrice,stopPrice,conf,forcePct,d1T,d2T){
-  var isMeme=MEME_SYMS.indexOf(sym)>-1;
+  var isMeme=KNOWN_MEME.indexOf(sym)>-1;
   var p={
     id:Date.now()+"",
     timestamp:Date.now(),
@@ -2167,8 +2187,8 @@ function renderWeightsPanel(){
 
 function rTracker(){
   autoClosePreds();
-  var regularPreds=predTracker.filter(function(p){return p.type!=="meme"&&MEME_SYMS.indexOf(p.sym)<0;});
-  var memePreds=predTracker.filter(function(p){return p.type==="meme"||MEME_SYMS.indexOf(p.sym)>-1;});
+  var regularPreds=predTracker.filter(function(p){return p.type!=="meme"&&KNOWN_MEME.indexOf(p.sym)<0;});
+  var memePreds=predTracker.filter(function(p){return p.type==="meme"||KNOWN_MEME.indexOf(p.sym)>-1;});
   var h='<div class="pg">';
 
   if(predTracker.length===0){
@@ -2346,7 +2366,7 @@ function analyzeMeme(sym){
 var memeMinConf=48;
 function setMemeConf(v){memeMinConf=v;render();}
 function getMemeOpportunities(){
-  return MEME_SYMS.map(analyzeMeme)
+  return getMemeSYMS().map(analyzeMeme)
     .filter(function(x){return x&&x.conf>=memeMinConf&&x.achievable3d;})
     .sort(function(a,b){return b.conf-a.conf;});
 }
@@ -2366,11 +2386,12 @@ function rMeme(){
   h+='</div>';
   var posSize=memeMinConf>=80?'30':memeMinConf>=70?'20':'10';
   h+='<div style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:12px">Samo coinovi s pouzdanošću <strong style="color:var(--pu)">≥'+memeMinConf+'%</strong> i ATR-om koji pokriva 10% potez. Visoki rizik — koristiti max '+posSize+'% normale pozicije.</div>';
-  var allStats=MEME_SYMS.map(analyzeMeme).filter(function(x){return x;});
+  var activeMeme=getMemeSYMS();
+  var allStats=activeMeme.map(analyzeMeme).filter(function(x){return x;});
   var pass=allStats.filter(function(x){return x.conf>=memeMinConf&&x.achievable3d;}).length;
   var avgConf=allStats.length?Math.round(allStats.reduce(function(s,x){return s+x.conf;},0)/allStats.length):0;
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
-  [["Skenirano",MEME_SYMS.length,"var(--t2)"],["≥"+memeMinConf+"%",pass,"var(--pu)"],["Avg conf",avgConf+"%","var(--ye)"]].forEach(function(s){
+  [["Skenirano",activeMeme.length,"var(--t2)"],["≥"+memeMinConf+"%",pass,"var(--pu)"],["Avg conf",avgConf+"%","var(--ye)"]].forEach(function(s){
     h+='<div style="background:rgba(0,0,0,.3);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:'+s[2]+'">'+s[1]+'</div><div style="font-size:11px;color:var(--t3);margin-top:3px">'+s[0]+'</div></div>';
   });
   h+='</div></div>';

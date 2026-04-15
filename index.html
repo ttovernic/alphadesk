@@ -1013,13 +1013,13 @@ try{
   else{
     // Predefinene predikcije — istek 3 dana, označene kao PROMAŠAJ
     predTracker=[
-      {id:"pred_sol_28",sym:"SOL",date:"28. ožu.",entry:83,target:87.15,stop:78,
+      {id:"pred_sol_28",timestamp:1743116400000,sym:"SOL",date:"28. ožu.",entry:83,target:87.15,stop:78,
        targetPct:5,conf:58,status:"PROMAŠAJ",closePrice:83.18,closePct:+0.2,
        why:"SOL H&S breakdown potvrđen 27.3. Target $87.15 nije dostignut. Max: $87.2 dan 1, zatim pad na $80.8."},
-      {id:"pred_xrp_28",sym:"XRP",date:"28. ožu.",entry:1.36,target:1.428,stop:1.18,
+      {id:"pred_xrp_28",timestamp:1743116400000,sym:"XRP",date:"28. ožu.",entry:1.36,target:1.428,stop:1.18,
        targetPct:5,conf:52,status:"PROMAŠAJ",closePrice:1.36,closePct:0.0,
        why:"XRP ostao u $1.29-$1.40 rasponu. Target $1.428 nije dostignut. Nema catalysta."},
-      {id:"pred_btc_28",sym:"BTC",date:"28. ožu.",entry:66410,target:69730,stop:59000,
+      {id:"pred_btc_28",timestamp:1743202800000,sym:"BTC",date:"28. ožu.",entry:66410,target:69730,stop:59000,
        targetPct:5,conf:42,status:"PROMAŠAJ",closePrice:68456,closePct:+3.1,
        why:"BTC +3.1% u 3 dana — pozitivno ali ispod 5% targeta. Flash crash $65,112 i oporavak."}
     ];
@@ -1745,7 +1745,9 @@ function hcCumulative(sorted){
   var W=320,H=150,PL=32,PR=14,PT=16,PB=44;
   var cW=W-PL-PR,cH=H-PT-PB;
 
-  var tss=sorted.map(function(p){return p.timestamp||parseInt(p.id||"0");});
+  // Timestamp s fallbackom na index kad id nije broj
+  function getTs(p,i){var t=p.timestamp||(isNaN(parseInt(p.id))?0:parseInt(p.id));return t||i*3600000;}
+  var tss=sorted.map(function(p,i){return getTs(p,i);});
   var minTs=Math.min.apply(null,tss),maxTs=Math.max.apply(null,tss);
   var tRange=maxTs-minTs||1;
   function tx(ts){return sorted.length<2?PL+cW/2:PL+((ts-minTs)/tRange)*cW;}
@@ -1755,7 +1757,9 @@ function hcCumulative(sorted){
     var pts=[],hits=0;
     preds.forEach(function(p,i){
       if(p.status==="POGODAK")hits++;
-      pts.push({ts:p.timestamp||parseInt(p.id||"0"),acc:hits/(i+1)*100,hit:p.status==="POGODAK"});
+      // Nađi indeks u sorted za konzistentan ts
+      var si=sorted.indexOf(p);
+      pts.push({ts:getTs(p,si<0?i:si),acc:hits/(i+1)*100,hit:p.status==="POGODAK"});
     });
     return pts;
   }

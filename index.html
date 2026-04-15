@@ -1742,17 +1742,15 @@ function r3pct(){
 
 // ── HISTORY CHART ENGINE ─────────────────────────────────────────
 function hcCumulative(sorted){
-  var W=320,H=128,PL=32,PR=12,PT=12,PB=40;
+  var W=320,H=150,PL=32,PR=14,PT=16,PB=44;
   var cW=W-PL-PR,cH=H-PT-PB;
 
-  // Zajednička vremenska os po timestamp-u
   var tss=sorted.map(function(p){return p.timestamp||parseInt(p.id||"0");});
   var minTs=Math.min.apply(null,tss),maxTs=Math.max.apply(null,tss);
   var tRange=maxTs-minTs||1;
   function tx(ts){return sorted.length<2?PL+cW/2:PL+((ts-minTs)/tRange)*cW;}
   function ty(pct){return PT+cH-(pct/100*cH);}
 
-  // Kumulativna točnost za podskup (sort po ts već pretpostavljen)
   function buildSeries(preds){
     var pts=[],hits=0;
     preds.forEach(function(p,i){
@@ -1768,63 +1766,96 @@ function hcCumulative(sorted){
   var sUlaz =buildSeries(ulazPreds);
   var sWatch=buildSeries(watchPreds);
 
-  var svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="overflow:visible;display:block">';
+  // Smooth Catmull-Rom → Cubic Bezier
+  function buildPath(pts){
+    if(pts.length===0)return'';
+    if(pts.length===1)return'M'+tx(pts[0].ts).toFixed(1)+','+ty(pts[0].acc).toFixed(1);
+    var alpha=0.28;
+    var d='M'+tx(pts[0].ts).toFixed(1)+','+ty(pts[0].acc).toFixed(1);
+    for(var i=0;i<pts.length-1;i++){
+      var p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+      var cp1x=(tx(p1.ts)+alpha*(tx(p2.ts)-tx(p0.ts))).toFixed(1);
+      var cp1y=(ty(p1.acc)+alpha*(ty(p2.acc)-ty(p0.acc))).toFixed(1);
+      var cp2x=(tx(p2.ts)-alpha*(tx(p3.ts)-tx(p1.ts))).toFixed(1);
+      var cp2y=(ty(p2.acc)-alpha*(ty(p3.acc)-ty(p1.acc))).toFixed(1);
+      d+=' C'+cp1x+','+cp1y+' '+cp2x+','+cp2y+' '+tx(p2.ts).toFixed(1)+','+ty(p2.acc).toFixed(1);
+    }
+    return d;
+  }
 
-  // Grid linije
-  [25,50,75].forEach(function(pct){
-    var y=ty(pct);
-    svg+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="rgba(255,255,255,.06)" stroke-width="1"/>';
-    svg+='<text x="'+(PL-3)+'" y="'+(y+3)+'" font-size="8" fill="rgba(255,255,255,.22)" text-anchor="end">'+pct+'</text>';
-  });
-  svg+='<line x1="'+PL+'" y1="'+ty(50)+'" x2="'+(W-PR)+'" y2="'+ty(50)+'" stroke="rgba(255,234,0,.18)" stroke-width="1" stroke-dasharray="4 3"/>';
-
-  // Crtanje krivulje
-  function drawLine(pts,col,strokeW,dashed,fillOpa){
+  function drawCurve(pts,col,gid,strokeW,dashed,fillOpa){
     if(pts.length<1)return'';
-    var d=pts.map(function(pt,i){return(i===0?'M':'L')+tx(pt.ts).toFixed(1)+','+ty(pt.acc).toFixed(1);}).join(' ');
+    var d=buildPath(pts);
     var out='';
+    // Gradient fill pod krivuljom
     if(fillOpa>0&&pts.length>1){
-      out+='<path d="'+d+' L'+tx(pts[pts.length-1].ts).toFixed(1)+','+(PT+cH)+' L'+tx(pts[0].ts).toFixed(1)+','+(PT+cH)+' Z" fill="'+col+'" fill-opacity="'+fillOpa+'"/>';
+      var fillD=d+' L'+tx(pts[pts.length-1].ts).toFixed(1)+','+(PT+cH)+' L'+tx(pts[0].ts).toFixed(1)+','+(PT+cH)+' Z';
+      out+='<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'
+          +'<stop offset="0%" stop-color="'+col+'" stop-opacity="'+(fillOpa*3.5)+'"/>'
+          +'<stop offset="100%" stop-color="'+col+'" stop-opacity="0"/>'
+          +'</linearGradient></defs>';
+      out+='<path d="'+fillD+'" fill="url(#'+gid+')" />';
+    }
+    // Sama krivulja s glow efektom
+    if(!dashed){
+      out+='<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+(strokeW+1.5)+'" stroke-linecap="round" stroke-linejoin="round" opacity=".18"/>';
     }
     out+='<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+strokeW+'" stroke-linecap="round" stroke-linejoin="round"'+(dashed?' stroke-dasharray="5 3"':'')+'/>';
     return out;
   }
 
-  // 1. Ukupna (siva, isprekidana) — pozadina
-  svg+=drawLine(sAll,'rgba(200,200,200,.5)',1.5,true,0.03);
-  // 2. Ulaz (plava)
-  svg+=drawLine(sUlaz,'#2979ff',2.2,false,0.07);
-  // 3. Watch (žuta)
-  svg+=drawLine(sWatch,'#ffea00',2.2,false,0.05);
+  var svg='<svg width="100%" viewBox="0 0 '+W+' '+H+'" style="overflow:visible;display:block">';
 
-  // Točke za sve predikcije: zelena=pogodak, crvena=promašaj
+  // Grid
+  [25,50,75].forEach(function(pct){
+    var y=ty(pct);
+    svg+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="rgba(255,255,255,.055)" stroke-width="1"/>';
+    svg+='<text x="'+(PL-4)+'" y="'+(y+3.5)+'" font-size="9" fill="rgba(255,255,255,.2)" text-anchor="end">'+pct+'</text>';
+  });
+  // 50% referentna linija
+  svg+='<line x1="'+PL+'" y1="'+ty(50)+'" x2="'+(W-PR)+'" y2="'+ty(50)+'" stroke="rgba(255,234,0,.15)" stroke-width="1" stroke-dasharray="4 3"/>';
+  // Okvir grafa
+  svg+='<rect x="'+PL+'" y="'+PT+'" width="'+cW+'" height="'+cH+'" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="1" rx="2"/>';
+
+  // Krivulje: redoslijed važan (sve iza, zatim specifične ispred)
+  svg+=drawCurve(sAll,'rgba(180,180,180,.6)','gAll',1.4,true,0.04);
+  svg+=drawCurve(sWatch,'#ffea00','gWatch',2,false,0.06);
+  svg+=drawCurve(sUlaz,'#2979ff','gUlaz',2.2,false,0.09);
+
+  // Točke — pogodak/promašaj
   sAll.forEach(function(pt){
-    svg+='<circle cx="'+tx(pt.ts).toFixed(1)+'" cy="'+ty(pt.acc).toFixed(1)+'" r="2.8" fill="'+(pt.hit?'#00e676':'#ff1744')+'" opacity=".85"/>';
+    var hit=pt.hit;
+    var cx=tx(pt.ts).toFixed(1),cy=ty(pt.acc).toFixed(1);
+    svg+='<circle cx="'+cx+'" cy="'+cy+'" r="3.5" fill="rgba(0,0,0,.6)"/>';
+    svg+='<circle cx="'+cx+'" cy="'+cy+'" r="2.5" fill="'+(hit?'#00e676':'#ff1744')+'" opacity=".9"/>';
   });
 
-  // Oznaka ukupne točnosti gore desno
+  // Završna točka s oznakom %
   if(sAll.length){
     var la=sAll[sAll.length-1].acc;
     var lc=la>=60?'#00e676':la>=45?'#ffea00':'#ff1744';
-    svg+='<text x="'+(W-PR)+'" y="'+(PT+10)+'" font-size="10" font-weight="900" fill="'+lc+'" text-anchor="end">'+la.toFixed(0)+'%</text>';
+    var lx=tx(sAll[sAll.length-1].ts).toFixed(1);
+    var ly=ty(la).toFixed(1);
+    svg+='<circle cx="'+lx+'" cy="'+ly+'" r="4" fill="'+lc+'" opacity=".9"/>';
+    svg+='<text x="'+(W-PR)+'" y="'+(PT+11)+'" font-size="11" font-weight="900" fill="'+lc+'" text-anchor="end">'+la.toFixed(0)+'%</text>';
   }
 
-  // Datumi na x-osi
+  // X-os datumi
   var fmt=function(ts){var d=new Date(ts);return d.toLocaleDateString("hr-HR",{day:"numeric",month:"short"});};
-  svg+='<text x="'+PL+'" y="'+(PT+cH+13)+'" font-size="8" fill="rgba(255,255,255,.2)" text-anchor="start">'+fmt(minTs)+'</text>';
-  svg+='<text x="'+(W-PR)+'" y="'+(PT+cH+13)+'" font-size="8" fill="rgba(255,255,255,.2)" text-anchor="end">'+fmt(maxTs)+'</text>';
+  svg+='<text x="'+PL+'" y="'+(PT+cH+14)+'" font-size="9" fill="rgba(255,255,255,.2)" text-anchor="start">'+fmt(minTs)+'</text>';
+  svg+='<text x="'+(W-PR)+'" y="'+(PT+cH+14)+'" font-size="9" fill="rgba(255,255,255,.2)" text-anchor="end">'+fmt(maxTs)+'</text>';
 
-  // Legenda s trenutnom točnošću svake krivulje
-  var legY=H-7;
+  // Legenda
+  var legY=H-6;
   var items=[];
-  if(sUlaz.length) items.push({col:'#2979ff', lbl:'⚡ Ulaz '+ sUlaz[sUlaz.length-1].acc.toFixed(0)+'%'});
-  if(sWatch.length)items.push({col:'#ffea00', lbl:'👁 Watch '+sWatch[sWatch.length-1].acc.toFixed(0)+'%'});
-  if(sAll.length)  items.push({col:'rgba(200,200,200,.7)',lbl:'Ukupno '+sAll[sAll.length-1].acc.toFixed(0)+'%'});
+  if(sUlaz.length) items.push({col:'#2979ff',lbl:'⚡ Ulaz '+sUlaz[sUlaz.length-1].acc.toFixed(0)+'%'});
+  if(sWatch.length)items.push({col:'#ffea00',lbl:'👁 Watch '+sWatch[sWatch.length-1].acc.toFixed(0)+'%'});
+  if(sAll.length)  items.push({col:'rgba(180,180,180,.8)',lbl:'— Ukupno '+sAll[sAll.length-1].acc.toFixed(0)+'%'});
   var legStep=items.length?cW/items.length:cW;
   items.forEach(function(it,i){
     var lx=PL+i*legStep;
-    svg+='<line x1="'+lx+'" y1="'+legY+'" x2="'+(lx+14)+'" y2="'+legY+'" stroke="'+it.col+'" stroke-width="2" stroke-linecap="round"/>';
-    svg+='<text x="'+(lx+18)+'" y="'+(legY+3)+'" font-size="8.5" fill="'+it.col+'" font-weight="700">'+it.lbl+'</text>';
+    svg+='<line x1="'+lx+'" y1="'+legY+'" x2="'+(lx+16)+'" y2="'+legY+'" stroke="'+it.col+'" stroke-width="2.5" stroke-linecap="round"/>';
+    svg+='<text x="'+(lx+20)+'" y="'+(legY+3.5)+'" font-size="9" fill="'+it.col+'" font-weight="700">'+it.lbl+'</text>';
   });
 
   svg+='</svg>';

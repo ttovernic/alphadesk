@@ -21,13 +21,13 @@ html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF P
 .hd-logo{flex:1}
 .hd-title{font-size:15px;font-weight:800;letter-spacing:-.5px;color:#fff}
 .hd-title span{color:var(--ye)}
-.hd-sub{font-size:10px;color:var(--t3);margin-top:1px;letter-spacing:.02em}
-.hd-claude{font-size:10px;color:rgba(0,230,118,.6);margin-top:2px;letter-spacing:.02em;display:none}
-.live-pill{display:flex;align-items:center;gap:5px;background:rgba(0,230,118,.08);border:.5px solid rgba(0,230,118,.2);border-radius:20px;padding:5px 10px}
-.live-dot{width:5px;height:5px;border-radius:50%;background:var(--s4)}
+.hd-sub{font-size:11px;color:var(--t3);margin-top:1px;letter-spacing:.01em}
+.hd-claude{font-size:11px;color:rgba(0,230,118,.6);margin-top:2px;letter-spacing:.01em;display:none}
+.live-pill{display:flex;align-items:center;gap:5px;background:rgba(0,230,118,.08);border:.5px solid rgba(0,230,118,.2);border-radius:20px;padding:4px 10px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--s4)}
 .live-dot.on{background:var(--gr);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.live-txt{font-size:10px;font-weight:700;color:var(--gr);letter-spacing:.05em}
+.live-txt{font-size:11px;font-weight:700;color:var(--gr);letter-spacing:.04em}
 
 /* SCROLL */
 .sc{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
@@ -51,7 +51,8 @@ html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF P
 .pct-btn.on{background:var(--ye);color:#000}
 
 /* OPPORTUNITY CARD */
-.opp{background:var(--s1);border-radius:20px;margin-bottom:12px;overflow:hidden;border:.5px solid var(--sep);transition:border-color .2s}
+.opp{background:var(--s1);border-radius:20px;margin-bottom:12px;overflow:hidden;border:.5px solid var(--sep);transition:border-color .2s,background .12s}
+.opp:active{background:var(--s2)}
 .opp.hot{border-color:rgba(255,109,0,.3)}
 .opp.safe{border-color:rgba(0,230,118,.25)}
 .opp.t60{border-color:rgba(41,121,255,.45)}
@@ -67,7 +68,7 @@ html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF P
 .opp-price{font-size:13px;color:var(--t3);margin-top:2px}
 .conf-badge{text-align:right;flex-shrink:0}
 .conf-num{font-size:28px;font-weight:900;letter-spacing:-2px;line-height:1}
-.conf-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;opacity:.7}
+.conf-lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-top:2px;opacity:.7}
 
 /* CONFIDENCE RING */
 .conf-ring{position:relative;width:56px;height:56px;flex-shrink:0}
@@ -83,9 +84,9 @@ html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF P
 /* TRADE SETUP */
 .setup{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--sep2);border-bottom:.5px solid var(--sep2)}
 .setup-cell{background:var(--s1);padding:12px 10px;text-align:center}
-.setup-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;opacity:.5}
+.setup-lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;opacity:.55}
 .setup-val{font-size:15px;font-weight:800;letter-spacing:-.3px}
-.setup-sub{font-size:10px;margin-top:3px;opacity:.5}
+.setup-sub{font-size:11px;margin-top:3px;opacity:.5}
 
 /* TIMELINE */
 .timeline{padding:14px 16px;border-bottom:.5px solid var(--sep2)}
@@ -95,9 +96,9 @@ html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF P
 .tl-day.d1{background:rgba(41,121,255,.06);border-color:rgba(41,121,255,.2)}
 .tl-day.d2{background:rgba(255,234,0,.05);border-color:rgba(255,234,0,.15)}
 .tl-day.d3{background:rgba(0,230,118,.05);border-color:rgba(0,230,118,.15)}
-.tl-dname{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px;opacity:.6}
+.tl-dname{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;opacity:.65}
 .tl-dprice{font-size:13px;font-weight:700}
-.tl-dprob{font-size:10px;opacity:.5;margin-top:2px}
+.tl-dprob{font-size:11px;opacity:.55;margin-top:2px}
 
 /* SIGNALS */
 .sigs{padding:12px 16px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:.5px solid var(--sep2)}
@@ -124,15 +125,20 @@ html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF P
 .modal{background:var(--s1);border-radius:26px 26px 0 0;width:100%;padding:20px 18px 44px;border-top:.5px solid rgba(255,255,255,.08);animation:up .28s cubic-bezier(.4,0,.2,1)}
 @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-handle{width:36px;height:4px;background:var(--s4);border-radius:2px;margin:0 auto 20px}
-.inp{width:100%;background:var(--s2);border:.5px solid var(--sep);border-radius:12px;padding:13px 15px;font-size:15px;color:#fff;outline:none;-webkit-appearance:none;font-family:inherit}
+.inp{width:100%;background:var(--s2);border:.5px solid var(--sep);border-radius:12px;padding:13px 15px;font-size:15px;color:#fff;outline:none;-webkit-appearance:none;font-family:inherit;transition:border-color .15s}
+.inp:focus{border-color:rgba(41,121,255,.5);box-shadow:0 0 0 3px rgba(41,121,255,.08)}
 .inp-lbl{font-size:12px;color:var(--t3);margin-bottom:6px;display:block;font-weight:500}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn-p{padding:15px;background:var(--bl);border:none;border-radius:14px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;width:100%}
 .btn-c{padding:15px;background:var(--s3);border:none;border-radius:14px;font-size:15px;font-weight:500;color:var(--t2);cursor:pointer;font-family:inherit;flex:1}
 
+/* TOAST */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--s3);border:.5px solid rgba(0,230,118,.3);border-radius:20px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--gr);z-index:500;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
 /* PROG */
-.prog{height:3px;background:var(--s4);border-radius:3px;overflow:hidden}
-.prog-f{height:100%;border-radius:3px}
+.prog{height:4px;background:var(--s4);border-radius:4px;overflow:hidden;margin-top:4px}
+.prog-f{height:100%;border-radius:4px;transition:width .4s}
 svg.sp{overflow:visible;display:block}
 </style>
 </head>
@@ -225,9 +231,21 @@ svg.sp{overflow:visible;display:block}
 </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function showToast(msg,isErr){
+  var t=document.getElementById("toast");
+  if(!t)return;
+  t.textContent=msg;
+  t.style.color=isErr?"var(--re)":"var(--gr)";
+  t.style.borderColor=isErr?"rgba(255,23,68,.3)":"rgba(0,230,118,.3)";
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer=setTimeout(function(){t.classList.remove("show");},2400);
+}
 
 const SYMS=["BTC","ETH","XRP","BNB","ADA","LINK","SOL","AVAX","SUI"];
 const MEME_SYMS=["DOGE","SHIB","PEPE","WIF","BONK","FLOKI"];
@@ -879,7 +897,7 @@ function renderOpp(o){
   h+='<div class="tok-ico" style="color:'+cfg.c+';background:'+cfg.c+'15">'+cfg.i+'</div>';
   h+='<div class="opp-meta"><div class="opp-name" style="color:var(--t1)">'+o.sym+'<span style="font-size:12px;color:var(--t3);font-weight:400;margin-left:6px">'+cfg.cn+'</span></div>';
   h+='<div class="opp-price">'+fp(o.price)+'<span style="color:'+gc(px[o.sym].c24||0)+';margin-left:8px">'+fc(px[o.sym].c24)+'</span>';
-  h+=spk((hist[o.sym]||[]).slice(-20),gc(px[o.sym].c24||0),60,16);
+  h+=spk((hist[o.sym]||[]).slice(-20),gc(px[o.sym].c24||0),68,20);
   h+='</div></div>';
   h+=confRing(o.conf);
   h+='</div>';
@@ -949,9 +967,10 @@ function renderOpp(o){
   h+='</div>';
 
   // Signal chips
+  var sigIcon={bull:"↑ ",bear:"↓ ",warn:"⚠ "};
   h+='<div class="sigs">';
-  o.signals.slice(0,5).forEach(function(s){h+='<span class="sig-chip '+s.type+'">'+s.txt+'</span>';});
-  o.warnings.slice(0,3).forEach(function(w){h+='<span class="sig-chip '+w.type+'">'+w.txt+'</span>';});
+  o.signals.slice(0,5).forEach(function(s){h+='<span class="sig-chip '+s.type+'">'+(sigIcon[s.type]||'')+s.txt+'</span>';});
+  o.warnings.slice(0,3).forEach(function(w){h+='<span class="sig-chip '+w.type+'">'+(sigIcon[w.type]||'')+w.txt+'</span>';});
   h+='</div>';
 
   // Options + VP info strip
@@ -2017,7 +2036,7 @@ function renderGroupSection(preds,title,accentCol,emoji){
   h+='<div style="font-size:12px;font-weight:700;color:'+accentCol+';text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">'+emoji+' '+title+'</div>';
   h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px">';
   [["Ukupno",st.total,"var(--t1)"],["✅",st.hits,"var(--gr)"],["❌",st.misses,"var(--re)"],["⏳",st.active,"var(--ye)"]].forEach(function(s){
-    h+='<div style="background:var(--s2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:20px;font-weight:900;color:'+s[2]+'">'+s[1]+'</div><div style="font-size:10px;color:var(--t3);margin-top:2px">'+s[0]+'</div></div>';
+    h+='<div style="background:var(--s2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:20px;font-weight:900;color:'+s[2]+'">'+s[1]+'</div><div style="font-size:11px;color:var(--t3);margin-top:3px">'+s[0]+'</div></div>';
   });
   h+='</div>';
   if(st.acc!==null){
@@ -2104,7 +2123,7 @@ function rTracker(){
   var h='<div class="pg">';
 
   if(predTracker.length===0){
-    h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">📝</div><div style="font-size:17px;font-weight:700;color:var(--t2);margin-bottom:8px">Nema zabilježenih tradova</div><div style="font-size:13px;color:var(--t3)">Idi na karticu i klikni 📝 Zabilježi trade</div></div>';
+    h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">📝</div><div style="font-size:17px;font-weight:700;color:var(--t2);margin-bottom:8px">Nema zabilježenih tradova</div><div style="font-size:13px;color:var(--t3);margin-bottom:20px">Otvori Pregled tab, odaberi token i klikni "Zabilježi trade".</div><button onclick="setTab(\'pregled\')" style="padding:12px 24px;background:rgba(41,121,255,.15);border:.5px solid rgba(41,121,255,.35);border-radius:12px;font-size:14px;font-weight:700;color:#2979ff;cursor:pointer;font-family:inherit">→ Idi na Pregled</button></div>';
   }else{
     h+=renderHistoryChart(predTracker);
 
@@ -2303,7 +2322,7 @@ function rMeme(){
   var avgConf=allStats.length?Math.round(allStats.reduce(function(s,x){return s+x.conf;},0)/allStats.length):0;
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
   [["Skenirano",MEME_SYMS.length,"var(--t2)"],["≥"+memeMinConf+"%",pass,"var(--pu)"],["Avg conf",avgConf+"%","var(--ye)"]].forEach(function(s){
-    h+='<div style="background:rgba(0,0,0,.3);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:'+s[2]+'">'+s[1]+'</div><div style="font-size:10px;color:var(--t3);margin-top:2px">'+s[0]+'</div></div>';
+    h+='<div style="background:rgba(0,0,0,.3);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:'+s[2]+'">'+s[1]+'</div><div style="font-size:11px;color:var(--t3);margin-top:3px">'+s[0]+'</div></div>';
   });
   h+='</div></div>';
   if(opps.length===0){
@@ -2326,26 +2345,33 @@ function render(){
 
   var h='<div class="pg">'+renderRefreshStatus();
 
-  // Legend
-  h+='<div class="legend">';
-  h+='<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Kako čitati ovaj prikaz</div>';
+  // Summary stats — iz TOP100
+  var scanSyms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
+  var all=scanSyms.map(analyze3D).filter(function(x){return x;});
+  var hot=all.filter(function(x){return x.isHot;}).length;
+  var visible=opps.length;
+  h+='<div style="display:flex;gap:8px;margin-bottom:12px">';
+  h+='<div style="flex:1;background:var(--s1);border:.5px solid var(--sep);border-radius:12px;padding:10px 8px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--bl)">'+scanSyms.length+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Skenirano</div></div>';
+  h+='<div style="flex:1;background:var(--s1);border:.5px solid var(--sep);border-radius:12px;padding:10px 8px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--ye)">'+visible+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Prilike</div></div>';
+  h+='<div style="flex:1;background:var(--s1);border:.5px solid var(--sep);border-radius:12px;padding:10px 8px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--or)">'+hot+'</div><div style="font-size:11px;color:var(--t3);margin-top:2px">🔥 Vrući</div></div>';
+  h+='<div style="flex:1;background:var(--s1);border:.5px solid var(--sep);border-radius:12px;padding:10px 8px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--gr)">'+settings.targetPct+'%</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Target</div></div>';
+  h+='</div>';
+  // Collapsible legenda
+  var legendOpen=lsGet("ad3d_legend")!=="0";
+  h+='<div class="legend" style="margin-bottom:14px">';
+  h+='<div onclick="var o=this.nextElementSibling.style.display===\'none\';this.nextElementSibling.style.display=o?\'block\':\'none\';lsSet(\'ad3d_legend\',o?\'1\':\'0\');this.querySelector(\'.leg-arr\').textContent=o?\'▲\':\'▼\'" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">';
+  h+='<span style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em">Kako čitati ovaj prikaz</span>';
+  h+='<span class="leg-arr" style="font-size:10px;color:var(--t4)">'+(legendOpen?'▲':'▼')+'</span>';
+  h+='</div>';
+  h+='<div style="display:'+(legendOpen?'block':'none')+';margin-top:10px">';
   h+='<div style="font-size:12px;color:var(--t2);line-height:1.7">';
   h+='Skenirano <strong style="color:var(--ye)">top '+TOP100.length+' kripto tokena</strong> po tržišnoj kapitalizaciji. ';
   h+='Traži prilike za <strong style="color:var(--ye)">+'+settings.targetPct+'%</strong> u <strong style="color:var(--ye)">3 dana</strong>. ';
   h+='Postotak u prstenu = AI pouzdanost. ';
   h+='<span style="color:var(--gr)">🔥 Vrući</span> = visok conf + ATR pokriva potez.';
   h+='</div>';
-  // Summary stats — iz TOP100
-  var scanSyms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
-  var all=scanSyms.map(analyze3D).filter(function(x){return x;});
-  var hot=all.filter(function(x){return x.isHot;}).length;
-  var visible=opps.length;
-  h+='<div style="display:flex;gap:10px;margin-top:10px">';
-  h+='<div style="flex:1;background:var(--s2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--bl)">'+scanSyms.length+'</div><div style="font-size:10px;color:var(--t3);margin-top:2px">Skenirano</div></div>';
-  h+='<div style="flex:1;background:var(--s2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--ye)">'+visible+'</div><div style="font-size:10px;color:var(--t3);margin-top:2px">Prilike</div></div>';
-  h+='<div style="flex:1;background:var(--s2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--or)">'+hot+'</div><div style="font-size:10px;color:var(--t3);margin-top:2px">🔥 Vrući</div></div>';
-  h+='<div style="flex:1;background:var(--s2);border-radius:10px;padding:9px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--gr)">'+settings.targetPct+'%</div><div style="font-size:10px;color:var(--t3);margin-top:2px">Target</div></div>';
-  h+='</div></div>';
+  h+='</div>';
+  h+='</div>';
 
   if(opps.length===0){
     h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">🔍</div><div style="font-size:17px;font-weight:600;color:var(--t2);margin-bottom:6px">Nema prilike</div><div style="font-size:13px;color:var(--t3)">Trenutni uvjeti ne zadovoljavaju kriterije.<br>Smanji min. pouzdanost ili pričekaj bolji setup.</div></div>';
@@ -2440,6 +2466,7 @@ function applySettings(){
     apiKeys.github=newGhToken;
     lsSet("ad3d_apikeys",JSON.stringify(apiKeys));
     closeModal();
+    showToast("✓ Postavke spremljene");
     syncFromGH(function(){render();});
     fetchNetflow();fetchSocialData();
     return;
@@ -2447,6 +2474,7 @@ function applySettings(){
   lsSet("ad3d_apikeys",JSON.stringify(apiKeys));
   fetchNetflow();fetchSocialData();
   closeModal();render();
+  showToast("✓ Postavke spremljene");
 }
 
 // ── OPTIONS + VOLUME PROFILE + MACRO ─────────────────────────────

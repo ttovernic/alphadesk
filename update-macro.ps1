@@ -4,44 +4,28 @@
 # Raspored: svakih 3 sata (Task Scheduler)
 # ============================================================
 
-# ── TOKEN: čita iz Windows Credential Manager ────────────────
-function Get-AlphadeskToken {
-    try {
-        $cred = Get-StoredCredential -Target "AlphadeskGitHub" -ErrorAction SilentlyContinue
-        if ($cred) { return $cred.GetNetworkCredential().Password }
-    } catch {}
-    # Fallback: env varijabla ili trajni registry
-    $tok = [System.Environment]::GetEnvironmentVariable('ALPHADESK_GH_TOKEN','User')
-    if ($tok) { return $tok }
-    $tok = $env:ALPHADESK_GH_TOKEN
-    if ($tok) { return $tok }
-    return $null
-}
+$REPO_PATH  = "C:\Users\ttovernic\Downloads\Alphadesk"
+$JSON_PATH  = "$REPO_PATH\macro-context.json"
+$GIT_PATH   = "C:\Program Files\Git\mingw64\bin\git.exe"
 
-$GITHUB_TOKEN = Get-AlphadeskToken
+# Dodaj git u PATH ako nije
+$env:PATH = "C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\cmd;" + $env:PATH
+
+# ── TOKEN ────────────────────────────────────────────────────
+$GITHUB_TOKEN = [System.Environment]::GetEnvironmentVariable('ALPHADESK_GH_TOKEN','User')
+if (-not $GITHUB_TOKEN) { $GITHUB_TOKEN = $env:ALPHADESK_GH_TOKEN }
 if (-not $GITHUB_TOKEN) {
-    Write-Host "[ERROR] GitHub token nije pronaden. Pokreni setup-alphadesk.ps1 da konfiguriras token." -ForegroundColor Red
+    Write-Host "[ERROR] ALPHADESK_GH_TOKEN nije postavljen." -ForegroundColor Red
     exit 1
 }
 
-$REPO_URL = "https://github.com/ttovernic/alphadesk.git"
-$REPO_PATH = "$env:USERPROFILE\alphadesk-data"
-$JSON_PATH = "$REPO_PATH\macro-context.json"
-
-# ── 1. Kloniraj ili ažuriraj lokalni repo ────────────────────
-if (!(Test-Path $REPO_PATH)) {
-    Write-Host "[1/4] Kloniram repozitorij..."
-    git clone "https://$GITHUB_TOKEN@github.com/ttovernic/alphadesk.git" $REPO_PATH
-} else {
-    Write-Host "[1/4] Azuriram repozitorij..."
-    Set-Location $REPO_PATH
-    git pull --rebase "https://$GITHUB_TOKEN@github.com/ttovernic/alphadesk.git" main 2>&1 | Out-Null
-}
-
+# ── 1. Pull najnovijeg stanja ─────────────────────────────────
+Write-Host "[1/4] Pull s GitHuba..."
 Set-Location $REPO_PATH
+& git pull "https://$GITHUB_TOKEN@github.com/ttovernic/alphadesk.git" main 2>&1 | Out-Null
 
-# ── 2. Pokretanje Claude analize ─────────────────────────────
-Write-Host "[2/4] Pokrecam Claude analizu vijesti..."
+# ── 2. Claude analiza ────────────────────────────────────────
+Write-Host "[2/4] Claude analizira trziste..."
 
 $PROMPT = @"
 Ti si crypto market analyst. Tvoj zadatak je pretraziti najnovije vijesti i trzisne uvjete te napisati azurirani macro-context.json.
@@ -53,7 +37,7 @@ Ti si crypto market analyst. Tvoj zadatak je pretraziti najnovije vijesti i trzi
 1. WebSearch pretrage (izvrsi svaku):
    - "crypto fear greed index today"
    - "bitcoin dominance today percentage"
-   - "crude oil price today"
+   - "crude oil price today WTI"
    - "stablecoin dominance crypto today"
    - "geopolitical risk crypto today"
    - "Bitcoin BTC news today"
@@ -66,52 +50,64 @@ Ti si crypto market analyst. Tvoj zadatak je pretraziti najnovije vijesti i trzi
    - "Cardano ADA news today"
    - "Sui SUI crypto news today"
 
-2. Na temelju rezultata napisi tocno ovu JSON strukturu u datoteku: $JSON_PATH
+2. Na temelju rezultata napisi TOCNO ovu JSON strukturu u datoteku: $JSON_PATH
 
 {
-  "lastUpdated": "<ISO timestamp sada>",
-  "warActive": <true/false — ima li aktivnog geopolitickog rata koji utjece na trziste>,
-  "macroPenalty": <0-6 — koliko jak je macro negativni pritisak>,
-  "oil": <cijena WTI nafte u USD>,
-  "btcDom": <BTC dominance postotak>,
-  "stableDom": <ukupna stablecoin dominance postotak>,
-  "aiSummary": "<2-3 recenice na hrvatskom o trenutnom trzistu>",
+  "lastUpdated": "<ISO timestamp sada, npr. 2026-04-16T12:00:00.000Z>",
+  "warActive": <true ili false>,
+  "macroPenalty": <broj 0-6>,
+  "oil": <WTI cijena kao broj>,
+  "btcDom": <BTC dominance kao broj>,
+  "stableDom": <stablecoin dominance kao broj>,
+  "aiSummary": "<2-3 recenice na hrvatskom>",
   "catalysts": {
-    "BTC": ["<pozitivna vijest max 65 znakova>"],
+    "BTC": ["<vijest max 65 znakova>"],
     "ETH": [], "XRP": [], "SOL": [], "BNB": [],
     "ADA": [], "LINK": [], "AVAX": [], "SUI": []
   },
   "warnings": {
-    "BTC": ["<negativna vijest max 65 znakova>"],
+    "BTC": [],
     "ETH": [], "XRP": [], "SOL": [], "BNB": [],
     "ADA": [], "LINK": [], "AVAX": [], "SUI": []
   }
 }
 
-VAZNO: Napisi SAMO validni JSON bez komentara ili markdown blokova.
+VAZNO: Napisi SAMO validni JSON. Bez markdown blokova, bez komentara.
 "@
 
-claude --allowedTools "WebSearch,WebFetch,Write" -p $PROMPT
+$claudeExe = "C:\Users\ttovernic\.local\bin\claude.exe"
+& $claudeExe --allowedTools "WebSearch,WebFetch,Write" -p $PROMPT
 
-# ── 3. Provjeri je li datoteka kreirana ──────────────────────
+# ── 3. Validacija ─────────────────────────────────────────────
 if (!(Test-Path $JSON_PATH)) {
-    Write-Host "[ERROR] macro-context.json nije kreiran. Provjeri Claude CLI instalaciju." -ForegroundColor Red
+    Write-Host "[ERROR] macro-context.json nije kreiran." -ForegroundColor Red
+    exit 1
+}
+try {
+    $parsed = Get-Content $JSON_PATH -Raw | ConvertFrom-Json
+    if (-not $parsed.lastUpdated) { throw "Nedostaje lastUpdated" }
+    Write-Host "[3/4] JSON validan. Datum: $($parsed.lastUpdated), Nafta: $($parsed.oil), BTC Dom: $($parsed.btcDom)%"
+} catch {
+    Write-Host "[ERROR] JSON nije validan: $_" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "[3/4] macro-context.json kreiran."
-
-# ── 4. Commit i push na GitHub ───────────────────────────────
-Write-Host "[4/4] Pusham na GitHub..."
+# ── 4. Git commit + push ──────────────────────────────────────
+Write-Host "[4/4] Commit i push na GitHub..."
 
 Set-Location $REPO_PATH
-git config user.email "claude-agent@localhost"
-git config user.name "Claude Agent"
-git add macro-context.json
-$timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm"
-git commit -m "macro: auto-update $timestamp"
-git push "https://$GITHUB_TOKEN@github.com/ttovernic/alphadesk.git" HEAD:main
+& git config user.email "claude-agent@localhost"
+& git config user.name "Claude Agent"
+& git add macro-context.json
+$ts = Get-Date -Format "yyyy-MM-ddTHH:mm"
+& git commit -m "macro: auto-update $ts"
+& git push "https://$GITHUB_TOKEN@github.com/ttovernic/alphadesk.git" master:main 2>&1
 
-Write-Host ""
-Write-Host "OK macro-context.json azuriran i pushani na GitHub!" -ForegroundColor Green
-Write-Host "   Vidljivo na: https://raw.githubusercontent.com/ttovernic/alphadesk/main/macro-context.json"
+if ($LASTEXITCODE -eq 0) {
+    Write-Host ""
+    Write-Host "OK Gotovo! macro-context.json azuriran." -ForegroundColor Green
+    Write-Host "   $($parsed.aiSummary)"
+} else {
+    Write-Host "[ERROR] Push nije uspio (exit $LASTEXITCODE)." -ForegroundColor Red
+    exit 1
+}

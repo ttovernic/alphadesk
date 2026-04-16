@@ -9,7 +9,7 @@
   --bg:#000;--s1:#0c0c10;--s2:#141418;--s3:#1c1c22;--s4:#242430;
   --sep:rgba(255,255,255,.06);--sep2:rgba(255,255,255,.04);
   --t1:#fff;--t2:rgba(255,255,255,.75);--t3:rgba(255,255,255,.4);--t4:rgba(255,255,255,.18);
-  --gr:#00e676;--re:#ff1744;--ye:#ffea00;--bl:#2979ff;--or:#ff6d00;--pu:#d500f9;
+  --gr:#00e676;--re:#ff1744;--ye:#ffea00;--bl:#2979ff;--or:#ff6d00;--pu:#d500f9;--cy:#00bcd4;
   --target-green:rgba(0,230,118,.12);--stop-red:rgba(255,23,68,.1);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -613,8 +613,8 @@ function scoreMarketSignals(sym,signals,warnings){
   if(fd&&fd.takerRatio!=null){
     if(fd.takerRatio<0.75){delta+=wt("takerSell",2);signals.push({txt:"Taker ratio "+fd.takerRatio+" — agresivno prodavanje = panic bottom",type:"bull"});}
     else if(fd.takerRatio<0.88){delta+=wt("takerSell",1);signals.push({txt:"Taker ratio "+fd.takerRatio+" — prodavači dominiraju = potencijalni bottom",type:"bull"});}
-    else if(fd.takerRatio>1.4){delta+=1;signals.push({txt:"Taker ratio "+fd.takerRatio+" — agresivna kupnja = momentum",type:"bull"});}
     else if(fd.takerRatio>1.6){delta-=0.5;warnings.push({txt:"Taker ratio "+fd.takerRatio+" — euforična kupnja, pazi na reversal",type:"warn"});}
+    else if(fd.takerRatio>1.4){delta+=1;signals.push({txt:"Taker ratio "+fd.takerRatio+" — agresivna kupnja = momentum",type:"bull"});}
   }
   // 11. Open Interest (Binance Futures) — potvrđuje ili negira trend
   var oi=openInterest[sym];
@@ -714,9 +714,9 @@ function scoreMarketSignals(sym,signals,warnings){
   // 21. RELATIVNA SNAGA vs BTC — leader vs lagging token
   var rs=relStrength[sym];
   if(rs&&sym!=="BTC"){
-    if(rs.leading){delta+=1.5;signals.push({txt:"💪 RS: +"+(rs.rs24h>0?"+":"")+rs.rs24h+"% vs BTC — outperformer, kapital teče ovamo",type:"bull"});}
+    if(rs.leading){delta+=1.5;signals.push({txt:"💪 RS: "+(rs.rs24h>0?"+":"")+rs.rs24h+"% vs BTC — outperformer, kapital teče ovamo",type:"bull"});}
     else if(rs.lagging){delta-=1;warnings.push({txt:"📉 RS: "+rs.rs24h+"% vs BTC — underperformer, izbjegavaj",type:"warn"});}
-    if(rs.rs7dLeading){delta+=0.5;signals.push({txt:"💪 7d RS: +"+(rs.rs7d>0?"+":"")+rs.rs7d+"% vs BTC — tjednički leader",type:"bull"});}
+    if(rs.rs7dLeading){delta+=0.5;signals.push({txt:"💪 7d RS: "+(rs.rs7d>0?"+":"")+rs.rs7d+"% vs BTC — tjednički leader",type:"bull"});}
   }
   // 22. SWING HIGH/LOW — support & resistance nivoi iz price historije
   var sw=swingLevels[sym];var curPx=px[sym]?px[sym].p:0;
@@ -849,8 +849,8 @@ function analyze3D(sym){
     if(opt.skew25d<-15){score+=3;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — Extreme put premium = jak kontrarian BUY",type:"bull"});}
     else if(opt.skew25d<-7){score+=2;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — put skew = tržište štiti pad",type:"bull"});}
     else if(opt.skew25d<-3){score+=1;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — blago negativan = oprezno",type:"bull"});}
-    else if(opt.skew25d>5){score-=1.5;warnings.push({txt:"25Δ Skew +"+opt.skew25d.toFixed(1)+"% — call skew = euforia u opcijama",type:"bear"});}
     else if(opt.skew25d>10){score-=2.5;warnings.push({txt:"25Δ Skew +"+opt.skew25d.toFixed(1)+"% — jak call premium = vrh blizu",type:"bear"});}
+    else if(opt.skew25d>5){score-=1.5;warnings.push({txt:"25Δ Skew +"+opt.skew25d.toFixed(1)+"% — call skew = euforia u opcijama",type:"bear"});}
   }
   if(opt&&opt.maxPain&&price){
     var mpDist=((opt.maxPain-price)/price*100);
@@ -1563,7 +1563,6 @@ function analyze3pct(sym){
 
   // War penalty — za 3% target
   if(MACRO.warActive){score-=1.0;warnings.push({txt:"Iran rat — smanjen penalty (3% lakše od 5%)",type:"warn"});}
-  if(MACRO.oil>110){score-=1;warnings.push({txt:"Nafta $"+MACRO.oil+" — inflacijski pritisak",type:"warn"});}
 
   // Market regime
   var regime=getMarketRegime();
@@ -1643,7 +1642,9 @@ function analyze3pct(sym){
     verdict:verdict,verdictWhy:verdictWhy,
     cats:cats,warns:warns2,
     opt:opt||null,vp:vp||null,
-    targetPct:TARGET
+    targetPct:TARGET,
+    riskLevel:atrPct>4?"VISOK":atrPct>2?"UMJEREN":"NIZAK",
+    riskCol:atrPct>4?"var(--re)":atrPct>2?"var(--ye)":"var(--gr)"
   };
 }
 
@@ -2428,7 +2429,7 @@ function renderKellyPanel(){
   h+='<div style="background:var(--s3);border-radius:12px;padding:12px;margin-bottom:8px;text-align:center">';
   h+='<div style="font-size:11px;color:var(--t3);margin-bottom:4px">Preporučena veličina pozicije (½ Kelly)</div>';
   h+='<div style="font-size:36px;font-weight:900;color:'+kCol+'">'+k.halfKelly+'%</div>';
-  h+='<div style="font-size:11px;color:var(--t4)">Full Kelly: '++(k.kelly*100).toFixed(1)+'% · ½ Kelly = konzervativniji, manje drawdown</div>';
+  h+='<div style="font-size:11px;color:var(--t4)">Full Kelly: '+(k.kelly*100).toFixed(1)+'% · ½ Kelly = konzervativniji, manje drawdown</div>';
   h+='</div>';
   h+='<div style="font-size:11px;color:var(--t3)">💡 '+interpretation+' · Iz '+k.n+' zatvorenih predikcija</div>';
   h+='</div>';
@@ -3559,7 +3560,7 @@ function fetchNewsData(){
   var key=apiKeys.cryptopanic;
   var url=key?
     "https://cryptopanic.com/api/v1/posts/?auth_token="+key+"&kind=news&public=true":
-    "https://cryptopanic.com/api/free/v1/posts/?kind=news";
+    "https://cryptopanic.com/api/v1/posts/?public=true&kind=news";
   var doProcess=function(d){
     if(!d||!d.results)return;
     d.results.forEach(function(item){
@@ -3588,7 +3589,7 @@ function fetchNewsData(){
   };
   fetch(url).then(function(r){return r.json();}).then(doProcess).catch(function(){
     // Fallback: allorigins proxy
-    fetch("https://api.allorigins.win/raw?url="+encodeURIComponent("https://cryptopanic.com/api/free/v1/posts/?kind=news"))
+    fetch("https://api.allorigins.win/raw?url="+encodeURIComponent("https://cryptopanic.com/api/v1/posts/?public=true&kind=news"))
       .then(function(r){return r.json();}).then(doProcess).catch(function(){});
   });
 }

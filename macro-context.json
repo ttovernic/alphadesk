@@ -1,17 +1,17 @@
 {
-  "lastUpdated": "2026-04-16T12:00:00.000Z",
+  "lastUpdated": "2026-04-16T13:30:00.000Z",
   "warActive": true,
-  "macroPenalty": 2,
+  "macroPenalty": 1,
   "oil": 103,
   "btcDom": 56.9,
   "stableDom": 8.5,
-  "aiSummary": "Tržište u Extreme Fear (F&G ~17, rekordnih 60+ uzastopnih dana). US-Iran primirje od 8.04. brokirao Pakistan — Hormuz prolaz privremeno se otvara, ali primirje je krhko (2 tjedna, nije mirovni sporazum). Nafta ~$103/bbl. BTC dominance 56.9% (pad od 58.5%), kapital počinje polako rotirati prema altcoinima. BTC na $74k — proboj $76k propao, konsolidacija nastavlja. Stablecoin dominance visoka, kapital na sidelines. Fed: 0-1 cut u 2026, core PCE 2.6% kraj godine — restriktivni uvjeti ostaju. ETH Glamsterdam upgrade (lipanj 2026) — 78.6% niže gas cijene, 10k TPS cilj. CLARITY Act gurnut na kraj svibnja.",
+  "aiSummary": "Tržište u Extreme Fear (F&G ~23, blagi oporavak od dna ~17). BTC na $74,576 — MFI-14 dostigao 79 (overbought prag 80), profit-taking i oprezni outlook na 16.04. Svi ključni MA potvrđeni bullish: MA7 $73,495 / MA14 $71,511 / MA30 $69,984. ETH/BTC ratio 0.0313 (oporavak od 0.028 Feb dna) — ETH MFI 70 ima više prostora od BTC-a, rotacija moguća ako tjedan zatvori iznad 0.035. US-Iran primirje produženo 'in principle' — ističe 21.04., drugi krug pregovora u Pakistanu sljedeći tjedan, napredak prema framework dealu. Trump: 'Iran rat blizu kraja, tržišta će eksplodirati'. Nafta ~$103/bbl. SEC CLARITY Act roundtable održan danas (16.04.) — tržišna struktura diskutirana, Senate Banking Committee markup ciljan kasni travanj. Stablecoin supply ATH $180B. Q1 2026: $18.7B neto ETP inflows globalno, BTC ETF sam $12.4B. BlackRock IBIT: $54B AUM. ETH Glamsterdam upgrade (lipanj 2026) — $2,414 ključni otpor, cilj $2,586.",
   "prices": {
-    "BTC": 74286,
+    "BTC": 74576,
     "ETH": 2332,
-    "XRP": 1.35,
+    "XRP": 1.38,
     "SOL": 85,
-    "BNB": 622,
+    "BNB": 623,
     "ADA": 0.25,
     "LINK": 8.80,
     "AVAX": 9.32,
@@ -19,18 +19,21 @@
   },
   "catalysts": {
     "BTC": [
-      "BlackRock IBIT drži 784k+ BTC — likvidni zid koji apsorbira šokove",
-      "ETF potražnja raste, doprinosi dubokoj institucionalnoj likvidnosti",
-      "Oporavak od Feb5 kraša ($60k dno) — BTC +23% od dna, dostigao $76k (14.04.)",
-      "US-Iran primirje (8.04.) — Pakistan posrednik, Hormuz se privremeno otvara, risk-appetite vraća",
+      "BlackRock IBIT: $54B AUM (~720k BTC) — likvidni zid koji apsorbira šokove",
+      "Q1 2026: $18.7B neto crypto ETP inflows globalno, BTC ETF sam $12.4B",
+      "Oporavak od Feb5 kraša ($60k dno) — BTC +24% od dna, dostigao $76k (14.04.)",
+      "BTC drži sve ključne MA: MA7 $73,495 / MA14 $71,511 / MA30 $69,984 — bullish setup",
+      "US-Iran primirje produženo 'in principle', framework deal u pripremi — risk-appetite raste",
       "SEC/CFTC klasificirali BTC kao 'Digital Commodity' — regulatorna jasnoća",
-      "BTC dominance pada (56.9%) — historijski signal predstojeće altcoin rotacije u 2-6 mj."
+      "BTC dominance 56.9% — historijski signal predstojeće altcoin rotacije u 2-6 mj."
     ],
     "ETH": [
       "Glamsterdam upgrade: lipanj 2026 — 78.6% niže gas cijene, 10k TPS, gas limit 200M",
       "ETH ETF tjedni neto pritoci $187M (tjedan do 10.04.) — rekordnih $11.68B kumulativno",
-      "Ethereum Foundation stakao 70,000 ETH — signal dugoročnog povjerenja",
-      "SEC CLARITY Act roundtable 16.04. — moguć proboj za ETH regulatorni status",
+      "ETH MFI-14: 70.33 — ispod overbought praga, više prostora za rast vs BTC",
+      "ETH/BTC ratio 0.0313 (oporavak od 0.028 Feb dna) — rotacija u tijeku",
+      "Stablecoin supply ATH $180B, +82% YoY novih korisnika — Ethereum ekosustav raste",
+      "ETH key resistance $2,414 (Glamsterdam konvergencija), cilj analitičara $2,586",
       "Standard Chartered godišnji cilj $7,500 — značajan potencijal rasta"
     ],
     "XRP": [
@@ -38,8 +41,8 @@
       "Société Générale EURCV stablecoin na XRP Ledgeru",
       "Južna Koreja: feasibility test tokeniziranih obveznica s Ripple Custody (15.04.)",
       "CLARITY Act: Coinbase CEO Armstrong + Treasury Secretary Bessent + SEC Chair podržali",
-      "Garlinghouse: CLARITY Act prolaz do kraja svibnja — yield spor riješen",
-      "SEC roundtable o CLARITY Actu 16.04. — implementacijski detalji"
+      "SEC CLARITY Act roundtable održan 16.04. — market structure diskutirana, pozitivni signali",
+      "Senate Banking Committee CLARITY Act markup ciljan kasni travanj — XRP regulatorna jasnoća bliže"
     ],
     "SOL": [
       "Firedancer validator: 5,500 TPS u produkciji — mrežna stabilnost ojačana",
@@ -82,28 +85,29 @@
     "SUI": [
       "CME Group SUI futures: lansiranje 4.05. (50,000 SUI / Micro 5,000 SUI) — potvrđeno",
       "Interactive Brokers dodao SUI trading",
-      "Sui Foundation sponzor Hong Kong Web3 Festival 2026 (20-23.04.) — visibilnost",
+      "Sui Foundation sponzor Hong Kong Web3 Festival 2026 (20-23.04.) — visibilnost ovaj tjedan",
       "CME 24/7 trading od 29.05. — institucionalna likvidnost raste",
       "SUI TVL: $585M — rast ekosustava nastavlja"
     ]
   },
   "warnings": {
     "BTC": [
-      "BTC ispod 200-day MA ($87,519) — dugotrajni bearish signal",
-      "$76k otpor nije prošao — lažni breakout 14.04., reversal na $74k",
-      "Dom 56.9% — altcoini i dalje pod pritiskom, rotacija tek počinje",
-      "60+ uzastopnih dana F&G u Extreme Fear — rekord dvostruko dulji od Terra-LUNA kraša"
+      "BTC MFI-14: 79 — na rubu overbought zone (prag 80), profit-taking pritisak 16.04.",
+      "BTC ispod 200-day MA ($87,519) — dugotrajni bearish signal, potrebna konsolidacija $73k-$75k",
+      "$76k otpor nije prošao — lažni breakout 14.04., reversal i oprezni outlook",
+      "Dom 56.9% — altcoini pod pritiskom, ETH/BTC 0.035 tjedan. zatvaranje potrebno za potvrdu rotacije",
+      "US-Iran primirje ističe 21.04. — propast 2. kruga pregovora bi srušila risk assets"
     ],
     "ETH": [
-      "Pad od ATH ~$5k (kolovoz 2025.) — još uvijek duboko u bearishu",
-      "Glamsterdam upgrade: ciljni datum lipanj 2026, ali timelines su aspiracijski — kašnjenje moguće",
-      "ETH konsolidira ~$2,040-$2,400, proboj $2,400 još nije potvrđen",
-      "Tržišna kap $233B vs BTC $1.33T — ETH/BTC omjer pod pritiskom"
+      "ETH/BTC ratio 0.0313 — oporavak ali potrebno tjedan. zatvaranje >0.035 za potvrdu durabilne rotacije",
+      "$2,414 ključni otpor (Glamsterdam konvergencija) — proboj još nije potvrđen",
+      "Glamsterdam upgrade: ciljni datum lipanj 2026, timelines aspiracijski — kašnjenje moguće",
+      "Pad od ATH ~$5k (kolovoz 2025.) — još uvijek duboko u bearishu"
     ],
     "XRP": [
-      "Zaglavljen u $1.30-$1.45 konsolidaciji (pad od $3.65 July 2025 ATH, -63%)",
-      "CLARITY Act gurnut na kraj svibnja — neizvjesnost produljuje konsolidaciju",
-      "Iran primirje krhko — escalacija rata bi srušila risk assets uključujući XRP"
+      "Zaglavljen u $1.30-$1.45 konsolidaciji (pad od $3.65 July 2025 ATH, -62%)",
+      "CLARITY Act Senate markup gurnut na kasni travanj — neizvjesnost i dalje produljuje konsolidaciju",
+      "US-Iran primirje ističe 21.04. — escalacija rata bi srušila risk assets uključujući XRP"
     ],
     "SOL": [
       "$280-285M Drift Protocol exploit (travanj 2026.) — reputacijski rizik",
@@ -112,8 +116,8 @@
       "SOL na $85, ispod $87 otpora — $100 reclaim još nije potvrđen"
     ],
     "BNB": [
-      "Down 57% od ATH ($1,370 — listopad 2025.)",
-      "$600 support testiran — $622 je iznad, ali $600 proboj prema dolje otvara $500",
+      "Down 54% od ATH ($1,370 — listopad 2025.)",
+      "$600 support testiran — $623 je iznad, ali $600 proboj prema dolje otvara $500",
       "$1,000+ breakout zahtijeva institucionalnu adopciju koja još izostaje"
     ],
     "ADA": [
@@ -138,14 +142,17 @@
     ]
   },
   "macro": {
-    "us_iran_ceasefire": "Primirje od 8.04. (brokirao Pakistan) — 2 tjedna, Hormuz se privremeno otvara. Pregovori u Islamabadu. Krhko — nije mirovni sporazum.",
-    "strait_of_hormuz": "Djelomično otvoreno za trajanja primirja — naftni tranzit se obnavlja, ali rizik eskalacije ostaje visok",
-    "oil_price": "Brent crude ~$103/bbl (pad od $115 vrhunca) — tržište fliptira u deficit 750k bpd, IEA: najveći supply disruption u historiji",
+    "us_iran_ceasefire": "Primirje od 8.04. (brokirao Pakistan) — produženo 'in principle', ističe 21.04. Drugi krug pregovora u Pakistanu sljedeći tjedan. US-Iran napredak prema framework dealu. Trump: 'Iran rat blizu kraja, tržišta će eksplodirati.'",
+    "strait_of_hormuz": "Otvoreno za trajanja primirja — naftni tranzit obnovljen. Iran insistira na taksama za prolaz, SAD zahtijeva slobodan prolaz. Pregovorni sticking point ostaje.",
+    "oil_price": "Brent crude ~$103/bbl — tržište fliptira u deficit 750k bpd, IEA: najveći supply disruption u historiji. Cijene stabilne dok traju pregovori.",
     "fed_policy": "Fed na pauzi — 0-1 cut predviđen za 2026. Core PCE 2.6% kraj godine. Visoke energetske cijene ograničavaju prostor za cut.",
-    "sec_clarity_act": "Roundtable 16.04. — Garlinghouse očekuje prolaz do kraja svibnja; Coinbase, Treasury, SEC Chair podržali. Yield spor blizu rješenja.",
-    "imf_outlook": "IMF snizio globalni rast — geopolitika primarni rizik. Direktori upozorili: malo prostora za rate cut zbog energetskih cijena.",
+    "sec_clarity_act": "Roundtable 16.04. ZAVRŠEN — tržišna struktura diskutirana, pozitivni signali. Senate Banking Committee markup ciljan kasni travanj. Garlinghouse: prolaz do kraja svibnja.",
+    "imf_outlook": "IMF snizio globalni rast — geopolitika primarni rizik. Malo prostora za rate cut zbog energetskih cijena.",
     "cme_expansion": "CME lansira AVAX + SUI futures 4.05., 24/7 trading od 29.05. — institucionalizacija se širi. Dnevni CME crypto volumen $8B (+19% YoY).",
-    "stablecoin_volume": "Godišnji stablecoin volumen prešao $5 triliona — rivalizira tradicionalne payment procesore",
-    "eth_glamsterdam": "Ethereum Glamsterdam upgrade: ciljni datum lipanj 2026. Gas -78.6%, throughput 10k TPS, gas limit 200M. Najznačajniji upgrade od Mergea."
+    "stablecoin_volume": "Stablecoin supply ATH $180B. Godišnji volumen prešao $5 triliona — rivalizira tradicionalne payment procesore.",
+    "eth_glamsterdam": "Ethereum Glamsterdam upgrade: ciljni datum lipanj 2026. Gas -78.6%, throughput 10k TPS. $2,414 ključni otpor/konvergencija, analitičari ciljaju $2,586.",
+    "btc_technicals": "BTC MFI-14: 79 (overbought prag 80). Drži sve MA: MA7 $73,495 / MA14 $71,511 / MA30 $69,984. Analitičari: konsolidacija $73k-$75k potrebna za put prema $90k.",
+    "eth_btc_ratio": "ETH/BTC ratio 0.0313 — oporavak od 0.028 Feb dna. Tjedan. zatvaranje >0.035 potrebno za potvrdu durabilne rotacije u ETH. ETH MFI 70.33 vs BTC MFI 79 — ETH ima više prostora.",
+    "etp_inflows": "Q1 2026: $18.7B neto crypto ETP inflows globalno. BTC ETF sam $12.4B. BlackRock IBIT: $54B AUM (~720k BTC). Institucionalna potražnja rekordna."
   }
 }

@@ -1537,8 +1537,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.2675,
-      "peakPct": 0.53
+      "peakPrice": 0.2676,
+      "peakPct": 0.56
     },
     {
       "id": "1776426522755_NEAR",
@@ -1696,8 +1696,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 1.0013,
-      "peakPct": 0.21
+      "peakPrice": 1.0014,
+      "peakPct": 0.22
     },
     {
       "id": "1776426522755_PAXG",
@@ -2834,8 +2834,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.1347,
-      "peakPct": 0.82
+      "peakPrice": 0.1348,
+      "peakPct": 0.9
     },
     {
       "id": "1776426516823_NEXO",
@@ -3205,8 +3205,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 1.876,
-      "peakPct": 0.11
+      "peakPrice": 1.877,
+      "peakPct": 0.16
     },
     {
       "id": "1776426516823_TRX",
@@ -3258,8 +3258,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.3243,
-      "peakPct": 0.19
+      "peakPrice": 0.3244,
+      "peakPct": 0.22
     },
     {
       "id": "1776426516823_BTC",
@@ -4642,5 +4642,5 @@
     }
   ],
   "signalWeights": {},
-  "updatedAt": "2026-04-17T12:06:38.215Z"
+  "updatedAt": "2026-04-17T12:07:38.156Z"
 }

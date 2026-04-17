@@ -295,7 +295,7 @@ try{var ss=JSON.parse(lsGet("ad3d_s")||"{}");if(ss.minConf)settings=ss;}catch(e)
 
 // Macro context
 var MACRO={
-  warActive:true,macroPenalty:4,oil:115,
+  warActive:true,macroPenalty:4,oil:115,dxy:103,
   fg:13,btcDom:57.9,stableDom:8.2,
   catalysts:{
     XRP:["Goldman $153.8M ETF","CLARITY Act 72% travanj","25% inst. planira XRP"],
@@ -370,7 +370,7 @@ var swingLevels={};  // {sym:{supports:[],resistances:[]}} — swing high/low S/
 var newsData={};     // {sym:[{title,sentiment,ts}]} — CryptoPanic news sentiment
 var backtestResults={}; // {sym:{accuracy,n,hits,recent}} — historijski backtest na daily klines
 var lastRefresh={ // timestamp zadnjeg osvježavanja po izvoru
-  analysis:null, prices:null, fg:null, futures:null, polymarket:null, spx:null, oi:null, btcDom:null, oil:null, news:null
+  analysis:null, prices:null, fg:null, futures:null, polymarket:null, spx:null, oi:null, btcDom:null, oil:null, dxy:null, news:null
 };
 const CG_IDS={BTC:"bitcoin",ETH:"ethereum",XRP:"ripple",BNB:"binancecoin",ADA:"cardano",LINK:"chainlink",SOL:"solana",AVAX:"avalanche-2",SUI:"sui",DOGE:"dogecoin",SHIB:"shiba-inu",PEPE:"pepe",WIF:"dogwifhat",BONK:"bonk",FLOKI:"floki"};
 
@@ -411,6 +411,7 @@ function renderRefreshStatus(){
     {lbl:"SPX",ts:lastRefresh.spx,m:2400},
     {lbl:"BTC Dom",ts:lastRefresh.btcDom,m:900},
     {lbl:"Oil",ts:lastRefresh.oil,m:1800},
+    {lbl:"DXY",ts:lastRefresh.dxy,m:1800},
     {lbl:"News",ts:lastRefresh.news,m:1200}
   ];
   var h='<div style="background:rgba(255,255,255,.025);border-radius:12px;padding:8px 12px;margin-bottom:12px;border:.5px solid rgba(255,255,255,.05)">';
@@ -523,8 +524,9 @@ function getMarketRegime(){
   if(fg<20&&btcDom>=55)return"BTC_DOMINANCE_FEAR";
   // Pohlepa + euforia = opasna zona
   if(fg>70)return"GREED_CAUTION";
-  // Rat + visoka nafta = macro risk-off, minimizirati sve pozicije
+  // Rat + visoka nafta ili jaki dolar = macro risk-off, minimizirati sve pozicije
   if(MACRO.warActive&&MACRO.oil>100)return"MACRO_RISK_OFF";
+  if(MACRO.dxy>106&&MACRO.oil>100)return"MACRO_RISK_OFF";
   // Bull market: BTC čvrsto iznad 200 SMA — altovi imaju repni vjetar
   if(MACRO.btcSma200&&btcP>0&&btcP>MACRO.btcSma200*1.15)return"BULL_MARKET";
   return"NEUTRAL";
@@ -589,9 +591,17 @@ function scoreMarketSignals(sym,signals,warnings){
     if(cg.change30d<-40){delta+=1;signals.push({txt:"30d: "+cg.change30d.toFixed(0)+"% — ekstremni dugoročni pad",type:"bull"});}
     else if(cg.change30d>50){delta-=0.5;warnings.push({txt:"30d: +"+cg.change30d.toFixed(0)+"% — dugoročno overbought",type:"warn"});}
   }
-  // 6. DXY proxy (EUR/USD — frankfurter.app)
-  if(dxyData.eurUsd!=null){
-    if(dxyData.bullish){delta+=1;signals.push({txt:"EUR/USD "+dxyData.eurUsd+" — slabiji USD, bullish crypto",type:"bull"});}
+  // 6. DXY — jak dolar = pritisak na kripto (risk-off), slab dolar = tailwind
+  var dxy=MACRO.dxy||null;
+  if(dxy){
+    if(dxy>106){delta-=1.5;warnings.push({txt:"DXY "+dxy.toFixed(1)+" — jak dolar, risk-off za kripto",type:"bear"});}
+    else if(dxy>103){delta-=0.75;warnings.push({txt:"DXY "+dxy.toFixed(1)+" — povišen dolar, pritisak na altove",type:"warn"});}
+    else if(dxy<97){delta+=1.5;signals.push({txt:"DXY "+dxy.toFixed(1)+" — jako slab dolar, bullish za kripto",type:"bull"});}
+    else if(dxy<100){delta+=0.75;signals.push({txt:"DXY "+dxy.toFixed(1)+" — slab dolar, risk-on okruženje",type:"bull"});}
+    // 100-103 = neutralna zona, nema bodova
+  } else if(dxyData.eurUsd!=null){
+    // Fallback: EUR/USD proxy ako MACRO.dxy nije dostupan
+    if(dxyData.bullish){delta+=0.75;signals.push({txt:"EUR/USD "+dxyData.eurUsd+" — slabiji USD, bullish crypto",type:"bull"});}
     else{delta-=0.5;warnings.push({txt:"Jak USD (EUR/USD "+dxyData.eurUsd+") — pritisak na crypto",type:"warn"});}
   }
   // 7. VWAP signal — ispod VWAP = potencijal za mean reversion gore
@@ -803,10 +813,12 @@ function analyze3D(sym){
     if(d.c24<-8){score-=1;warnings.push({txt:d.c24.toFixed(1)+"% — jak pad, pazi na nastavak",type:"warn"});}
   }
 
-  // Macro war + oil penalty
+  // Macro war + oil + DXY penalty
   if(MACRO.warActive){score-=1.5;warnings.push({txt:"Iran rat — smanjuje pouzdanost. Manji kapital.",type:"warn"});}
   if(MACRO.oil>110){score-=1.5;warnings.push({txt:"Nafta $"+MACRO.oil+" — inflacijski pritisak",type:"warn"});}
   else if(MACRO.oil<90){score+=1;signals.push({txt:"Nafta jeftina — inflacija smirena",type:"bull"});}
+  if(MACRO.dxy&&MACRO.dxy>106){score-=1;warnings.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — jak dolar, dodatni macro pritisak",type:"warn"});}
+  else if(MACRO.dxy&&MACRO.dxy<100){score+=0.5;signals.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — slab dolar, macro tailwind",type:"bull"});}
 
   // Market regime bonus/penalty
   // NAPOMENA: BTC_DOMINANCE_FEAR se NE penalizira ovdje — već je u scoreMarketSignals (btcDom check)
@@ -1670,6 +1682,8 @@ function analyze10pct(sym){
 
   if(MACRO.warActive){score-=2;warnings.push({txt:"Iran rat — smanjuje 10% pouzdanost",type:"warn"});}
   if(MACRO.oil>110){score-=1.5;warnings.push({txt:"Nafta $"+MACRO.oil+" — inflacija",type:"warn"});}
+  if(MACRO.dxy&&MACRO.dxy>106){score-=1.5;warnings.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — jak dolar smanjuje 10% ciljeve",type:"warn"});}
+  else if(MACRO.dxy&&MACRO.dxy<100){score+=0.75;signals.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — slab dolar, risk-on pogoduje 10% ciljevima",type:"bull"});}
   // F&G se NE dodaje drugi put (uklonjen duplikat koji je bio ovdje)
 
   // Market regime — za 10% target posebno važno
@@ -2518,6 +2532,8 @@ function analyzeMeme(sym){
   // War + macro penalty
   if(MACRO.warActive){score-=1;warnings.push({txt:"Ratni rizik — meme sentiment nestabilan",type:"warn"});}
   if(MACRO.oil>110){score-=0.5;warnings.push({txt:"Nafta $"+MACRO.oil+" — macro pritisak",type:"warn"});}
+  if(MACRO.dxy&&MACRO.dxy>106){score-=0.75;warnings.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — jak dolar, meme tokeni posebno osjetljivi",type:"warn"});}
+  else if(MACRO.dxy&&MACRO.dxy<100){score+=0.5;signals.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — slab dolar, risk-on pogoduje meme tokenima",type:"bull"});}
 
   // BTC regime — meme coinovi jako pate kad BTC dominira
   var regime=getMarketRegime();
@@ -2669,6 +2685,7 @@ function render(){
     var btcSmaAbove=MACRO.btcAbove200;
     var btcDomCol=MACRO.btcDom>60?"var(--re)":MACRO.btcDom>55?"var(--ye)":MACRO.btcDom<45?"var(--gr)":"var(--t2)";
     var oilCol=MACRO.oil>110?"var(--re)":MACRO.oil>90?"var(--ye)":"var(--gr)";
+    var dxyCol=MACRO.dxy>106?"var(--re)":MACRO.dxy>103?"var(--ye)":MACRO.dxy<100?"var(--gr)":"var(--t2)";
     var fgCol=MACRO.fg<20?"var(--gr)":MACRO.fg<35?"#00e5ff":MACRO.fg>70?"var(--re)":"var(--t2)";
     h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">';
     h+='<div style="background:rgba(255,255,255,.03);border:.5px solid rgba(255,255,255,.07);border-radius:8px;padding:5px 10px;display:flex;align-items:center;gap:6px">';
@@ -2687,6 +2704,10 @@ function render(){
     h+='<div style="background:rgba(255,255,255,.03);border:.5px solid rgba(255,255,255,.07);border-radius:8px;padding:5px 10px;display:flex;align-items:center;gap:6px">';
     h+='<span style="font-size:10px;color:var(--t4)">Nafta</span>';
     h+='<span style="font-size:11px;font-weight:800;color:'+oilCol+'">'+(MACRO.oil?"$"+MACRO.oil:"—")+'</span>';
+    h+='</div>';
+    h+='<div style="background:rgba(255,255,255,.03);border:.5px solid rgba(255,255,255,.07);border-radius:8px;padding:5px 10px;display:flex;align-items:center;gap:6px">';
+    h+='<span style="font-size:10px;color:var(--t4)">DXY</span>';
+    h+='<span style="font-size:11px;font-weight:800;color:'+dxyCol+'">'+(MACRO.dxy?MACRO.dxy.toFixed(1):"—")+'</span>';
     h+='</div>';
     h+='<div style="background:rgba(255,255,255,.03);border:.5px solid rgba(255,255,255,.07);border-radius:8px;padding:5px 10px;display:flex;align-items:center;gap:6px">';
     h+='<span style="font-size:10px;color:var(--t4)">F&G</span>';
@@ -3714,6 +3735,31 @@ function fetchOilPrice(){
     });
 }
 
+// ── DXY INDEX LIVE (US Dollar Index putem Yahoo Finance proxy) ──────
+function fetchDXY(){
+  var url="https://query1.finance.yahoo.com/v8/finance/chart/DX-Y.NYB?interval=1d&range=3d";
+  fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(url))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var result=d&&d.chart&&d.chart.result&&d.chart.result[0];
+      if(!result)return;
+      var closes=result.indicators&&result.indicators.quote&&result.indicators.quote[0]&&result.indicators.quote[0].close;
+      if(!closes)return;
+      var valid=closes.filter(function(p){return p!=null;});
+      if(valid.length>0){MACRO.dxy=+valid[valid.length-1].toFixed(2);lastRefresh.dxy=Date.now();}
+    }).catch(function(){
+      // Fallback: direktni Yahoo zahtjev
+      fetch(url).then(function(r){return r.json();}).then(function(d){
+        var result=d&&d.chart&&d.chart.result&&d.chart.result[0];
+        if(!result)return;
+        var closes=result.indicators&&result.indicators.quote&&result.indicators.quote[0]&&result.indicators.quote[0].close;
+        if(!closes)return;
+        var valid=closes.filter(function(p){return p!=null;});
+        if(valid.length>0){MACRO.dxy=+valid[valid.length-1].toFixed(2);lastRefresh.dxy=Date.now();}
+      }).catch(function(){});
+    });
+}
+
 // ── CLAUDE MACRO CONTEXT (macro-context.json) ─────────────────────
 var macroLastUpdated=null;
 function fetchMacroContext(manual){
@@ -3732,6 +3778,7 @@ function fetchMacroContext(manual){
       if(d.warActive!=null)MACRO.warActive=d.warActive;
       if(d.macroPenalty!=null)MACRO.macroPenalty=d.macroPenalty;
       if(d.oil!=null)MACRO.oil=d.oil;
+      if(d.dxy!=null){MACRO.dxy=d.dxy;lastRefresh.dxy=Date.now();}
       if(d.btcDom!=null)MACRO.btcDom=d.btcDom;
       if(d.stableDom!=null)MACRO.stableDom=d.stableDom;
       if(d.catalysts)MACRO.catalysts=Object.assign({},MACRO.catalysts,d.catalysts);
@@ -3836,6 +3883,7 @@ fetchSocialData();      // social sentiment — samo ako LunarCrush API key dost
 fetchPolymarket();      // Polymarket prediction markets — crowd intelligence
 fetchBTCDom();          // BTC + stablecoin dominance live (CoinGecko /global)
 fetchOilPrice();        // WTI crude oil live (Yahoo Finance proxy)
+fetchDXY();             // US Dollar Index live (Yahoo Finance proxy)
 fetchNewsData();        // CryptoPanic news sentiment (free endpoint + auth token ako dostupan)
 setTimeout(runBacktest, 5000); // Backtest engine — pokreni 5s nakon starta da ne blokira init
 // ── OPEN INTEREST (Binance Futures) ─────────────────────────────

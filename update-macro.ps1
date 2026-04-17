@@ -38,6 +38,7 @@ Ti si crypto market analyst. Tvoj zadatak je pretraziti najnovije vijesti i trzi
    - "crypto fear greed index today"
    - "bitcoin dominance today percentage"
    - "crude oil price today WTI"
+   - "DXY US dollar index today value"
    - "stablecoin dominance crypto today"
    - "geopolitical risk crypto today"
    - "Bitcoin BTC news today"
@@ -56,10 +57,11 @@ Ti si crypto market analyst. Tvoj zadatak je pretraziti najnovije vijesti i trzi
   "lastUpdated": "<ISO timestamp sada, npr. 2026-04-16T12:00:00.000Z>",
   "warActive": <true ili false>,
   "macroPenalty": <broj 0-6>,
-  "oil": <WTI cijena kao broj>,
+  "oil": <WTI cijena kao broj, npr. 84.5>,
+  "dxy": <US Dollar Index kao broj, npr. 104.2>,
   "btcDom": <BTC dominance kao broj>,
   "stableDom": <stablecoin dominance kao broj>,
-  "aiSummary": "<2-3 recenice na hrvatskom>",
+  "aiSummary": "<2-3 recenice na hrvatskom koje ukljucuju DXY kontekst>",
   "catalysts": {
     "BTC": ["<vijest max 65 znakova>"],
     "ETH": [], "XRP": [], "SOL": [], "BNB": [],
@@ -73,6 +75,7 @@ Ti si crypto market analyst. Tvoj zadatak je pretraziti najnovije vijesti i trzi
 }
 
 VAZNO: Napisi SAMO validni JSON. Bez markdown blokova, bez komentara.
+DXY tumacenje: >106 = jak dolar (bearish kripto), 100-103 = neutralno, <100 = slab dolar (bullish kripto).
 "@
 
 $claudeExe = "C:\Users\ttovernic\.local\bin\claude.exe"
@@ -86,7 +89,7 @@ if (!(Test-Path $JSON_PATH)) {
 try {
     $parsed = Get-Content $JSON_PATH -Raw | ConvertFrom-Json
     if (-not $parsed.lastUpdated) { throw "Nedostaje lastUpdated" }
-    Write-Host "[3/4] JSON validan. Datum: $($parsed.lastUpdated), Nafta: $($parsed.oil), BTC Dom: $($parsed.btcDom)%"
+    Write-Host "[3/4] JSON validan. Datum: $($parsed.lastUpdated), Nafta: $($parsed.oil), DXY: $($parsed.dxy), BTC Dom: $($parsed.btcDom)%"
 } catch {
     Write-Host "[ERROR] JSON nije validan: $_" -ForegroundColor Red
     exit 1

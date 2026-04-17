@@ -167,7 +167,6 @@ svg.sp{overflow:visible;display:block}
       <button class="hd-gear" onclick="openSettings()">⚙️</button>
     </div>
   </div>
-  <div id="ai-summary-strip" style="display:none;background:rgba(0,230,118,.06);border-bottom:.5px solid rgba(0,230,118,.15);padding:7px 16px;font-size:11.5px;color:rgba(0,230,118,.8);letter-spacing:.01em;line-height:1.5"></div>
   <div class="filter-wrap">
     <div class="filter-top">
       <div class="tab-row">
@@ -2715,6 +2714,18 @@ function render(){
     h+='</div>';
     h+='</div>';
 
+    // AI summary expandable widget
+    if(MACRO.aiSummary){
+      h+='<div style="margin-bottom:12px">';
+      h+='<button id="ai-sum-btn" onclick="toggleAISummary()" style="background:rgba(0,230,118,.07);border:.5px solid rgba(0,230,118,.2);border-radius:20px;padding:4px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:rgba(0,230,118,.75);font-size:11px;font-weight:600;letter-spacing:.02em">';
+      h+='<span>🤖</span><span>Claude sažetak</span><span id="ai-sum-arr" style="font-size:9px;opacity:.7">▼</span>';
+      h+='</button>';
+      h+='<div id="ai-sum-body" style="display:none;margin-top:6px;padding:9px 13px;background:rgba(0,230,118,.05);border:.5px solid rgba(0,230,118,.15);border-radius:10px;font-size:12px;color:rgba(0,230,118,.82);line-height:1.65;letter-spacing:.01em">';
+      h+=MACRO.aiSummary;
+      h+='</div>';
+      h+='</div>';
+    }
+
     // Collapsible legenda
     var legendOpen=lsGet("ad3d_legend")!=="0";
     h+='<div class="legend" style="margin-bottom:14px">';
@@ -2854,6 +2865,18 @@ function setPct(pct){
   var onPregled=activeFilter==="all"||activeFilter==="pct10";
   if(onPregled) activeFilter=pct===10?"pct10":"all";
   render();
+}
+
+// ── AI SUMMARY TOGGLE (Pregled tab) ─────────────────────────────
+function toggleAISummary(){
+  var body=document.getElementById("ai-sum-body");
+  var arr=document.getElementById("ai-sum-arr");
+  var btn=document.getElementById("ai-sum-btn");
+  if(!body)return;
+  var open=body.style.display!=="none";
+  body.style.display=open?"none":"block";
+  if(arr)arr.textContent=open?"▼":"▲";
+  if(btn)btn.style.background=open?"rgba(0,230,118,.07)":"rgba(0,230,118,.14)";
 }
 
 // ── SETTINGS ────────────────────────────────────────────────────
@@ -3796,9 +3819,7 @@ function fetchMacroContext(manual){
         txt.innerHTML='🤖 Claude analiza: '+dStr+' u '+tStr+' <span style="opacity:.6">('+ageStr+' ago)</span>';
         if(wrap)wrap.style.display="flex";
       }
-      // Ažuriraj AI summary strip
-      var ais=document.getElementById("ai-summary-strip");
-      if(ais&&MACRO.aiSummary){ais.textContent="💡 "+MACRO.aiSummary;ais.style.display="block";}
+      // AI summary se prikazuje u Pregled tabu — re-render će ga ubaciti
       render();
     }).catch(function(e){
       if(btn)btn.style.animation="";

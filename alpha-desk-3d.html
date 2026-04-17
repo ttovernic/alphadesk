@@ -1283,17 +1283,14 @@ function renderOpp(o){
     h+='</div>';
   }
 
-  // Action buttons — LONG + SHORT, razlikuje se boja po tipu verdikta
+  // Action button — jedan gumb, razlikuje se po tipu verdikta
   h+='<div style="padding:12px 16px;display:flex;gap:8px">';
   if(isWatchBlue){
-    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(255,255,255,.04);border:.5px solid rgba(255,255,255,.15);border-radius:12px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;font-family:inherit">📈 Long</button>';
-    h+='<button onclick="addShortPred(\''+o.sym+'\','+o.price+','+o.conf+','+o.targetPct+')" style="flex:1;padding:11px;background:rgba(255,23,68,.06);border:.5px solid rgba(255,23,68,.2);border-radius:12px;font-size:12px;font-weight:700;color:rgba(255,100,100,.8);cursor:pointer;font-family:inherit">📉 Short</button>';
+    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(255,255,255,.04);border:.5px solid rgba(255,255,255,.15);border-radius:12px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;font-family:inherit">📌 Bilješka — spekulativni setup</button>';
   } else if(isWatchYellow){
-    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(255,234,0,.1);border:.5px solid rgba(255,234,0,.35);border-radius:12px;font-size:13px;font-weight:700;color:#ffea00;cursor:pointer;font-family:inherit">📈 Long</button>';
-    h+='<button onclick="addShortPred(\''+o.sym+'\','+o.price+','+o.conf+','+o.targetPct+')" style="flex:1;padding:11px;background:rgba(255,23,68,.08);border:.5px solid rgba(255,23,68,.25);border-radius:12px;font-size:13px;font-weight:700;color:var(--re);cursor:pointer;font-family:inherit">📉 Short</button>';
+    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(255,234,0,.1);border:.5px solid rgba(255,234,0,.35);border-radius:12px;font-size:13px;font-weight:700;color:#ffea00;cursor:pointer;font-family:inherit">👁 Prati signal</button>';
   } else {
-    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(41,121,255,.15);border:.5px solid rgba(41,121,255,.35);border-radius:12px;font-size:13px;font-weight:700;color:#2979ff;cursor:pointer;font-family:inherit">📈 Long</button>';
-    h+='<button onclick="addShortPred(\''+o.sym+'\','+o.price+','+o.conf+','+o.targetPct+')" style="flex:1;padding:11px;background:rgba(255,23,68,.1);border:.5px solid rgba(255,23,68,.3);border-radius:12px;font-size:13px;font-weight:700;color:var(--re);cursor:pointer;font-family:inherit">📉 Short</button>';
+    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(41,121,255,.15);border:.5px solid rgba(41,121,255,.35);border-radius:12px;font-size:13px;font-weight:700;color:#2979ff;cursor:pointer;font-family:inherit">📝 Zabilježi trade</button>';
   }
   h+='</div>';
 

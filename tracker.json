@@ -257,8 +257,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.0375,
-      "peakPct": 0.08
+      "peakPrice": 0.03754,
+      "peakPct": 0.19
     },
     {
       "id": "1776425579984_XDC",
@@ -1246,8 +1246,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 3.445,
-      "peakPct": 0.09
+      "peakPrice": 3.447,
+      "peakPct": 0.15
     },
     {
       "id": "1776425579984_DOT",
@@ -1818,8 +1818,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.9996,
-      "peakPct": 0.14
+      "peakPrice": 0.9998,
+      "peakPct": 0.16
     },
     {
       "id": "1776425529795_VET",
@@ -1870,8 +1870,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.007294,
-      "peakPct": 0.01
+      "peakPrice": 0.007295,
+      "peakPct": 0.03
     },
     {
       "id": "1776425529795_KAS",
@@ -1974,8 +1974,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.1156,
-      "peakPct": 0.17
+      "peakPrice": 0.1157,
+      "peakPct": 0.26
     },
     {
       "id": "1776425529795_XAUT",
@@ -4109,8 +4109,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 1.822,
-      "peakPct": 0.11
+      "peakPrice": 1.824,
+      "peakPct": 0.22
     },
     {
       "id": "1776425438209_RENDER",
@@ -4161,8 +4161,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 1.873,
-      "peakPct": 0
+      "peakPrice": 1.874,
+      "peakPct": 0.05
     },
     {
       "id": "1776425438209_ARB",
@@ -4421,8 +4421,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 253.6,
-      "peakPct": 0.2
+      "peakPrice": 253.7,
+      "peakPct": 0.24
     },
     {
       "id": "1776425438204",
@@ -4608,5 +4608,5 @@
     }
   ],
   "signalWeights": {},
-  "updatedAt": "2026-04-17T11:38:42.059Z"
+  "updatedAt": "2026-04-17T11:39:42.046Z"
 }

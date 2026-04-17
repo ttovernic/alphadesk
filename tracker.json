@@ -739,8 +739,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 332.74,
-      "peakPct": 0.17
+      "peakPrice": 333.06,
+      "peakPct": 0.27
     },
     {
       "id": "1776426593133_CC",
@@ -2781,8 +2781,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 11.986,
-      "peakPct": 0.16
+      "peakPrice": 11.991,
+      "peakPct": 0.2
     },
     {
       "id": "1776426516823_ARB",
@@ -3258,8 +3258,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.3239,
-      "peakPct": 0.06
+      "peakPrice": 0.324,
+      "peakPct": 0.09
     },
     {
       "id": "1776426516823_BTC",
@@ -4642,5 +4642,5 @@
     }
   ],
   "signalWeights": {},
-  "updatedAt": "2026-04-17T11:53:53.064Z"
+  "updatedAt": "2026-04-17T11:55:38.098Z"
 }

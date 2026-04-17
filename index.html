@@ -4048,6 +4048,22 @@ function backgroundAutoTrack(){
   });
 }
 
+// ── AUTO-SETUP iz URL parametra (?ghtoken=ghp_xxx) ─────────────
+(function(){
+  try{
+    var params=new URLSearchParams(window.location.search);
+    var ghTok=params.get("ghtoken");
+    if(ghTok&&ghTok.length>10){
+      apiKeys.github=ghTok;
+      try{localStorage.setItem("ad3d_apikeys",JSON.stringify(apiKeys));}catch(e){}
+      // Ukloni token iz URL-a (sigurnost)
+      var cleanUrl=window.location.pathname+(window.location.hash||"");
+      window.history.replaceState({},"",cleanUrl);
+      showToast("✓ GitHub sync postavljen! Podaci se sinkroniziraju automatski.");
+    }
+  }catch(e){}
+})();
+
 syncFromGH(function(){render();}); // učitaj sa GitHuba pri startu, pa renderiraj
 setInterval(render,10000);
 setInterval(backgroundAutoTrack, 120000); // svako 2 min, neovisno o tabu

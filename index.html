@@ -357,7 +357,7 @@ var tokenUnlocks={      // Poznati unlock eventi — bearish pritisak pred unloc
 var apiKeys={cryptoquant:"",coinglass:"",lunarcrush:"",github:"",cryptopanic:""};
 try{var _ak=JSON.parse(lsGet("ad3d_apikeys")||"{}");if(_ak&&typeof _ak==="object")Object.assign(apiKeys,_ak);}catch(e){}
 // GitHub sync
-var GH_REPO="ttovernic/alphadesk";
+var GH_REPO="pajdo2/alphadesk";
 var GH_FILE="tracker.json";
 var ghSha=null; // SHA trenutne verzije fajla na GitHubu (potreban za PUT)
 var ghSync={status:"idle",lastSync:null,error:null}; // "idle"|"syncing"|"ok"|"error"
@@ -3794,7 +3794,7 @@ function fetchMacroContext(manual){
     if(txt)txt.textContent="🤖 Osvježavam…";
     if(wrap)wrap.style.display="flex";
   }
-  fetch("https://raw.githubusercontent.com/ttovernic/alphadesk/main/macro-context.json?t="+Date.now())
+  fetch("https://raw.githubusercontent.com/pajdo2/alphadesk/main/macro-context.json?t="+Date.now())
     .then(function(r){if(!r.ok)throw new Error("no file");return r.json();})
     .then(function(d){
       if(!d)return;

@@ -22,7 +22,7 @@ if (-not $GITHUB_TOKEN) {
 # ── 1. Pull najnovijeg stanja ─────────────────────────────────
 Write-Host "[1/4] Pull s GitHuba..."
 Set-Location $REPO_PATH
-& git pull "https://$GITHUB_TOKEN@github.com/ttovernic/alphadesk.git" main 2>&1 | Out-Null
+& git pull "https://$GITHUB_TOKEN@github.com/pajdo2/alphadesk.git" main 2>&1 | Out-Null
 
 # ── 2. Claude analiza ────────────────────────────────────────
 Write-Host "[2/4] Claude analizira trziste..."
@@ -104,7 +104,7 @@ Set-Location $REPO_PATH
 & git add macro-context.json
 $ts = Get-Date -Format "yyyy-MM-ddTHH:mm"
 & git commit -m "macro: auto-update $ts"
-& git push "https://$GITHUB_TOKEN@github.com/ttovernic/alphadesk.git" master:main 2>&1
+& git push "https://$GITHUB_TOKEN@github.com/pajdo2/alphadesk.git" master:main 2>&1
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""

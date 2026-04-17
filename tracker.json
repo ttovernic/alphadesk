@@ -156,8 +156,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.1131,
-      "peakPct": 0.35
+      "peakPrice": 0.1133,
+      "peakPct": 0.53
     },
     {
       "id": "1776426593133_MORPHO",
@@ -209,8 +209,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 1.882,
-      "peakPct": 0.16
+      "peakPrice": 1.891,
+      "peakPct": 0.64
     },
     {
       "id": "1776426593133_PUMP",
@@ -1537,8 +1537,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.2676,
-      "peakPct": 0.56
+      "peakPrice": 0.2679,
+      "peakPct": 0.68
     },
     {
       "id": "1776426522755_NEAR",
@@ -1696,8 +1696,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 1.0014,
-      "peakPct": 0.22
+      "peakPrice": 1.002,
+      "peakPct": 0.28
     },
     {
       "id": "1776426522755_PAXG",
@@ -2675,8 +2675,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.09115,
-      "peakPct": 0.2
+      "peakPrice": 0.09121,
+      "peakPct": 0.26
     },
     {
       "id": "1776426516823_BCH",
@@ -2776,13 +2776,13 @@
         "fgExtremeFear": false,
         "fgFear": true
       },
-      "d1Hit": false,
+      "d1Hit": true,
       "d2Hit": false,
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 12.172,
-      "peakPct": 1.71
+      "peakPrice": 12.198,
+      "peakPct": 1.93
     },
     {
       "id": "1776426516823_ARB",
@@ -2834,8 +2834,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.1348,
-      "peakPct": 0.9
+      "peakPrice": 0.135,
+      "peakPct": 1.05
     },
     {
       "id": "1776426516823_NEXO",
@@ -3205,8 +3205,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 1.877,
-      "peakPct": 0.16
+      "peakPrice": 1.879,
+      "peakPct": 0.27
     },
     {
       "id": "1776426516823_TRX",
@@ -4642,5 +4642,5 @@
     }
   ],
   "signalWeights": {},
-  "updatedAt": "2026-04-17T12:07:38.156Z"
+  "updatedAt": "2026-04-17T12:08:38.169Z"
 }

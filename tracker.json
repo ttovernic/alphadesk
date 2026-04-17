@@ -2781,8 +2781,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 12.001,
-      "peakPct": 0.28
+      "peakPrice": 12.042,
+      "peakPct": 0.63
     },
     {
       "id": "1776426516823_ARB",
@@ -4642,5 +4642,5 @@
     }
   ],
   "signalWeights": {},
-  "updatedAt": "2026-04-17T11:56:38.116Z"
+  "updatedAt": "2026-04-17T11:57:38.133Z"
 }

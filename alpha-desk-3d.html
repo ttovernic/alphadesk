@@ -374,7 +374,7 @@ var lastRefresh={ // timestamp zadnjeg osvježavanja po izvoru
 const CG_IDS={BTC:"bitcoin",ETH:"ethereum",XRP:"ripple",BNB:"binancecoin",ADA:"cardano",LINK:"chainlink",SOL:"solana",AVAX:"avalanche-2",SUI:"sui",DOGE:"dogecoin",SHIB:"shiba-inu",PEPE:"pepe",WIF:"dogwifhat",BONK:"bonk",FLOKI:"floki"};
 
 // ── TOP 100 ENGINE ───────────────────────────────────────────────
-const STABLES=new Set(["USDT","USDC","DAI","BUSD","TUSD","USDP","USDD","GUSD","FRAX","LUSD","PYUSD","USDS","FDUSD","USDE","EURS","EURT","USD0"]);
+const STABLES=new Set(["USDT","USDC","DAI","BUSD","TUSD","USDP","USDD","GUSD","FRAX","LUSD","PYUSD","USDS","FDUSD","USDE","EURS","EURT","USD0","USD1","USDY","CRVUSD","GHO","SUSD","MKUSD","ALUSD","DEUSD","LISUSD","FRXUSD","CUSD","OUSD","USDM","USDX","HUSD","DUSD"]);
 const WRAPPED=new Set(["WBTC","WSTETH","STETH","CBETH","RETH","WBETH","WEETH","WETH","WBNB","SOLVBTC","BBTC","HBTC"]);
 var TOP100=SYMS.slice();     // dynamically populated from CoinGecko, starts with existing 9
 var TOP100_LOADED=false;
@@ -1283,17 +1283,17 @@ function renderOpp(o){
     h+='</div>';
   }
 
-  // Action button — razlikuje se po tipu verdikta
+  // Action buttons — LONG + SHORT, razlikuje se boja po tipu verdikta
   h+='<div style="padding:12px 16px;display:flex;gap:8px">';
   if(isWatchBlue){
-    // 🔵 Spekulativni — dimni gumb s upozorenjem
-    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(255,255,255,.04);border:.5px solid rgba(255,255,255,.15);border-radius:12px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;font-family:inherit">📌 Bilješka — spekulativni setup</button>';
+    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(255,255,255,.04);border:.5px solid rgba(255,255,255,.15);border-radius:12px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;font-family:inherit">📈 Long</button>';
+    h+='<button onclick="addShortPred(\''+o.sym+'\','+o.price+','+o.conf+','+o.targetPct+')" style="flex:1;padding:11px;background:rgba(255,23,68,.06);border:.5px solid rgba(255,23,68,.2);border-radius:12px;font-size:12px;font-weight:700;color:rgba(255,100,100,.8);cursor:pointer;font-family:inherit">📉 Short</button>';
   } else if(isWatchYellow){
-    // 🟡 Ulaz s oprezom — žuti gumb
-    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(255,234,0,.1);border:.5px solid rgba(255,234,0,.35);border-radius:12px;font-size:13px;font-weight:700;color:#ffea00;cursor:pointer;font-family:inherit">👁 Prati signal</button>';
+    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(255,234,0,.1);border:.5px solid rgba(255,234,0,.35);border-radius:12px;font-size:13px;font-weight:700;color:#ffea00;cursor:pointer;font-family:inherit">📈 Long</button>';
+    h+='<button onclick="addShortPred(\''+o.sym+'\','+o.price+','+o.conf+','+o.targetPct+')" style="flex:1;padding:11px;background:rgba(255,23,68,.08);border:.5px solid rgba(255,23,68,.25);border-radius:12px;font-size:13px;font-weight:700;color:var(--re);cursor:pointer;font-family:inherit">📉 Short</button>';
   } else {
-    // ✅ Ulaz — plavi gumb
-    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(41,121,255,.15);border:.5px solid rgba(41,121,255,.35);border-radius:12px;font-size:13px;font-weight:700;color:#2979ff;cursor:pointer;font-family:inherit">📝 Zabilježi trade</button>';
+    h+='<button onclick="recordPred(\''+o.sym+'\','+o.price+','+o.targetPrice+','+o.stopPrice+','+o.conf+','+o.targetPct+','+o.d1Price+','+o.d2Price+')" style="flex:1;padding:11px;background:rgba(41,121,255,.15);border:.5px solid rgba(41,121,255,.35);border-radius:12px;font-size:13px;font-weight:700;color:#2979ff;cursor:pointer;font-family:inherit">📈 Long</button>';
+    h+='<button onclick="addShortPred(\''+o.sym+'\','+o.price+','+o.conf+','+o.targetPct+')" style="flex:1;padding:11px;background:rgba(255,23,68,.1);border:.5px solid rgba(255,23,68,.3);border-radius:12px;font-size:13px;font-weight:700;color:var(--re);cursor:pointer;font-family:inherit">📉 Short</button>';
   }
   h+='</div>';
 
@@ -1398,13 +1398,24 @@ function refreshWeights(){
 // Pozovi jednom pri startu
 refreshWeights();
 
-function recordPred(sym,entryPrice,targetPrice,stopPrice,conf,forcePct,d1T,d2T){
+function recordPred(sym,entryPrice,targetPrice,stopPrice,conf,forcePct,d1T,d2T,direction){
+  var dir=direction||"LONG";
+  var pct=forcePct||settings.targetPct;
   var isMeme=KNOWN_MEME.indexOf(sym)>-1;
+  // Za SHORT: preračunaj target (ispod ulaza) i stop (iznad ulaza)
+  if(dir==="SHORT"){
+    var riskMult=pct===10?0.03:0.02;
+    targetPrice=+(entryPrice*(1-pct/100)).toFixed(8);
+    stopPrice=+(entryPrice*(1+riskMult)).toFixed(8);
+    d1T=+(entryPrice*(1-pct*0.33/100)).toFixed(8);
+    d2T=+(entryPrice*(1-pct*0.66/100)).toFixed(8);
+  }
   var p={
     id:Date.now()+"",
     timestamp:Date.now(),
     sym:sym,
     type:isMeme?"meme":"regular",
+    direction:dir,
     date:new Date().toLocaleDateString("hr-HR",{day:"numeric",month:"short"}),
     entry:entryPrice,
     target:targetPrice,
@@ -1413,28 +1424,34 @@ function recordPred(sym,entryPrice,targetPrice,stopPrice,conf,forcePct,d1T,d2T){
     d3Target:targetPrice,
     stop:stopPrice,
     conf:conf,
-    targetPct:forcePct||settings.targetPct,
+    targetPct:pct,
     status:"AKTIVAN",
     closePrice:null,
     closePct:null,
     autoClose:false,
     d1Hit:false,d2Hit:false,d3Hit:false,
-    peakPrice:entryPrice,  // prati maksimalnu cijenu viđenu u toku trade-a
-    peakPct:0              // % od ulaza do peak-a (za analizu "kako blizu smo bili")
+    peakPrice:entryPrice,
+    peakPct:0
   };
   predTracker.unshift(p);
   if(predTracker.length>50)predTracker=predTracker.slice(0,50);
   try{localStorage.setItem("ad3d_track",JSON.stringify(predTracker));}catch(e){}
   syncToGH();
   render();
-  alert("✅ "+sym+" zabilježen! Target: $"+targetPrice.toFixed(4)+" | Stop: $"+stopPrice.toFixed(4));
+  var dirLbl=dir==="SHORT"?"📉 SHORT":"📈 LONG";
+  alert("✅ "+sym+" "+dirLbl+" zabilježen!\nTarget: $"+targetPrice.toFixed(4)+" | Stop: $"+stopPrice.toFixed(4));
+}
+function addShortPred(sym,price,conf,targetPct){
+  recordPred(sym,price,null,null,conf,targetPct,null,null,"SHORT");
 }
 
 function closePred(id,hit){
   predTracker=predTracker.map(function(p){
     if(p.id!==id)return p;
     var cur=px[p.sym]?px[p.sym].p:p.entry;
-    var pct=((cur-p.entry)/p.entry*100);
+    var pct=p.direction==="SHORT"
+      ?((p.entry-cur)/p.entry*100)
+      :((cur-p.entry)/p.entry*100);
     return Object.assign({},p,{status:hit?"POGODAK":"PROMAŠAJ",closePrice:cur,closePct:+pct.toFixed(2)});
   });
   try{localStorage.setItem("ad3d_track",JSON.stringify(predTracker));}catch(e){}
@@ -1511,42 +1528,74 @@ function autoClosePreds(){
     var ts=p.timestamp||parseInt(p.id);
     var elapsed=Date.now()-ts;
     var u=Object.assign({},p);
+    var isShort=p.direction==="SHORT";
 
-    // Prati maksimalnu cijenu viđenu u toku trade-a (za analizu i post-mortem)
-    if(!u.peakPrice||cur>u.peakPrice){
-      u.peakPrice=+cur.toFixed(8);
-      u.peakPct=+((cur-p.entry)/p.entry*100).toFixed(2);
-      changed=true;
+    // Prati peak (long) ili valley (short) — za analizu i trailing stop
+    if(isShort){
+      if(!u.valleyPrice||cur<u.valleyPrice){
+        u.valleyPrice=+cur.toFixed(8);
+        u.valleyPct=+((p.entry-cur)/p.entry*100).toFixed(2);
+        changed=true;
+      }
+    } else {
+      if(!u.peakPrice||cur>u.peakPrice){
+        u.peakPrice=+cur.toFixed(8);
+        u.peakPct=+((cur-p.entry)/p.entry*100).toFixed(2);
+        changed=true;
+      }
     }
 
-    // Bilježi dan koji je dostignut (jednom true — ostaje true)
-    if(!u.d1Hit&&cur>=(u.d1Target||u.target)){u.d1Hit=true;changed=true;}
-    if(!u.d2Hit&&cur>=(u.d2Target||u.target)){u.d2Hit=true;changed=true;}
-    if(!u.d3Hit&&cur>=u.target){u.d3Hit=true;changed=true;}
-
-    // Prati dnevne milestoneove za 10% engine
-    if(p.targetPct===10){
-      if(!u.d4Hit&&cur>=(u.d4Target||u.target)){u.d4Hit=true;changed=true;}
-      if(!u.d5Hit&&cur>=u.target){u.d5Hit=true;changed=true;}
+    // Dnevni milestoneovi (reversed za SHORT)
+    if(isShort){
+      if(!u.d1Hit&&cur<=(u.d1Target||u.target)){u.d1Hit=true;changed=true;}
+      if(!u.d2Hit&&cur<=(u.d2Target||u.target)){u.d2Hit=true;changed=true;}
+      if(!u.d3Hit&&cur<=u.target){u.d3Hit=true;changed=true;}
+      if(p.targetPct===10){
+        if(!u.d4Hit&&cur<=(u.d4Target||u.target)){u.d4Hit=true;changed=true;}
+        if(!u.d5Hit&&cur<=u.target){u.d5Hit=true;changed=true;}
+      }
+    } else {
+      if(!u.d1Hit&&cur>=(u.d1Target||u.target)){u.d1Hit=true;changed=true;}
+      if(!u.d2Hit&&cur>=(u.d2Target||u.target)){u.d2Hit=true;changed=true;}
+      if(!u.d3Hit&&cur>=u.target){u.d3Hit=true;changed=true;}
+      if(p.targetPct===10){
+        if(!u.d4Hit&&cur>=(u.d4Target||u.target)){u.d4Hit=true;changed=true;}
+        if(!u.d5Hit&&cur>=u.target){u.d5Hit=true;changed=true;}
+      }
     }
 
-    // Auto-zatvaranje
-    var pct=+((cur-p.entry)/p.entry*100).toFixed(2);
+    // P&L i auto-zatvaranje
+    var pct=isShort
+      ?+((p.entry-cur)/p.entry*100).toFixed(2)
+      :+((cur-p.entry)/p.entry*100).toFixed(2);
     var reason=null;var hit=false;
 
-    if(p.targetPct===10){
-      // 10% engine: 5-dnevni hard stop, trailing stop na +5%
-      var halfTarget=p.entry*(1+0.05); // +5% = pola targeta
-      var trailStop=p.entry*(1+0.03); // trailing stop na +3% (break-even+)
-      if(cur<=p.stop){reason="🛑 Stop-loss -3% hit";hit=false;}
-      else if(u.peakPrice>=halfTarget&&cur<=trailStop){reason="🔒 Trailing stop (čuvam +3% dobitak)";hit=true;}
-      else if(cur>=u.target){reason="🎯 +10% Target dostignut";hit=true;}
-      else if(elapsed>=5*DAY){reason="⏰ 5 dana isteklo";hit=cur>=(p.entry*(1+0.05));}
+    if(isShort){
+      if(p.targetPct===10){
+        var halfT=p.entry*(1-0.05);
+        var trailS=p.entry*(1+0.03);
+        if(cur>=p.stop){reason="🛑 Stop-loss hit";hit=false;}
+        else if(u.valleyPrice&&u.valleyPrice<=halfT&&cur>=trailS){reason="🔒 Trailing stop (čuvam profit)";hit=true;}
+        else if(cur<=u.target){reason="🎯 -10% Target dostignut";hit=true;}
+        else if(elapsed>=5*DAY){reason="⏰ 5 dana isteklo";hit=cur<=(p.entry*(1-0.05));}
+      } else {
+        if(cur>=p.stop){reason="🛑 Stop-loss hit";hit=false;}
+        else if(u.d3Hit){reason="🎯 Target D3 dostignut";hit=true;}
+        else if(elapsed>=3*DAY){reason="⏰ 3 dana istekla";hit=cur<p.entry;}
+      }
     } else {
-      // 5% engine: 3-dnevni hard stop
-      if(cur<=p.stop){reason="🛑 Stop-loss hit";hit=false;}
-      else if(u.d3Hit){reason="🎯 Target D3 dostignut";hit=true;}
-      else if(elapsed>=3*DAY){reason="⏰ 3 dana istekla";hit=cur>p.entry;}
+      if(p.targetPct===10){
+        var halfTarget=p.entry*(1+0.05);
+        var trailStop=p.entry*(1+0.03);
+        if(cur<=p.stop){reason="🛑 Stop-loss -3% hit";hit=false;}
+        else if(u.peakPrice>=halfTarget&&cur<=trailStop){reason="🔒 Trailing stop (čuvam +3% dobitak)";hit=true;}
+        else if(cur>=u.target){reason="🎯 +10% Target dostignut";hit=true;}
+        else if(elapsed>=5*DAY){reason="⏰ 5 dana isteklo";hit=cur>=(p.entry*(1+0.05));}
+      } else {
+        if(cur<=p.stop){reason="🛑 Stop-loss hit";hit=false;}
+        else if(u.d3Hit){reason="🎯 Target D3 dostignut";hit=true;}
+        else if(elapsed>=3*DAY){reason="⏰ 3 dana istekla";hit=cur>p.entry;}
+      }
     }
     if(reason){
       changed=true;
@@ -2083,9 +2132,15 @@ function renderHistoryChart(allPreds){
 // ── TRACKER RENDER ────────────────────────────────────────────────
 function renderActiveCard(p){
   var cur=px[p.sym]?px[p.sym].p:p.entry;
-  var curPct=+((cur-p.entry)/p.entry*100).toFixed(2);
+  var isShort=p.direction==="SHORT";
+  // curPct = pozitivno kada trade ide u korist (i za long i za short)
+  var curPct=isShort
+    ?+((p.entry-cur)/p.entry*100).toFixed(2)
+    :+((cur-p.entry)/p.entry*100).toFixed(2);
   var pC=curPct>=0?"var(--gr)":"var(--re)";
-  var prog=p.target>p.entry?Math.min(100,Math.max(0,(cur-p.entry)/(p.target-p.entry)*100)):0;
+  var prog=isShort
+    ?(p.target<p.entry?Math.min(100,Math.max(0,(p.entry-cur)/(p.entry-p.target)*100)):0)
+    :(p.target>p.entry?Math.min(100,Math.max(0,(cur-p.entry)/(p.target-p.entry)*100)):0);
   var ts=p.timestamp||parseInt(p.id);
   var windowDays=(p.targetPct===10?5:3);
   var msLeft=Math.max(0,(ts+windowDays*24*3600*1000)-Date.now());
@@ -2093,15 +2148,19 @@ function renderActiveCard(p){
   var dLeft=Math.floor(hLeft/24);
   var timeStr=msLeft===0?"⏰ Ističe danas":dLeft>0?dLeft+"d "+(hLeft%24)+"h preostalo":hLeft+"h preostalo";
   var isMeme=p.type==="meme";
-  var h='<div style="background:var(--s1);border-radius:16px;padding:14px 16px;margin-bottom:10px;border:.5px solid '+(isMeme?"rgba(213,0,249,.2)":"var(--sep)")+'">';
+  var dirBadge=isShort
+    ?'<span style="font-size:10px;background:rgba(255,23,68,.12);color:var(--re);border-radius:8px;padding:2px 7px;font-weight:700">📉 SHORT</span>'
+    :'<span style="font-size:10px;background:rgba(41,121,255,.12);color:#2979ff;border-radius:8px;padding:2px 7px;font-weight:700">📈 LONG</span>';
+  var h='<div style="background:var(--s1);border-radius:16px;padding:14px 16px;margin-bottom:10px;border:.5px solid '+(isMeme?"rgba(213,0,249,.2)":isShort?"rgba(255,23,68,.15)":"var(--sep)")+'">';
   h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
   h+='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:17px;font-weight:800">'+p.sym+'</span>';
+  h+=dirBadge;
   h+=(isMeme?'<span style="font-size:10px;background:rgba(213,0,249,.12);color:var(--pu);border-radius:8px;padding:2px 7px;font-weight:700">🎰 MEME</span>':'');
   h+=(p.autoTrack&&p.autoSource==="watch"?'<span style="font-size:10px;background:rgba(255,234,0,.12);color:#ffea00;border-radius:8px;padding:2px 7px;font-weight:700">👁 WATCH</span>':p.autoTrack?'<span style="font-size:10px;background:rgba(41,121,255,.12);color:#2979ff;border-radius:8px;padding:2px 7px;font-weight:700">⚡ ULAZ</span>':'');
   h+='<span style="font-size:11px;color:var(--t3)">'+p.date+'</span></div>';
   h+='<div style="text-align:right"><div style="font-size:20px;font-weight:900;color:'+pC+'">'+(curPct>=0?"+":"")+curPct+'%</div></div>';
   h+='</div>';
-  h+='<div style="font-size:10px;color:var(--ye);margin-bottom:8px">⏱ '+timeStr+' · Target: +'+p.targetPct+'%</div>';
+  h+='<div style="font-size:10px;color:var(--ye);margin-bottom:8px">⏱ '+timeStr+' · Target: '+(isShort?"-":"+")+''+p.targetPct+'%</div>';
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
   h+='<div style="text-align:center;background:var(--s2);border-radius:9px;padding:8px"><div style="font-size:9px;color:rgba(41,121,255,.7);font-weight:700;margin-bottom:2px">ULAZ</div><div style="font-size:12px;font-weight:700">'+fp(p.entry)+'</div></div>';
   h+='<div style="text-align:center;background:var(--s2);border-radius:9px;padding:8px"><div style="font-size:9px;color:rgba(255,23,68,.7);font-weight:700;margin-bottom:2px">STOP</div><div style="font-size:12px;font-weight:700">'+fp(p.stop)+'</div></div>';
@@ -2131,24 +2190,26 @@ function renderActiveCard(p){
     h+='</div>';
   });
   h+='</div>';
-  // Progress bar with stop/entry/target markers
-  var stopPct=p.entry>0?(p.stop-p.entry)/p.entry*100:-(p.targetPct===10?3:2); // negative %
+  // Progress bar — za SHORT je lijevoj target (niža cijena), za LONG desno
+  var riskMult=isShort?1:(-1);
+  var stopPctRaw=p.entry>0?(p.stop-p.entry)/p.entry*100:riskMult*(p.targetPct===10?3:2);
+  // Za SHORT stopPct je pozitivan (stop je iznad ulaza), za Long negativan
   var targetPctVal=p.targetPct||5;
-  var totalRange=targetPctVal-stopPct; // e.g. 5-(-2)=7
-  var curPctFromStop=curPct-stopPct;
-  var progNorm=Math.min(100,Math.max(0,curPctFromStop/totalRange*100));
-  var entryPosNorm=Math.min(100,Math.max(0,(-stopPct)/totalRange*100)); // where entry sits on bar
-  var barCol=curPct>=0?"var(--gr)":curPct>stopPct?"var(--ye)":"var(--re)";
+  var barCol=curPct>=0?"var(--gr)":curPct>-targetPctVal*0.5?"var(--ye)":"var(--re)";
   h+='<div style="margin-bottom:10px">';
   h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t4);margin-bottom:3px">';
-  h+='<span style="color:var(--re)">Stop '+stopPct.toFixed(0)+'%</span>';
-  h+='<span style="color:'+barCol+'">'+prog.toFixed(0)+'% → target</span>';
-  h+='<span style="color:var(--gr)">+'+targetPctVal+'%</span>';
+  if(isShort){
+    h+='<span style="color:var(--gr)">-'+targetPctVal+'% target</span>';
+    h+='<span style="color:'+barCol+'">'+prog.toFixed(0)+'% → target</span>';
+    h+='<span style="color:var(--re)">Stop +'+Math.abs(stopPctRaw).toFixed(0)+'%</span>';
+  } else {
+    h+='<span style="color:var(--re)">Stop -'+Math.abs(stopPctRaw).toFixed(0)+'%</span>';
+    h+='<span style="color:'+barCol+'">'+prog.toFixed(0)+'% → target</span>';
+    h+='<span style="color:var(--gr)">+'+targetPctVal+'% target</span>';
+  }
   h+='</div>';
-  h+='<div style="position:relative;height:8px;background:var(--s4);border-radius:4px;overflow:visible">';
-  h+='<div style="position:absolute;left:0;top:0;height:8px;width:'+progNorm.toFixed(1)+'%;background:'+barCol+';border-radius:4px;transition:width .3s"></div>';
-  // Entry marker
-  h+='<div style="position:absolute;top:-2px;height:12px;width:2px;background:rgba(255,255,255,.45);border-radius:1px;left:'+entryPosNorm.toFixed(1)+'%"></div>';
+  h+='<div style="position:relative;height:8px;background:var(--s4);border-radius:4px;overflow:hidden">';
+  h+='<div style="position:absolute;'+(isShort?"right":"left")+':0;top:0;height:8px;width:'+prog.toFixed(1)+'%;background:'+barCol+';border-radius:4px;transition:width .3s"></div>';
   h+='</div>';
   h+='</div>';
   h+='<div style="display:flex;gap:8px">';
@@ -2203,15 +2264,23 @@ function renderGroupSection(preds,title,accentCol,emoji){
       h+='<span style="font-size:22px">'+(isHit?"✅":"❌")+'</span>';
       var dBadges=(p.d1Hit?"<span style='color:var(--gr);font-size:10px'>D1✓</span> ":"<span style='color:var(--re);font-size:10px'>D1✗</span> ")+(p.d2Hit?"<span style='color:var(--gr);font-size:10px'>D2✓</span> ":"<span style='color:var(--re);font-size:10px'>D2✗</span> ")+(p.d3Hit?"<span style='color:var(--gr);font-size:10px'>D3✓</span>":"<span style='color:var(--re);font-size:10px'>D3✗</span>");
       if(p.targetPct===10)dBadges+=(p.d4Hit?" <span style='color:var(--gr);font-size:10px'>D4✓</span>":" <span style='color:var(--re);font-size:10px'>D4✗</span>")+(p.d5Hit?" <span style='color:var(--gr);font-size:10px'>D5✓</span>":" <span style='color:var(--re);font-size:10px'>D5✗</span>");
-      var autoBadge=p.autoClose?'<span style="font-size:9px;background:rgba(41,121,255,.12);color:#2979ff;border-radius:6px;padding:1px 6px;margin-left:6px;font-weight:700">AUTO</span>':'';
-      var tgtBadge='<span style="font-size:9px;color:var(--t4);margin-left:5px">+'+p.targetPct+'%</span>';
-      h+='<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--t1)">'+p.sym+tgtBadge+autoBadge+'<span style="font-size:10px;color:var(--t3);margin-left:7px">'+p.date+'</span></div>';
+      var isShortC=p.direction==="SHORT";
+      var dirBadgeC=isShortC
+        ?'<span style="font-size:9px;background:rgba(255,23,68,.12);color:var(--re);border-radius:6px;padding:1px 6px;margin-left:4px;font-weight:700">📉S</span>'
+        :'<span style="font-size:9px;background:rgba(41,121,255,.12);color:#2979ff;border-radius:6px;padding:1px 6px;margin-left:4px;font-weight:700">📈L</span>';
+      var autoBadge=p.autoClose?'<span style="font-size:9px;background:rgba(41,121,255,.12);color:#2979ff;border-radius:6px;padding:1px 6px;margin-left:4px;font-weight:700">AUTO</span>':'';
+      var tgtBadge='<span style="font-size:9px;color:var(--t4);margin-left:5px">'+(isShortC?"-":"+")+p.targetPct+'%</span>';
+      h+='<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--t1)">'+p.sym+tgtBadge+dirBadgeC+autoBadge+'<span style="font-size:10px;color:var(--t3);margin-left:7px">'+p.date+'</span></div>';
       h+='<div style="font-size:11px;margin-bottom:2px">'+dBadges+'</div>';
       h+='<div style="font-size:10px;color:var(--t3)">'+fp(p.entry)+' → '+fp(p.closePrice)+(p.closeReason?' · '+p.closeReason:'')+'</div>';
-      // Peak price — "kako blizu smo bili" kod promašaja
-      if(!isHit&&p.peakPct!=null&&p.peakPct>0){
+      // Peak/Valley — "kako blizu smo bili" kod promašaja
+      if(!isHit&&!isShortC&&p.peakPct!=null&&p.peakPct>0){
         var peakColor=p.peakPct>=(p.targetPct||5)*0.8?"var(--ye)":"rgba(255,255,255,.3)";
         h+='<div style="font-size:10px;color:'+peakColor+';margin-top:2px">📈 Vrh: +'+p.peakPct+'% ('+fp(p.peakPrice)+')</div>';
+      }
+      if(!isHit&&isShortC&&p.valleyPct!=null&&p.valleyPct>0){
+        var valleyColor=p.valleyPct>=(p.targetPct||5)*0.8?"var(--ye)":"rgba(255,255,255,.3)";
+        h+='<div style="font-size:10px;color:'+valleyColor+';margin-top:2px">📉 Dno: -'+p.valleyPct+'% ('+fp(p.valleyPrice)+')</div>';
       }
       h+='</div>';
       h+='<div style="text-align:right"><div style="font-size:17px;font-weight:900;color:'+col+'">'+(p.closePct>=0?"+":"")+p.closePct+'%</div>';

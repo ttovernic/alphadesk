@@ -739,8 +739,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 333.31,
-      "peakPct": 0.34
+      "peakPrice": 333.92,
+      "peakPct": 0.53
     },
     {
       "id": "1776426593133_CC",
@@ -2198,7 +2198,7 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 2356.64,
+      "peakPrice": 2356.65,
       "peakPct": 0.14
     },
     {
@@ -2410,8 +2410,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 632.67,
-      "peakPct": 0.02
+      "peakPrice": 632.81,
+      "peakPct": 0.05
     },
     {
       "id": "1776426516823_ADA",
@@ -2622,8 +2622,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 117.4,
-      "peakPct": 0.44
+      "peakPrice": 117.48,
+      "peakPct": 0.51
     },
     {
       "id": "1776426516823_HBAR",
@@ -2675,8 +2675,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.09113,
-      "peakPct": 0.18
+      "peakPrice": 0.09115,
+      "peakPct": 0.2
     },
     {
       "id": "1776426516823_BCH",
@@ -3311,8 +3311,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 75595.91,
-      "peakPct": 0.17
+      "peakPrice": 75616.23,
+      "peakPct": 0.19
     },
     {
       "id": "1776426516816",
@@ -4585,8 +4585,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 3.452,
-      "peakPct": 0.29
+      "peakPrice": 3.457,
+      "peakPct": 0.44
     },
     {
       "id": "1776425579984_DOT",
@@ -4642,5 +4642,5 @@
     }
   ],
   "signalWeights": {},
-  "updatedAt": "2026-04-17T11:59:38.102Z"
+  "updatedAt": "2026-04-17T12:00:38.129Z"
 }

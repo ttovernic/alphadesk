@@ -209,8 +209,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 1.892,
-      "peakPct": 0.69
+      "peakPrice": 1.893,
+      "peakPct": 0.75
     },
     {
       "id": "1776426593133_PUMP",
@@ -686,8 +686,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 56.28,
-      "peakPct": 0.2
+      "peakPrice": 56.33,
+      "peakPct": 0.28
     },
     {
       "id": "1776426593133_ZEC",
@@ -2410,8 +2410,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 633.08,
-      "peakPct": 0.09
+      "peakPrice": 633.15,
+      "peakPct": 0.1
     },
     {
       "id": "1776426516823_ADA",
@@ -3152,8 +3152,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 1.818,
-      "peakPct": 0
+      "peakPrice": 1.82,
+      "peakPct": 0.11
     },
     {
       "id": "1776426516823_RENDER",
@@ -3311,8 +3311,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 75622.73,
-      "peakPct": 0.2
+      "peakPrice": 75637.21,
+      "peakPct": 0.22
     },
     {
       "id": "1776426516816",
@@ -4642,5 +4642,5 @@
     }
   ],
   "signalWeights": {},
-  "updatedAt": "2026-04-17T12:10:38.168Z"
+  "updatedAt": "2026-04-17T12:11:38.170Z"
 }

@@ -2078,8 +2078,8 @@
       "d3Hit": false,
       "d4Hit": false,
       "d5Hit": false,
-      "peakPrice": 0.999,
-      "peakPct": 0
+      "peakPrice": 1,
+      "peakPct": 0.1
     },
     {
       "id": "1776425514449",
@@ -4556,5 +4556,5 @@
     }
   ],
   "signalWeights": {},
-  "updatedAt": "2026-04-17T11:35:01.077Z"
+  "updatedAt": "2026-04-17T11:35:11.077Z"
 }

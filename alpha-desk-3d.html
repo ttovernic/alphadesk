@@ -313,7 +313,7 @@ function showToast(msg,isErr){
 }
 
 const SYMS=["BTC","ETH","XRP","BNB","ADA","LINK","SOL","AVAX","SUI"];
-const MEME_SYMS=["DOGE","SHIB","PEPE","WIF","BONK","FLOKI"]; // baza — uvijek uključeni
+const MEME_SYMS=["DOGE","SHIB","PEPE","WIF","BONK","FLOKI","BRETT","MOG","POPCAT","TURBO","MEW","NEIRO"]; // baza — uvijek uključeni
 // Svi poznati meme coini — dinamički se dodaju ako se nađu u TOP100
 const KNOWN_MEME=["DOGE","SHIB","PEPE","WIF","BONK","FLOKI",
   "TRUMP","MELANIA","FARTCOIN","MOG","POPCAT","BRETT","TURBO","MEW",
@@ -427,6 +427,8 @@ var newsData={};     // {sym:[{title,sentiment,ts}]} — CryptoPanic news sentim
 var backtestResults={}; // {sym:{accuracy,n,hits,recent}} — historijski backtest na daily klines
 var liqZones={};     // {sym:{mark,fundingRate,longLiq20x,shortLiq20x,longPressure,shortPressure}} — procijenjene liq zone
 var ta4hReady=false; // postaje true ~90s nakon starta kad ta4h podaci stignu
+var btcDomHistory=[]; // [{dom,ts}] — prati trend BTC dominance za meme season signal
+var memeRelStrength={}; // {sym:{vsAvg,catchUp}} — relativna snaga unutar meme grupe
 var lastRefresh={ // timestamp zadnjeg osvježavanja po izvoru
   analysis:null, prices:null, fg:null, futures:null, polymarket:null, spx:null, oi:null, btcDom:null, oil:null, dxy:null, news:null
 };
@@ -2712,15 +2714,42 @@ function analyzeMeme(sym){
   // Tržišni signali: BTC dom, volume, order book, 7d trend, DXY
   score+=scoreMarketSignals(sym,signals,warnings);
 
+  // Volume spike — 2x jači za meme coinove (primarni pokretač meme rasta)
+  if(vs){
+    if(vs.ratio>5){score+=5;signals.push({txt:"🔥 Volume "+vs.ratio.toFixed(1)+"x — ekstremni interes, meme pump signal",type:"bull"});}
+    else if(vs.ratio>3){score+=3.5;signals.push({txt:"📈 Volume "+vs.ratio.toFixed(1)+"x avg — jak meme interes",type:"bull"});}
+    else if(vs.ratio>2){score+=2;signals.push({txt:"📈 Volume "+vs.ratio.toFixed(1)+"x avg — raste interes",type:"bull"});}
+    else if(vs.ratio>1.4){score+=1;signals.push({txt:"Volume "+vs.ratio.toFixed(1)+"x avg",type:"bull"});}
+    else if(vs.weak){score-=1.5;warnings.push({txt:"Volume slab "+vs.ratio.toFixed(1)+"x — meme bez interesa, preskači",type:"warn"});}
+  }
+
+  // BTC dominance trend — pada li dom? = novac teče u altove i meme
+  if(btcDomHistory.length>=3){
+    var oldest=btcDomHistory[0].dom,newest=btcDomHistory[btcDomHistory.length-1].dom;
+    var domDelta=+(newest-oldest).toFixed(2);
+    if(domDelta<-0.8){score+=2.5;signals.push({txt:"₿ BTC Dom pada "+domDelta+"% — kapital rotira u altove/meme",type:"bull"});}
+    else if(domDelta<-0.3){score+=1;signals.push({txt:"₿ BTC Dom blago pada "+domDelta+"% — povoljno za meme",type:"bull"});}
+    else if(domDelta>0.8){score-=2;warnings.push({txt:"₿ BTC Dom raste +"+domDelta+"% — kapital bježi u BTC, meme pate",type:"bear"});}
+    else if(domDelta>0.3){score-=1;warnings.push({txt:"₿ BTC Dom raste +"+domDelta+"% — oprezno",type:"warn"});}
+  }
+
+  // Relativna snaga unutar meme grupe — catch-up kandidat?
+  var mrs=memeRelStrength[sym];
+  if(mrs){
+    if(mrs.catchUp){score+=2;signals.push({txt:"🔄 Catch-up: "+sym+" zaostaje za meme grupom "+mrs.vsAvg+"% — rotacija moguća",type:"bull"});}
+    else if(mrs.overExtended){score-=1.5;warnings.push({txt:"⚡ Overextended: +"+mrs.vsAvg+"% vs meme prosjek — preskačemo vrhove",type:"warn"});}
+  }
+
   // Trifecta — multi-signal convergence bonus
   var triM=0;
   if(t&&t.rsi<35)triM++;
   if(t&&t.divergence==="BULLISH")triM++;
   if(m&&m.cross==="BULLISH")triM++;
-  if(vs&&vs.ratio>2)triM++;
+  if(vs&&vs.ratio>3)triM++;
   if(t&&t.bb&&price<t.bb.l)triM++;
-  if(triM>=4){score+=3;signals.push({txt:"🎯 TRIFECTA "+triM+"/5 — multi-signal poklopaj",type:"bull"});}
-  else if(triM>=3){score+=1.5;signals.push({txt:"🎯 Multi-signal "+triM+"/5",type:"bull"});}
+  if(mrs&&mrs.catchUp)triM++;
+  if(triM>=4){score+=3;signals.push({txt:"🎯 TRIFECTA "+triM+"/6 — multi-signal poklopaj",type:"bull"});}
+  else if(triM>=3){score+=1.5;signals.push({txt:"🎯 Multi-signal "+triM+"/6",type:"bull"});}
 
   // Confidence — war cap dodan (bio: bez cap-a = precijenjeni signali u ratu)
   var maxScore=30;
@@ -2807,6 +2836,55 @@ function rMeme(){
     h+='<div style="background:rgba(0,0,0,.3);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:'+s[2]+'">'+s[1]+'</div><div style="font-size:11px;color:var(--t3);margin-top:3px">'+s[0]+'</div></div>';
   });
   h+='</div></div>';
+  // ── MEME SEASON INDICATOR ──────────────────────────────────────
+  (function(){
+    var s=0,max=100;
+    // 1. BTC dominance razina (niže = bolje za meme)
+    var domScore=MACRO.btcDom<45?30:MACRO.btcDom<50?20:MACRO.btcDom<55?10:MACRO.btcDom<60?0:-10;
+    s+=domScore;
+    // 2. BTC dom trend (pada = bolje)
+    var domTrend=0;
+    if(btcDomHistory.length>=3){var dd=btcDomHistory[btcDomHistory.length-1].dom-btcDomHistory[0].dom;domTrend=dd<-0.8?20:dd<-0.3?10:dd>0.8?-15:dd>0.3?-5:0;}
+    s+=domTrend;
+    // 3. Fear & Greed (extremi su bullish za kontrarian meme bounce)
+    var fgScore=MACRO.fg<20?25:MACRO.fg<35?15:MACRO.fg>70?5:MACRO.fg>80?-5:10;
+    s+=fgScore;
+    // 4. Stablecoin dominance (visoko = kapital čeka = potencijal)
+    var stableScore=MACRO.stableDom>9?15:MACRO.stableDom>7?10:MACRO.stableDom>5?5:0;
+    s+=stableScore;
+    // 5. Meme volume momentum (imaju li meme coini volumen?)
+    var mSyms=getMemeSYMS();
+    var spikeCount=mSyms.filter(function(ms){return volSpike[ms]&&volSpike[ms].ratio>2;}).length;
+    var volScore=spikeCount>=3?10:spikeCount>=2?5:spikeCount>=1?2:0;
+    s+=volScore;
+    // Clamp 0-100
+    var score=Math.max(0,Math.min(100,s+30)); // baseline +30 da se izbjegnu negativni
+    var lbl=score>=75?"🚀 MEME SEASON":score>=55?"🌶️ Vrući uvjeti":score>=40?"🟡 Neutralno":score>=25?"🧊 Hladno":"❄️ Bear zona";
+    var col=score>=75?"#d500f9":score>=55?"#ff6d00":score>=40?"#ffea00":score>=25?"var(--t3)":"var(--re)";
+    var barW=score+"%";
+    h+='<div style="background:rgba(213,0,249,.05);border:.5px solid rgba(213,0,249,.15);border-radius:16px;padding:14px 16px;margin-bottom:14px">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+    h+='<span style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.08em;text-transform:uppercase">Meme Season Indikator</span>';
+    h+='<span style="font-size:13px;font-weight:900;color:'+col+'">'+lbl+'</span>';
+    h+='</div>';
+    h+='<div style="height:8px;background:var(--s3);border-radius:6px;overflow:hidden;margin-bottom:10px">';
+    h+='<div style="height:100%;width:'+barW+';background:linear-gradient(90deg,'+col+'88,'+col+');border-radius:6px;transition:width .5s"></div>';
+    h+='</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">';
+    [
+      ["BTC Dom",""+MACRO.btcDom+"%",domScore>=10?"var(--gr)":domScore<0?"var(--re)":"var(--ye)"],
+      ["Dom trend",btcDomHistory.length>=3?(btcDomHistory[btcDomHistory.length-1].dom-btcDomHistory[0].dom).toFixed(1)+"%":"—",domTrend>=10?"var(--gr)":domTrend<0?"var(--re)":"var(--ye)"],
+      ["F&G",""+MACRO.fg,fgScore>=15?"var(--gr)":fgScore<5?"var(--re)":"var(--ye)"],
+      ["Vol spikes",""+spikeCount+"/"+mSyms.length,spikeCount>=2?"var(--pu)":"var(--t3)"]
+    ].forEach(function(r){
+      h+='<div style="background:rgba(0,0,0,.25);border-radius:8px;padding:7px;text-align:center">';
+      h+='<div style="font-size:9px;color:var(--t4);margin-bottom:2px">'+r[0]+'</div>';
+      h+='<div style="font-size:13px;font-weight:800;color:'+r[2]+'">'+r[1]+'</div>';
+      h+='</div>';
+    });
+    h+='</div></div>';
+  })();
+
   if(opps.length===0){
     h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">🐸</div><div style="font-size:17px;font-weight:700;color:var(--t2);margin-bottom:6px">Nema meme prilike</div><div style="font-size:13px;color:var(--t3)">Nijedan meme coin ne dostiže '+memeMinConf+'% pouzdanost.<br>'+(memeMinConf>60?'Pokušaj smanjiti min conf ili č':'Č')+'ekaj Extreme Fear + oversold.</div></div>';
   }else{
@@ -3802,6 +3880,23 @@ function computeRelStrength(){
       };
     }
   });
+  computeMemeRelStrength();
+}
+
+// ── RELATIVNA SNAGA UNUTAR MEME GRUPE ───────────────────────────
+// Uspoređuje 24h performans svakog meme coina vs prosjek cijele meme grupe
+// Zaostajanje za grupom = catch-up kandidat (bullish za meme); preskakanje = oprez
+function computeMemeRelStrength(){
+  var syms=getMemeSYMS();
+  var changes=syms.map(function(s){return(px[s]&&px[s].c24!=null)?px[s].c24:null;}).filter(function(v){return v!==null;});
+  if(changes.length<3)return;
+  var avg=changes.reduce(function(a,b){return a+b;},0)/changes.length;
+  syms.forEach(function(s){
+    var c=(px[s]&&px[s].c24!=null)?px[s].c24:null;
+    if(c===null)return;
+    var vsAvg=+(c-avg).toFixed(2);
+    memeRelStrength[s]={vsAvg:vsAvg,avg:+avg.toFixed(2),catchUp:vsAvg<-5,overExtended:vsAvg>8};
+  });
 }
 
 // ── KELLY CRITERION VELIČINA POZICIJE ────────────────────────────
@@ -3931,11 +4026,17 @@ function fetchBTCDom(){
     .then(function(d){
       if(!d||!d.data||!d.data.market_cap_percentage)return;
       var mcp=d.data.market_cap_percentage;
-      if(mcp.btc!=null)MACRO.btcDom=+mcp.btc.toFixed(1);
+      if(mcp.btc!=null){
+        MACRO.btcDom=+mcp.btc.toFixed(1);
+        // Prati historiju za trend (max 12 točaka = 3h pri 15min intervalu)
+        btcDomHistory.push({dom:MACRO.btcDom,ts:Date.now()});
+        if(btcDomHistory.length>12)btcDomHistory.shift();
+      }
       // Stablecoin dominance = USDT + USDC + DAI + BUSD (kapital na sidelines)
       var stables=(mcp.usdt||0)+(mcp.usdc||0)+(mcp.dai||0)+(mcp.busd||0);
       if(stables>0)MACRO.stableDom=+stables.toFixed(1);
       lastRefresh.btcDom=Date.now();
+      computeMemeRelStrength();
     }).catch(function(){});
 }
 

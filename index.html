@@ -274,6 +274,7 @@ svg.sp{overflow:visible;display:block}
         <div>
           <label class="inp-lbl">LunarCrush API key <span style="color:var(--t3)">(social sentiment)</span></label>
           <input id="s-lc" class="inp" type="password" placeholder="API key..." style="font-size:12px">
+          <p style="font-size:10px;color:var(--t4);margin:3px 0 0">Besplatni key: <span style="color:#2979ff">lunarcrush.com/developers</span> → Sign up → Free tier (bez kreditne kartice)</p>
         </div>
         <div>
           <label class="inp-lbl">CryptoPanic API key <span style="color:var(--t3)">(news sentiment — opcionalno, bez ključa radi free endpoint)</span></label>
@@ -424,6 +425,8 @@ var relStrength={};  // {sym:{rs24h,rs7d,leading,lagging}} — relativna snaga v
 var swingLevels={};  // {sym:{supports:[],resistances:[]}} — swing high/low S/R nivoi
 var newsData={};     // {sym:[{title,sentiment,ts}]} — CryptoPanic news sentiment
 var backtestResults={}; // {sym:{accuracy,n,hits,recent}} — historijski backtest na daily klines
+var liqZones={};     // {sym:{mark,fundingRate,longLiq20x,shortLiq20x,longPressure,shortPressure}} — procijenjene liq zone
+var ta4hReady=false; // postaje true ~90s nakon starta kad ta4h podaci stignu
 var lastRefresh={ // timestamp zadnjeg osvježavanja po izvoru
   analysis:null, prices:null, fg:null, futures:null, polymarket:null, spx:null, oi:null, btcDom:null, oil:null, dxy:null, news:null
 };
@@ -705,6 +708,29 @@ function scoreMarketSignals(sym,signals,warnings){
     if(liq.buyLiq>liq.sellLiq*2.5){delta+=2.5;signals.push({txt:"Short squeeze: "+fmtU(liq.buyLiq)+" shortova likvidirano — momentum raste",type:"bull"});}
     else if(liq.sellLiq>liq.buyLiq*2.5){delta+=1.5;signals.push({txt:"Capitulation: "+fmtU(liq.sellLiq)+" longova likvidirano — panic bottom signal",type:"bull"});}
     else if(liq.sellLiq>liq.buyLiq*1.5){delta+=0.5;signals.push({txt:"Više longova likvidirano ("+fmtU(liq.sellLiq)+") — potencijalni dno",type:"bull"});}
+  }
+  // 13b. LIKVIDACIJSKE ZONE — procijenjeni liq klasteri (Binance premiumIndex)
+  var lz=liqZones[sym];
+  if(lz&&px[sym]){
+    var curP2=px[sym].p;
+    var distLong20=curP2>0?(curP2-lz.longLiq20x)/curP2*100:999;
+    var distShort20=curP2>0?(lz.shortLiq20x-curP2)/curP2*100:999;
+    // Cijena blizu 20x short liq gore = short squeeze magnet (bullish)
+    if(distShort20>0&&distShort20<4&&lz.shortPressure==="HIGH"){
+      delta+=2;signals.push({txt:"📍 Short liq magnet +"+distShort20.toFixed(1)+"% gore — short squeeze setup",type:"bull"});
+    } else if(distShort20>0&&distShort20<6&&lz.shortPressure==="MED"){
+      delta+=1;signals.push({txt:"📍 Short liq zona +"+distShort20.toFixed(1)+"% — blagi squeeze potencijal",type:"bull"});
+    }
+    // Cijena blizu 20x long liq ispod = sweep-and-bounce zona (bullish za povrat)
+    if(distLong20>0&&distLong20<3&&lz.longPressure==="HIGH"){
+      delta+=1.5;signals.push({txt:"📍 Long liq zona -"+distLong20.toFixed(1)+"% ispod — bounce nakon sweepа moguć",type:"bull"});
+    }
+    // CoinGlass realni podaci (ako dostupni)
+    if(lz.cgSellLiq6h&&lz.cgSellLiq6h>50000000){
+      delta+=1.5;signals.push({txt:"📊 CoinGlass: $"+(lz.cgSellLiq6h/1000000).toFixed(0)+"M long liq (6h) — capitulation, dno blizu",type:"bull"});
+    } else if(lz.cgBuyLiq6h&&lz.cgBuyLiq6h>50000000){
+      delta-=1;warnings.push({txt:"📊 CoinGlass: $"+(lz.cgBuyLiq6h/1000000).toFixed(0)+"M short liq (6h) — squeeze iscrpljen?",type:"warn"});
+    }
   }
   // 14. TOP TRADER L/S RATIO — institucionalno pozicioniranje (pametan novac)
   var ttr=topTraderRatio[sym];
@@ -1075,7 +1101,12 @@ function getOpportunities(){
   var analyzeFn=(activeFilter==="ulaz"||activeFilter==="watch")&&activePct===10?analyze10pct:analyze3D;
   var is10pct=activePct===10;
   var minConf=activeFilter==="watch"?Math.min(settings.minConf,38):is10pct?Math.max(settings.minConf,55):settings.minConf;
-  var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0&&KNOWN_MEME.indexOf(s)<0;});
+  var syms=TOP100.filter(function(s){
+    if(!px[s]||!px[s].p||px[s].p<=0||KNOWN_MEME.indexOf(s)>-1)return false;
+    // TA filter: nakon što ta4h podaci stignu, preskoči tokene bez ikakvog TA podatka
+    if(ta4hReady&&!ta4h[s]&&!ta[s])return false;
+    return true;
+  });
   var all=syms.map(analyzeFn).filter(function(x){return x&&x.conf>=minConf;});
   var totalAnalyzed=syms.length;
   // Sort po selektiranom modu
@@ -3548,6 +3579,48 @@ function fetchNetflow(){
 }
 
 // ── SOCIAL SENTIMENT (LunarCrush — zahtijeva API ključ) ──────────────
+// ── LIKVIDACIJSKE ZONE — Binance premiumIndex (besplatno) + CoinGlass (opcionalno) ──
+// Procjenjuje gdje su nakupljene leveraged pozicije koje mogu biti likvidirane
+// Visok funding rate + blizina estimiranog liq nivoa = jak signal za bounce/squeeze
+function fetchLiqHeatmap(){
+  var fSyms=["BTC","ETH","SOL","XRP","BNB","ADA","LINK","AVAX","DOGE","SUI","NEAR","DOT","UNI","ATOM","OP"];
+  fSyms.forEach(function(sym,idx){
+    setTimeout(function(){
+      fetch("https://fapi.binance.com/fapi/v1/premiumIndex?symbol="+sym+"USDT")
+        .then(function(r){return r.json();})
+        .then(function(d){
+          if(!d||!d.markPrice)return;
+          var mark=parseFloat(d.markPrice);
+          var fr=parseFloat(d.lastFundingRate||0);
+          // Tipični leverage 10x i 20x — gdje se nalaze liq klasteri
+          liqZones[sym]={
+            mark:mark,
+            fundingRate:fr,
+            longLiq10x:+(mark*0.91).toFixed(6),  // -9% = 10x long liq
+            longLiq20x:+(mark*0.955).toFixed(6), // -4.5% = 20x long liq
+            shortLiq10x:+(mark*1.09).toFixed(6),
+            shortLiq20x:+(mark*1.045).toFixed(6),
+            longPressure:fr>0.0003?"HIGH":fr>0.0001?"MED":"LOW",
+            shortPressure:fr<-0.0003?"HIGH":fr<-0.0001?"MED":"LOW"
+          };
+        }).catch(function(){});
+      // CoinGlass: realni heatmap podaci ako API ključ dostupan
+      if(apiKeys.coinglass){
+        fetch("https://open-api.coinglass.com/public/v2/liquidation_chart?symbol="+sym,{
+          headers:{"CG-API-KEY":apiKeys.coinglass}
+        }).then(function(r){return r.json();})
+        .then(function(d){
+          if(!d||!d.data||!d.data.length)return;
+          var recent=d.data.slice(-6); // zadnjih 6h
+          var buyLiq=recent.reduce(function(s,x){return s+(x.buyLiquidation||0);},0);
+          var sellLiq=recent.reduce(function(s,x){return s+(x.sellLiquidation||0);},0);
+          if(liqZones[sym]){liqZones[sym].cgBuyLiq6h=buyLiq;liqZones[sym].cgSellLiq6h=sellLiq;}
+        }).catch(function(){});
+      }
+    },idx*250);
+  });
+}
+
 function fetchSocialData(){
   var key=apiKeys.lunarcrush;
   if(!key)return;
@@ -4041,7 +4114,9 @@ fetchBTCDom();          // BTC + stablecoin dominance live (CoinGecko /global)
 fetchOilPrice();        // WTI crude oil live (Yahoo Finance proxy)
 fetchDXY();             // US Dollar Index live (Yahoo Finance proxy)
 fetchNewsData();        // CryptoPanic news sentiment (free endpoint + auth token ako dostupan)
+fetchLiqHeatmap();      // Likvidacijske zone — Binance premiumIndex + opcionalno CoinGlass
 setTimeout(runBacktest, 5000); // Backtest engine — pokreni 5s nakon starta da ne blokira init
+setTimeout(function(){ta4hReady=true;},90000); // TA filter aktivan nakon 90s (da ta4h podaci stignu)
 // ── OPEN INTEREST (Binance Futures) ─────────────────────────────
 // OI raste + cijena raste = zdrav trend (novi kapital ulazi)
 // OI pada + cijena raste = short covering, ne pravi bullish (slabiji signal)
@@ -4093,6 +4168,7 @@ setInterval(fetchNetflow, 600000);         // svako 10 min — exchange netflow 
 setInterval(fetchSocialData, 900000);      // svako 15 min — social sentiment (ako key)
 setInterval(fetchPolymarket, 900000);      // svako 15 min — Polymarket prediction markets
 setInterval(fetchNewsData, 900000);        // svako 15 min — CryptoPanic news sentiment
+setInterval(fetchLiqHeatmap, 600000);      // svako 10 min — likvidacijske zone
 setInterval(runBacktest, 3600000);         // svako 60 min — backtest engine (sporo, skupo)
 setInterval(computeRelStrength, 60000);   // svako 1 min — relative strength vs BTC (ovisi o WS cijenama)
 // ── BACKGROUND AUTO-TRACK (neovisno o aktivnom tabu) ─────────────

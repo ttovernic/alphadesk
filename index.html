@@ -204,7 +204,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.4</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.5</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -904,13 +904,29 @@ function scoreMarketSignals(sym,signals,warnings){
     });
   }
   // 20. CVD (Cumulative Volume Delta) — otkriva skrivenu akumulaciju/distribuciju
-  // Najvažniji signal koji manjina retail trejdera koristi
+  // Jači od RSI: taker buy/sell imbalance ne može se lako manipulirati
   var cvd=cvdData[sym];
   if(cvd){
-    if(cvd.divergence==="BULLISH"){delta+=2.5;signals.push({txt:"📊 CVD bullish div: cijena pada, akumulacija raste — smart money kupuje",type:"bull"});}
-    else if(cvd.divergence==="BEARISH"){delta-=2.5;warnings.push({txt:"📊 CVD bearish div: cijena raste, akumulacija pada — distribucija/fakeout",type:"bear"});}
-    else if(cvd.trend==="RISING"){delta+=1;signals.push({txt:"📊 CVD raste — kupci dominiraju taker flowom",type:"bull"});}
-    else if(cvd.trend==="FALLING"){delta-=1;warnings.push({txt:"📊 CVD pada — prodavači dominiraju",type:"warn"});}
+    var _pT=cvd.pTrend!=null?" (cijena "+cvd.pTrend+"%, CVD "+(cvd.cTrend>0?"+":"")+cvd.cTrend+"%)":"";
+    var _acc=cvd.accel>0.6?" ⚡ ubrzava":cvd.accel<-0.6?" ⚡ ubrzava pad":"";
+    var _mom=cvd.momentum>1.5?" 🔥 momentum jak":"";
+    if(cvd.divergence==="STRONG_BULLISH"){
+      delta+=3.5;signals.push({txt:"📊 CVD STRONG bull div"+_pT+" — intenzivna skrivena akumulacija",type:"bull"});
+    } else if(cvd.divergence==="BULLISH"){
+      delta+=(cvd.accel>0.5?3:2.5);signals.push({txt:"📊 CVD bull div"+_pT+" — smart money kupuje"+_acc,type:"bull"});
+    } else if(cvd.divergence==="STRONG_BEARISH"){
+      delta-=3.5;warnings.push({txt:"📊 CVD STRONG bear div"+_pT+" — fakeout, intenzivna distribucija",type:"bear"});
+    } else if(cvd.divergence==="BEARISH"){
+      delta+=(cvd.accel<-0.5?-3:-2.5);warnings.push({txt:"📊 CVD bear div"+_pT+" — distribucija uz rast cijene"+_acc,type:"bear"});
+    } else if(cvd.trend==="RISING_STRONG"){
+      delta+=(cvd.momentum>1.5?2.5:2);signals.push({txt:"📊 CVD jak rast — intenzivna akumulacija"+_mom,type:"bull"});
+    } else if(cvd.trend==="RISING"){
+      delta+=(cvd.momentum>1?1.5:1);signals.push({txt:"📊 CVD raste — kupci dominiraju taker flowom"+_acc,type:"bull"});
+    } else if(cvd.trend==="FALLING_STRONG"){
+      delta-=(cvd.momentum<-1.5?2.5:2);warnings.push({txt:"📊 CVD jak pad — intenzivna distribucija"+_acc,type:"bear"});
+    } else if(cvd.trend==="FALLING"){
+      delta-=(cvd.momentum<-1?1.5:1);warnings.push({txt:"📊 CVD pada — prodavači dominiraju"+_acc,type:"warn"});
+    }
   }
   // 21. RELATIVNA SNAGA vs BTC — leader vs lagging token
   var rs=relStrength[sym];
@@ -1124,7 +1140,7 @@ function analyze3D(sym){
   if(t&&t.bb&&price<t.bb.l)trifecta++;
   if(fd3d&&fd3d.lsRatio!=null&&fd3d.lsRatio<0.7)trifecta++;
   if(fd3d&&fd3d.takerRatio!=null&&fd3d.takerRatio<0.75)trifecta++;
-  if(cvdData[sym]&&cvdData[sym].divergence==="BULLISH")trifecta++;
+  if(cvdData[sym]&&(cvdData[sym].divergence==="BULLISH"||cvdData[sym].divergence==="STRONG_BULLISH"))trifecta++;
   if(trifecta>=5){score+=3.5;signals.push({txt:"🎯 TRIFECTA "+trifecta+"/8: izniman multi-signal poklopaj — visoka pouzdanost",type:"bull"});}
   else if(trifecta>=3){score+=1.5;signals.push({txt:"🎯 Multi-signal "+trifecta+"/8: jak setup, višestruka potvrda",type:"bull"});}
 
@@ -1443,10 +1459,23 @@ function renderOpp(o){
   var hasExtra=cvdI||swI||rsI;
   if(hasExtra){
     h+='<div style="padding:8px 16px;border-bottom:.5px solid var(--sep2);display:flex;flex-wrap:wrap;gap:6px">';
-    if(cvdI&&cvdI.trend!=="FLAT"){
-      var cvdCol=cvdI.divergence==="BULLISH"?"var(--gr)":cvdI.divergence==="BEARISH"?"var(--re)":cvdI.trend==="RISING"?"rgba(0,230,118,.6)":"rgba(255,23,68,.6)";
-      var cvdLbl=cvdI.divergence==="BULLISH"?"📊 CVD: bull div ↑":cvdI.divergence==="BEARISH"?"📊 CVD: bear div ↓":cvdI.trend==="RISING"?"📊 CVD raste":"📊 CVD pada";
-      h+='<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:'+cvdCol+'18;color:'+cvdCol+';border:.5px solid '+cvdCol+'40">'+cvdLbl+'</span>';
+    if(cvdI&&(cvdI.divergence||cvdI.trend!=="FLAT")){
+      var _isBullDiv=cvdI.divergence==="BULLISH"||cvdI.divergence==="STRONG_BULLISH";
+      var _isBearDiv=cvdI.divergence==="BEARISH"||cvdI.divergence==="STRONG_BEARISH";
+      var _isStrong=cvdI.divergence==="STRONG_BULLISH"||cvdI.divergence==="STRONG_BEARISH";
+      var cvdCol=_isBullDiv?"var(--gr)":_isBearDiv?"var(--re)":
+                 (cvdI.trend==="RISING"||cvdI.trend==="RISING_STRONG")?"rgba(0,230,118,.6)":"rgba(255,23,68,.6)";
+      var _pTstr=cvdI.pTrend!=null?" (P:"+cvdI.pTrend+"%)":"";
+      var _accStr=cvdI.accel>0.6?" ⚡":"";
+      var cvdLbl=cvdI.divergence==="STRONG_BULLISH"?"📊 CVD: STRONG bull div"+_pTstr:
+                 cvdI.divergence==="BULLISH"?"📊 CVD: bull div"+_pTstr+_accStr:
+                 cvdI.divergence==="STRONG_BEARISH"?"📊 CVD: STRONG bear div"+_pTstr:
+                 cvdI.divergence==="BEARISH"?"📊 CVD: bear div"+_pTstr+_accStr:
+                 cvdI.trend==="RISING_STRONG"?"📊 CVD jak ↑"+_accStr:
+                 cvdI.trend==="RISING"?"📊 CVD raste"+_accStr:
+                 cvdI.trend==="FALLING_STRONG"?"📊 CVD jak ↓":
+                 "📊 CVD pada";
+      h+='<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:'+cvdCol+'18;color:'+cvdCol+';border:.5px solid '+cvdCol+(_isStrong?"80":"40")+'">'+cvdLbl+'</span>';
     }
     if(rsI&&o.sym!=="BTC"){
       var rsCol=rsI.leading?"var(--gr)":rsI.lagging?"var(--re)":"var(--t3)";
@@ -3590,25 +3619,42 @@ function fetchVP3D(){
 
         // ── CVD (Cumulative Volume Delta) ─────────────────────────
         // k[9] = taker buy base asset volume, k[5] = total base asset volume
-        // CVD delta = taker buy - taker sell = k[9] - (k[5]-k[9]) = 2*k[9] - k[5]
-        // Rastuće CVD uz padajuću cijenu = skrivena akumulacija = bullish divergencija
-        var cvdCum=0;
+        // CVD delta po kandli = taker buy vol − taker sell vol = 2*k[9] − k[5]
+        // Kumulativni CVD: otkriva skrivenu akumulaciju (smart money) ili distribuciju
+        var cvdCum2=0,cvdDeltas=[];
         var cvdSeries=data.map(function(k){
-          var tbv=parseFloat(k[9]);var tv=parseFloat(k[5]);
-          cvdCum+=(tbv-(tv-tbv));return cvdCum;
+          var tbv=parseFloat(k[9]),tv=parseFloat(k[5]);
+          var d2=tbv-(tv-tbv);cvdDeltas.push(d2);cvdCum2+=d2;return cvdCum2;
         });
         var cvdNow=cvdSeries[cvdSeries.length-1];
-        var cvdMid=cvdSeries[Math.floor(cvdSeries.length/2)]||0;
-        var cvdNorm=Math.abs(cvdMid)>0?(cvdNow-cvdMid)/Math.abs(cvdMid):0;
-        var cvdTrend=cvdNorm>0.10?"RISING":cvdNorm<-0.10?"FALLING":"FLAT";
-        // CVD divergencija vs cijena (zadnjih 24h)
-        var rc=closes.slice(-24),rcvd=cvdSeries.slice(-24);
-        var pTrend=rc.length>1?(rc[rc.length-1]-rc[0])/Math.abs(rc[0]||1):0;
-        var cTrend=rcvd.length>1?(rcvd[rcvd.length-1]-rcvd[0])/Math.abs(rcvd[0]||1):0;
+        var cvdN=cvdSeries.length,cvdT3=Math.max(1,Math.floor(cvdN/3));
+        // Trend: segmentalni prosjeci — početak / sredina / kraj serije
+        var cvdStartAvg=cvdSeries.slice(0,cvdT3).reduce(function(a,b){return a+b;},0)/cvdT3;
+        var cvdMidAvg=cvdSeries.slice(cvdT3,cvdT3*2).reduce(function(a,b){return a+b;},0)/cvdT3;
+        var cvdEndAvg=cvdSeries.slice(-cvdT3).reduce(function(a,b){return a+b;},0)/cvdT3;
+        var cvdRange=Math.max.apply(null,cvdSeries)-Math.min.apply(null,cvdSeries)||1;
+        var cvdNorm2=(cvdEndAvg-cvdStartAvg)/cvdRange;
+        var cvdTrend=cvdNorm2>0.35?"RISING_STRONG":cvdNorm2>0.10?"RISING":cvdNorm2<-0.35?"FALLING_STRONG":cvdNorm2<-0.10?"FALLING":"FLAT";
+        // Ubrzanje: kasni 1/3 brži od srednjeg? (accel>0 = ubrzava gore, <0 = ubrzava dole)
+        var cvdAccel=(cvdEndAvg-cvdMidAvg)/Math.max(Math.abs(cvdMidAvg-cvdStartAvg),1);
+        // Momentum: avg delta po kandli — zadnjih 6h vs prethodnih 6h
+        var d6r=cvdDeltas.slice(-6),d6p2=cvdDeltas.slice(-12,-6);
+        var m6r=d6r.length?d6r.reduce(function(a,b){return a+b;},0)/d6r.length:0;
+        var m6p2=d6p2.length?d6p2.reduce(function(a,b){return a+b;},0)/d6p2.length:0;
+        var cvdMom=Math.abs(m6p2)>0?+(m6r/Math.abs(m6p2)).toFixed(2):0; // >1=accel, <0=reversal
+        // Divergencija: usporedi cijenu vs CVD u zadnjih 48h
+        var divW=Math.min(48,cvdSeries.length);
+        var rcP=closes.slice(-divW),rcC=cvdSeries.slice(-divW);
+        var pTrendD=(rcP[rcP.length-1]-rcP[0])/Math.abs(rcP[0]||1);
+        var cTrendD=(rcC[rcC.length-1]-rcC[0])/Math.max(cvdRange,1);
         var cvdDiv=null;
-        if(pTrend<-0.015&&cTrend>0.05)cvdDiv="BULLISH";   // cijena pada, CVD raste
-        else if(pTrend>0.015&&cTrend<-0.05)cvdDiv="BEARISH"; // cijena raste, CVD pada
-        cvdData[sym]={cvd:cvdNow,trend:cvdTrend,divergence:cvdDiv,ts:Date.now()};
+        if(pTrendD<-0.03&&cTrendD>0.12)cvdDiv="STRONG_BULLISH";  // cijena -3%+, CVD +12%+ — jak smart money signal
+        else if(pTrendD<-0.015&&cTrendD>0.05)cvdDiv="BULLISH";   // cijena pada, CVD raste — akumulacija
+        else if(pTrendD>0.04&&cTrendD<-0.12)cvdDiv="STRONG_BEARISH"; // fakeout: cijena +4%, CVD -12%
+        else if(pTrendD>0.015&&cTrendD<-0.05)cvdDiv="BEARISH";   // distribucija uz rast cijene
+        cvdData[sym]={cvd:cvdNow,trend:cvdTrend,divergence:cvdDiv,
+                      pTrend:+(pTrendD*100).toFixed(1),cTrend:+(cTrendD*100).toFixed(1),
+                      accel:+(cvdAccel).toFixed(2),momentum:cvdMom,ts:Date.now()};
 
         // ── SWING HIGH/LOW — Support & Resistance nivoi ───────────
         // Swing high: lokalni maksimum u prozoru ±4 kandli

@@ -204,7 +204,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.12</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.13</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -1294,6 +1294,28 @@ function analyze3D(sym){
   if(trifecta>=5){score+=3.5;signals.push({txt:"🎯 TRIFECTA "+trifecta+"/8: izniman multi-signal poklopaj — visoka pouzdanost",type:"bull"});}
   else if(trifecta>=3){score+=1.5;signals.push({txt:"🎯 Multi-signal "+trifecta+"/8: jak setup, višestruka potvrda",type:"bull"});}
 
+  // ── VOLUME PRIORITY — isti princip kao meme engine ───────────────
+  // scoreMarketSignals daje +1-2 za volume, ali to nije dovoljno
+  // Visok volume je PRIMARNI momentum signal — dodajemo direktni bonus
+  if(vs3d){
+    if(vs3d.ratio>4){score+=2.5;signals.push({txt:"🔥 Volume "+vs3d.ratio.toFixed(1)+"× avg — jak momentum, setup ojačan",type:"bull"});}
+    else if(vs3d.ratio>2.5){score+=1.5;signals.push({txt:"📊 Volume "+vs3d.ratio.toFixed(1)+"× avg — momentum potvrđen",type:"bull"});}
+    else if(vs3d.weak){score-=1.5;warnings.push({txt:"📉 Volume slab — nema momentum potvrde, preskoči ili čekaj",type:"warn"});}
+  }
+
+  // ── GROUP CATCH-UP — zaostaje li token za peer grupom? ───────────
+  // Meme engine ima memeRelStrength catch-up; ovdje isto za regularni
+  // Token koji zaostaje 5%+ za peer medianom = rotacijski kandidat
+  var _gPeers=TOP100.filter(function(s){return s!==sym&&px[s]&&px[s].c24!=null&&KNOWN_MEME.indexOf(s)<0;});
+  if(_gPeers.length>=8&&d.c24!=null){
+    var _gChanges=_gPeers.map(function(s){return px[s].c24;}).sort(function(a,b){return a-b;});
+    var _gMedian=_gChanges[Math.floor(_gChanges.length/2)];
+    var _gLag=d.c24-_gMedian;
+    if(_gLag<-5&&t&&t.rsi<45){score+=2;signals.push({txt:"🔄 Catch-up: "+sym+" "+_gLag.toFixed(1)+"% vs peer medijan ("+_gMedian.toFixed(1)+"%) — rotacija moguća",type:"bull"});}
+    else if(_gLag<-3&&t&&t.rsi<52){score+=1;signals.push({txt:"🔄 Blagi catch-up potencijal ("+_gLag.toFixed(1)+"% vs peer medijan)",type:"bull"});}
+    else if(_gLag>8&&t&&t.rsi>62){score-=0.5;warnings.push({txt:"⚡ Prednjači +"+_gLag.toFixed(1)+"% vs peer medijan — moguća realizacija dobitka",type:"warn"});}
+  }
+
   // ── SCORE VELOCITY — poboljšava li se setup ili slabi? ──────────
   var prevSc3d=scoreHistory[sym]?scoreHistory[sym].score:score;
   var scoreVel3d=score-prevSc3d; // pozitivno = setup se poboljšava
@@ -1456,7 +1478,9 @@ function getOpportunities(){
     if(ta4hReady&&!ta4h[s]&&!ta[s])return false;
     return true;
   });
-  var all=syms.map(analyzeFn).filter(function(x){return x&&x.conf>=minConf;});
+  // achievable3d kao hard filter — isto kao meme engine
+  // Token bez dovoljnog ATR-a nema šanse dosegnuti cilj, ne prikazujemo ga
+  var all=syms.map(analyzeFn).filter(function(x){return x&&x.conf>=minConf&&x.achievable3d;});
   var totalAnalyzed=syms.length;
   // Sort po selektiranom modu
   if(ulazSortMode==="rr"){
@@ -2195,6 +2219,24 @@ function analyze10pct(sym){
 
   var atrPct=a?parseFloat(a.pct):2.0;
   var achievable3d=atrPct>=(TARGET/5)*0.6; // treba ≥1.2%/dan ATR za 10% u 5 dana
+
+  // ── VOLUME PRIORITY (10% engine) ─────────────────────────────────
+  // Za 10% target u 5 dana, volume je ključni filter — bez volumena nema poteza
+  if(vs10){
+    if(vs10.ratio>4){score+=2.5;signals.push({txt:"🔥 Volume "+vs10.ratio.toFixed(1)+"× avg — momentum za 10% potez potvrđen",type:"bull"});}
+    else if(vs10.ratio>2.5){score+=1.5;signals.push({txt:"📊 Volume "+vs10.ratio.toFixed(1)+"× avg — raste interes",type:"bull"});}
+    else if(vs10.weak){score-=2;warnings.push({txt:"📉 Volume slab — bez volumena nema 10% poteza",type:"warn"});}
+  }
+
+  // ── GROUP CATCH-UP (10% engine) ──────────────────────────────────
+  var _gPeers10=TOP100.filter(function(s){return s!==sym&&px[s]&&px[s].c24!=null&&KNOWN_MEME.indexOf(s)<0;});
+  if(_gPeers10.length>=8&&d.c24!=null){
+    var _gCh10=_gPeers10.map(function(s){return px[s].c24;}).sort(function(a,b){return a-b;});
+    var _gMed10=_gCh10[Math.floor(_gCh10.length/2)];
+    var _gLag10=d.c24-_gMed10;
+    if(_gLag10<-6&&t&&t.rsi<45){score+=2.5;signals.push({txt:"🔄 Catch-up: "+sym+" "+_gLag10.toFixed(1)+"% vs peer medijan — snažan rotacijski kandidat za 10%",type:"bull"});}
+    else if(_gLag10<-3&&t&&t.rsi<52){score+=1;signals.push({txt:"🔄 Catch-up potencijal ("+_gLag10.toFixed(1)+"% vs peer medijan)",type:"bull"});}
+  }
 
   // ── SCORE VELOCITY + VIKEND PENALTY (analyze10pct) ──────────────
   var prevSc10=scoreHistory[sym+"_10"]?scoreHistory[sym+"_10"].score:score;

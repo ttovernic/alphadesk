@@ -204,7 +204,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.3</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.4</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -550,8 +550,98 @@ function compTA(c){
     if(recentLow<prevLow&&rsiRecent>rsiPrev&&rsiRecent<45){divergence="BULLISH";}
     else if(recentHigh>prevHigh&&rsiRecent<rsiPrev&&rsiRecent>55){divergence="BEARISH";}
   }
-  return{rsi:rsi,s20:s20,bb:{u:s20+2*std,m:s20,l:s20-2*std},ema50:ema50,trend:trend,divergence:divergence};
+  var divDetail=detectRSIDiv(c); // tipizirana divergencija — REG_BULLISH/HIDDEN_BULLISH/REG_BEARISH/HIDDEN_BEARISH
+  return{rsi:rsi,s20:s20,bb:{u:s20+2*std,m:s20,l:s20-2*std},ema50:ema50,trend:trend,divergence:divergence,divDetail:divDetail};
 }
+// ── RSI DIVERGENCE STRATEGY — puni RSI niz + pravi swing točke ──────
+// Regular Bullish: cijena niži low, RSI viši low → reversal signal (jak)
+// Hidden Bullish:  cijena viši low, RSI niži low → trend continuation (srednji)
+// Regular Bearish: cijena viši high, RSI niži high → reversal bearish (jak)
+// Hidden Bearish:  cijena niži high, RSI viši high → continuation bearish
+function computeRSIArray(c,period){
+  if(!c||c.length<period+2)return[];
+  var gains=[],losses=[];
+  for(var i=1;i<c.length;i++){var d=c[i]-c[i-1];gains.push(d>0?d:0);losses.push(d<0?-d:0);}
+  var aG=gains.slice(0,period).reduce(function(a,b){return a+b;},0)/period;
+  var aL=losses.slice(0,period).reduce(function(a,b){return a+b;},0)/period;
+  var arr=[aL===0?100:100-100/(1+aG/aL)];
+  for(var j=period;j<gains.length;j++){
+    aG=(aG*(period-1)+gains[j])/period;
+    aL=(aL*(period-1)+losses[j])/period;
+    arr.push(aL===0?100:100-100/(1+aG/aL));
+  }
+  return arr;
+}
+
+function findSwings(arr,lb){
+  var swings=[],n=arr.length;
+  for(var i=lb;i<n-lb;i++){
+    var lo=true,hi=true;
+    for(var j=i-lb;j<=i+lb;j++){
+      if(j===i)continue;
+      if(arr[j]<=arr[i])lo=false;
+      if(arr[j]>=arr[i])hi=false;
+    }
+    if(lo)swings.push({idx:i,val:arr[i],type:"low"});
+    if(hi)swings.push({idx:i,val:arr[i],type:"high"});
+  }
+  return swings;
+}
+
+function detectRSIDiv(closes){
+  var rsiArr=computeRSIArray(closes,14);
+  if(!rsiArr.length||rsiArr.length<20)return null;
+  var offset=closes.length-rsiArr.length; // RSI array počinje od candle #14
+  var lb=Math.max(3,Math.floor(rsiArr.length/16)); // adaptivni lookback
+  var pSwings=findSwings(closes,lb);
+  var rSwings=findSwings(rsiArr,lb);
+
+  // Mapiraj RSI swing indekse na closes indekse (dodaj offset)
+  var pLows=pSwings.filter(function(s){return s.type==="low";});
+  var pHighs=pSwings.filter(function(s){return s.type==="high";});
+
+  function rsiAtClose(closeIdx){
+    var ri=closeIdx-offset;
+    return(ri>=0&&ri<rsiArr.length)?rsiArr[ri]:null;
+  }
+
+  // Uzmemo zadnje 2 swing lowe/highove
+  var pl=pLows.slice(-2), ph=pHighs.slice(-2);
+
+  // Regular Bullish: price lower low + RSI higher low (RSI < 50)
+  if(pl.length>=2){
+    var r1=rsiAtClose(pl[0].idx), r2=rsiAtClose(pl[1].idx);
+    if(r1!==null&&r2!==null&&pl[1].val<pl[0].val&&r2>r1&&r2<52){
+      return{type:"REG_BULLISH",priceDiff:+(pl[1].val-pl[0].val).toFixed(6),
+             rsiDiff:+(r2-r1).toFixed(1),rsi:+r2.toFixed(1),
+             desc:"Regular bullish div — cijena niži low, RSI viši low ("+r2.toFixed(0)+")"};
+    }
+    // Hidden Bullish: price higher low + RSI lower low (RSI < 45, uptrend continuation)
+    if(pl[1].val>pl[0].val&&r2<r1&&r2<45){
+      return{type:"HIDDEN_BULLISH",priceDiff:+(pl[1].val-pl[0].val).toFixed(6),
+             rsiDiff:+(r1-r2).toFixed(1),rsi:+r2.toFixed(1),
+             desc:"Hidden bullish div — trend nastavlja se gore ("+r2.toFixed(0)+")"};
+    }
+  }
+
+  // Regular Bearish: price higher high + RSI lower high (RSI > 50)
+  if(ph.length>=2){
+    var rh1=rsiAtClose(ph[0].idx), rh2=rsiAtClose(ph[1].idx);
+    if(rh1!==null&&rh2!==null&&ph[1].val>ph[0].val&&rh2<rh1&&rh2>48){
+      return{type:"REG_BEARISH",priceDiff:+(ph[1].val-ph[0].val).toFixed(6),
+             rsiDiff:+(rh1-rh2).toFixed(1),rsi:+rh2.toFixed(1),
+             desc:"Regular bearish div — cijena viši high, RSI niži high ("+rh2.toFixed(0)+")"};
+    }
+    // Hidden Bearish: price lower high + RSI higher high (RSI > 55, downtrend continuation)
+    if(ph[1].val<ph[0].val&&rh2>rh1&&rh2>55){
+      return{type:"HIDDEN_BEARISH",priceDiff:+(ph[1].val-ph[0].val).toFixed(6),
+             rsiDiff:+(rh2-rh1).toFixed(1),rsi:+rh2.toFixed(1),
+             desc:"Hidden bearish div — downtrend se nastavlja ("+rh2.toFixed(0)+")"};
+    }
+  }
+  return null;
+}
+
 function compMACD(c){
   if(!c||c.length<27)return null;
   var f=ema(c,12),sl=ema(c,26),ml=f.map(function(v,i){return v-sl[i];});
@@ -855,6 +945,29 @@ function scoreMarketSignals(sym,signals,warnings){
     else if(fs.signal==="bear"&&fs.avg>0.06){delta-=2;warnings.push({txt:"💰 Funding sentiment: "+fs.lbl+" (avg "+fs.avg.toFixed(3)+"%) — masivna pohlepa, opasnost",type:"bear"});}
     else if(fs.signal==="warn"){delta-=1;warnings.push({txt:"💰 Funding: "+fs.lbl+" (avg "+fs.avg.toFixed(3)+"%) — longs preplati",type:"warn"});}
   }
+  // 25. RSI DIVERGENCE — multi-timeframe bonus (4h + 1h potvrda)
+  // 4h divergencija je jači signal od 1h; oba zajedno = jak kontrarian setup
+  var _div4h=t4h&&t4h.divDetail;
+  var _div1h=ta[sym]&&ta[sym].divDetail;
+  if(_div4h&&_div1h){
+    var _b4h=_div4h.type==="REG_BULLISH"||_div4h.type==="HIDDEN_BULLISH";
+    var _b1h=_div1h.type==="REG_BULLISH"||_div1h.type==="HIDDEN_BULLISH";
+    var _br4h=_div4h.type==="REG_BEARISH"||_div4h.type==="HIDDEN_BEARISH";
+    var _br1h=_div1h.type==="REG_BEARISH"||_div1h.type==="HIDDEN_BEARISH";
+    if(_b4h&&_b1h){
+      var _isReg=_div4h.type==="REG_BULLISH"&&_div1h.type==="REG_BULLISH";
+      delta+=_isReg?2:1.5;
+      signals.push({txt:"📐 MTF div: 1h+4h oba bullish divergencija"+(_isReg?" (Regular×2 — najjači reversal setup)":"")+" — RSI 4h "+(_div4h.rsi||"—"),type:"bull"});
+    } else if(_br4h&&_br1h){
+      delta-=2;warnings.push({txt:"📐 MTF div: 1h+4h oba bearish divergencija — downtrend potvrđen, RSI 4h "+(_div4h.rsi||"—"),type:"bear"});
+    }
+  } else if(_div4h){
+    // Samo 4h div bez 1h potvrde — manji signal
+    if(_div4h.type==="REG_BULLISH"){delta+=1;signals.push({txt:"📐 4h Reg bullish div (RSI "+(_div4h.rsi||"—")+") — reversal potencijal",type:"bull"});}
+    else if(_div4h.type==="HIDDEN_BULLISH"){delta+=0.5;signals.push({txt:"📐 4h Hidden bullish div (RSI "+(_div4h.rsi||"—")+") — trend nastavak",type:"bull"});}
+    else if(_div4h.type==="REG_BEARISH"){delta-=1;warnings.push({txt:"📐 4h Reg bearish div (RSI "+(_div4h.rsi||"—")+") — bearish reversal signal",type:"bear"});}
+    else if(_div4h.type==="HIDDEN_BEARISH"){delta-=0.5;warnings.push({txt:"📐 4h Hidden bearish div — downtrend nastavlja",type:"warn"});}
+  }
   // Clamp ukupnog delta — sprječava overflow scoring modela (svaki engine ima maxScore 28-30)
   // Bez clampa, 20 istovremenih bullish signala = delta 30+ → rawConf izlazi iz opsega
   delta=Math.max(-12,Math.min(12,delta));
@@ -891,9 +1004,14 @@ function analyze3D(sym){
     // Bollinger
     if(t.bb&&price<t.bb.l){score+=wt("bbBelow",2);signals.push({txt:"Ispod Bollinger dna — mean reversion signal",type:"bull"});}
     else if(t.bb&&price>t.bb.u){score-=2;warnings.push({txt:"Iznad Bollinger vrha — opasna zona",type:"bear"});}
-    // RSI divergencija
-    if(t.divergence==="BULLISH"){score+=wt("divBullish",3);signals.push({txt:"Bullish RSI divergencija — cijena niže, RSI više = reversal",type:"bull"});}
-    else if(t.divergence==="BEARISH"){score-=2.5;warnings.push({txt:"Bearish RSI divergencija — slabi momentum",type:"bear"});}
+    // RSI divergencija — tipizirana (Regular/Hidden × Bullish/Bearish)
+    var _dd3=t.divDetail||(t.divergence==="BULLISH"?{type:"REG_BULLISH",rsi:t.rsi}:t.divergence==="BEARISH"?{type:"REG_BEARISH",rsi:t.rsi}:null);
+    if(_dd3){
+      if(_dd3.type==="REG_BULLISH"){score+=wt("divBullish",3.5);signals.push({txt:"📐 Reg bullish div — cijena niži low, RSI viši low"+(_dd3.rsi?" (RSI "+_dd3.rsi+")":"")+" — jak reversal",type:"bull"});}
+      else if(_dd3.type==="HIDDEN_BULLISH"){score+=wt("divBullish",1.5);signals.push({txt:"📐 Hidden bullish div — uptrend nastavak"+(_dd3.rsi?" (RSI "+_dd3.rsi+")":""),type:"bull"});}
+      else if(_dd3.type==="REG_BEARISH"){score-=3;warnings.push({txt:"📐 Reg bearish div — cijena viši high, RSI niži high"+(_dd3.rsi?" (RSI "+_dd3.rsi+")":"")+" — reversal rizik",type:"bear"});}
+      else if(_dd3.type==="HIDDEN_BEARISH"){score-=1.5;warnings.push({txt:"📐 Hidden bearish div — downtrend se nastavlja"+(_dd3.rsi?" (RSI "+_dd3.rsi+")":""),type:"warn"});}
+    }
   } else {
     if(MACRO.fg<20)score+=1.5;
     signals.push({txt:"TA signali dostupni na Netlify (WS live)",type:"warn"});
@@ -1101,7 +1219,7 @@ function analyze3D(sym){
     if(!t||t.trend!=="UP")missingSignals.push("EMA50 uptrend");
     if(t&&t.rsi>42)missingSignals.push("RSI oversold (<42)");
     if(!m||(m.cross!=="BULLISH"&&!m.bullish))missingSignals.push("MACD bullish");
-    if(!t||t.divergence!=="BULLISH")missingSignals.push("RSI divergencija");
+    if(!t||(t.divergence!=="BULLISH"&&!(t.divDetail&&(t.divDetail.type==="REG_BULLISH"||t.divDetail.type==="HIDDEN_BULLISH"))))missingSignals.push("RSI divergencija");
     if(mtfBullCount<2)missingSignals.push("MTF 2/3 alignment");
     missingSignals=missingSignals.slice(0,4);
   }
@@ -1449,8 +1567,8 @@ function buildSnap(sym){
     trendUp:       !!(t&&t.trend==="UP"),
     trendDown:     !!(t&&t.trend==="DOWN"),
     bbBelow:       !!(t&&t.bb&&price>0&&price<t.bb.l),
-    divBullish:    !!(t&&t.divergence==="BULLISH"),
-    divBearish:    !!(t&&t.divergence==="BEARISH"),
+    divBullish:    !!(t&&(t.divergence==="BULLISH"||(t.divDetail&&(t.divDetail.type==="REG_BULLISH"||t.divDetail.type==="HIDDEN_BULLISH")))),
+    divBearish:    !!(t&&(t.divergence==="BEARISH"||(t.divDetail&&(t.divDetail.type==="REG_BEARISH"||t.divDetail.type==="HIDDEN_BEARISH")))),
     macdBullCross: !!(m&&m.cross==="BULLISH"),
     macdBearCross: !!(m&&m.cross==="BEARISH"),
     lsRatioBull:   !!(fd&&fd.lsRatio!=null&&fd.lsRatio<0.85),
@@ -1812,8 +1930,14 @@ function analyze10pct(sym){
     else if(t.rsi>72){score-=3;warnings.push({txt:"RSI "+t.rsi.toFixed(0)+" — overbought",type:"bear"});}
     if(t.bb&&price<t.bb.l){score+=wt("bbBelow",3);signals.push({txt:"Ispod Bollinger dna — jak mean reversion signal",type:"bull"});}
     else if(t.bb&&price>t.bb.u){score-=2.5;warnings.push({txt:"Iznad Bollinger vrha — opasna zona",type:"bear"});}
-    if(t.divergence==="BULLISH"){score+=wt("divBullish",3.5);signals.push({txt:"Bullish RSI divergencija — jak reversal za 10% potez",type:"bull"});}
-    else if(t.divergence==="BEARISH"){score-=3;warnings.push({txt:"Bearish RSI divergencija — 10% rast nepovoljno",type:"bear"});}
+    // RSI divergencija — tipizirana (Regular/Hidden × Bullish/Bearish)
+    var _dd10=t.divDetail||(t.divergence==="BULLISH"?{type:"REG_BULLISH",rsi:t.rsi}:t.divergence==="BEARISH"?{type:"REG_BEARISH",rsi:t.rsi}:null);
+    if(_dd10){
+      if(_dd10.type==="REG_BULLISH"){score+=wt("divBullish",4);signals.push({txt:"📐 Reg bullish div — cijena niži low, RSI viši low"+(_dd10.rsi?" (RSI "+_dd10.rsi+")":"")+" — jak reversal za 10%",type:"bull"});}
+      else if(_dd10.type==="HIDDEN_BULLISH"){score+=wt("divBullish",2);signals.push({txt:"📐 Hidden bullish div — uptrend continuation"+(_dd10.rsi?" (RSI "+_dd10.rsi+")":""),type:"bull"});}
+      else if(_dd10.type==="REG_BEARISH"){score-=3.5;warnings.push({txt:"📐 Reg bearish div — viši high, RSI niži high"+(_dd10.rsi?" (RSI "+_dd10.rsi+")":"")+" — 10% rast nepovoljno",type:"bear"});}
+      else if(_dd10.type==="HIDDEN_BEARISH"){score-=2;warnings.push({txt:"📐 Hidden bearish div — downtrend nastavlja"+(_dd10.rsi?" (RSI "+_dd10.rsi+")":""),type:"warn"});}
+    }
   }else{if(MACRO.fg<20)score+=1.5;signals.push({txt:"TA dostupan na Netlify (WS live)",type:"warn"});}
 
   if(m){
@@ -2762,8 +2886,14 @@ function analyzeMeme(sym){
     else if(t.rsi>72){score-=3;warnings.push({txt:"RSI "+t.rsi.toFixed(0)+" — overbought",type:"bear"});}
     if(t.bb&&price<t.bb.l){score+=wt("bbBelow",2.5);signals.push({txt:"Ispod Bollinger dna — mean reversion",type:"bull"});}
     else if(t.bb&&price>t.bb.u){score-=2;warnings.push({txt:"Iznad Bollinger vrha",type:"bear"});}
-    if(t.divergence==="BULLISH"){score+=wt("divBullish",3);signals.push({txt:"Bullish RSI divergencija — reversal signal",type:"bull"});}
-    else if(t.divergence==="BEARISH"){score-=2;warnings.push({txt:"Bearish RSI divergencija",type:"bear"});}
+    // RSI divergencija — tipizirana
+    var _ddM=t.divDetail||(t.divergence==="BULLISH"?{type:"REG_BULLISH",rsi:t.rsi}:t.divergence==="BEARISH"?{type:"REG_BEARISH",rsi:t.rsi}:null);
+    if(_ddM){
+      if(_ddM.type==="REG_BULLISH"){score+=wt("divBullish",3.5);signals.push({txt:"📐 Reg bullish div"+(_ddM.rsi?" (RSI "+_ddM.rsi+")":"")+" — jak reversal za meme pump",type:"bull"});}
+      else if(_ddM.type==="HIDDEN_BULLISH"){score+=wt("divBullish",1.5);signals.push({txt:"📐 Hidden bullish div"+(_ddM.rsi?" (RSI "+_ddM.rsi+")":"")+" — trend nastavak",type:"bull"});}
+      else if(_ddM.type==="REG_BEARISH"){score-=2.5;warnings.push({txt:"📐 Reg bearish div"+(_ddM.rsi?" (RSI "+_ddM.rsi+")":"")+" — slabi momentum",type:"bear"});}
+      else if(_ddM.type==="HIDDEN_BEARISH"){score-=1.5;warnings.push({txt:"📐 Hidden bearish div"+(_ddM.rsi?" (RSI "+_ddM.rsi+")":"")+" — downtrend",type:"warn"});}
+    }
   }else{score+=0.5;}
 
   // MACD

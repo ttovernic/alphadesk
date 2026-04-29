@@ -204,7 +204,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.27</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.28</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -1204,6 +1204,52 @@ function scoreMarketSignals(sym,signals,warnings){
   return delta;
 }
 
+// ── TIER 1 ENTRY GATES — confluence, volume, BTC, momentum ───────
+// BTC kontekst za alt korelaciju — ako BTC pada, alt LONG nema smisla
+function getBtcContext(){
+  var btc=px["BTC"]||{};
+  var btc24=btc.c24||0;
+  var btcTa=ta["BTC"];
+  var btc4h=ta4h["BTC"];
+  var trend1h=btcTa?btcTa.trend:"FLAT";
+  var trend4h=btc4h?btc4h.trend:"FLAT";
+  // BTC u "danger" zoni za alt LONG ako:
+  // - 24h pad > 3%, ili
+  // - 24h pad > 1.5% i 1h trend DOWN, ili
+  // - 1h DOWN i 4h DOWN istovremeno
+  var danger=btc24<-3 ||
+             (btc24<-1.5 && trend1h==="DOWN") ||
+             (trend4h==="DOWN" && trend1h==="DOWN");
+  return{c24:btc24,trend1h:trend1h,trend4h:trend4h,danger:danger};
+}
+
+// Recent momentum confirmation za autoTrack ✅ entries
+// Sprječava ulaz dok cijena pada — čeka da WS tickovi pokažu pozitivnu inerciju
+function isMomentumConfirmed(sym){
+  var h=hist[sym]||[];
+  if(h.length<20)return true; // premalo podataka, dopusti
+  var recent=h.slice(-5).reduce(function(a,b){return a+b;},0)/5;
+  var older=h.slice(-15,-5).reduce(function(a,b){return a+b;},0)/10;
+  return recent>=older*0.999; // recent treba biti barem flat — ne padajuće
+}
+
+// Dinamički target iz swing levels (umjesto fiksnih 5%/10%)
+// Vraća null ako nema reasonable resistance — onda koristimo fiksni target
+function getDynamicTarget(sym,price,basePct){
+  var sw=swingLevels[sym];
+  if(!sw||!sw.resistances||sw.resistances.length===0)return null;
+  var sorted=sw.resistances.slice().sort(function(a,b){return a-b;});
+  // Tražimo prvi resistance unutar [basePct*0.6 ... basePct*1.6] iznad cijene
+  var minPct=Math.max(3,basePct*0.6);
+  var maxPct=basePct*1.6;
+  for(var i=0;i<sorted.length;i++){
+    var r=sorted[i];
+    var pct=(r-price)/price*100;
+    if(pct>=minPct && pct<=maxPct) return r;
+  }
+  return null;
+}
+
 // ── CORE 3-DAY ANALYSIS ENGINE ───────────────────────────────────
 function analyze3D(sym){
   var d=px[sym]||{},t=ta[sym],m=macd[sym],a=atr[sym],f=fr[sym];
@@ -1452,25 +1498,61 @@ function analyze3D(sym){
   var riskLevel=atrPct>4?"VISOK":atrPct>2?"UMJEREN":"NIZAK";
   var riskCol=atrPct>4?"var(--re)":atrPct>2?"var(--ye)":"var(--gr)";
 
+  // ── TIER 1 GATES — confluence, volume, BTC korelacija, dinamički target ─
+  // 1. CONFLUENCE: 5 nezavisnih kategorija signala
+  var t4hV=ta4h[sym],tDayV=taDaily[sym],t1hV=ta[sym];
+  var trendBull=(t&&t.trend==="UP")||(tDayV&&tDayV.trend==="UP")||(t4hV&&t4hV.trend==="UP");
+  var momBull=(m&&(m.cross==="BULLISH"||m.bullish))||(t&&t.rsi<40)||(t&&(t.divergence==="BULLISH"||(t.divDetail&&t.divDetail.type&&t.divDetail.type.indexOf("BULLISH")>-1)));
+  var volBull=(vs&&vs.ratio>=1.5)||(cvdData[sym]&&cvdData[sym].divergence==="BULLISH");
+  var macroBull=MACRO.fg<35||MACRO.claudeRegime==="BULL"||MACRO.claudeRegime==="ALT_SEASON";
+  var fd2=futuresData[sym];
+  var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
+  var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
+
+  // 2. VOLUME HARD FILTER
+  var volumeOK=vs&&vs.ratio>=1.3;
+
+  // 3. BTC CORRELATION GATE (samo za alte LONG)
+  var btcCtx=sym!=="BTC"?getBtcContext():{danger:false,c24:0,trend1h:"FLAT"};
+
+  // 4. DYNAMIC TARGET iz swing levels (ako postoji reasonable resistance)
+  var dynTarget=getDynamicTarget(sym,price,settings.targetPct);
+  var actualTargetPct=settings.targetPct;
+  if(dynTarget){
+    d3Price=+dynTarget.toFixed(4);
+    actualTargetPct=(dynTarget-price)/price*100;
+    rr=actualTargetPct/(stopPct3*100);
+    signals.push({txt:"🎯 Dinamički target $"+fp(dynTarget).slice(1)+" (swing R, "+actualTargetPct.toFixed(1)+"%)",type:"bull"});
+  }
+
   // Hot or safe classification — radi za sve tokene (ne samo hardkodirane)
-  var isHot=conf>=60&&score>=2.5&&achievable3d;
+  var isHot=conf>=60&&score>=2.5&&achievable3d&&volumeOK&&!btcCtx.danger;
   var isSafe=conf>=55&&riskLevel!=="VISOK"&&rr>=settings.minRR&&atrPct<=4;
 
   // Build verdict — dinamički s ključnim razlogom
   var verdict="";
   var verdictWhy="";
-  // Pronađi MTF alignment
-  var t4hV=ta4h[sym],tDayV=taDaily[sym],t1hV=ta[sym];
   var mtfBullCount=(t1hV&&t1hV.trend==="UP"?1:0)+(t4hV&&t4hV.trend==="UP"?1:0)+(tDayV&&tDayV.trend==="UP"?1:0);
   var hasTrifecta=signals.some(function(s){return s.txt.indexOf("TRIFECTA")>-1;});
   var hasMtf3=mtfBullCount===3;
   var topBullSignal=signals.length>0?signals[0].txt:"";
   var topWarnSignal=warnings.length>0?warnings[0].txt:"";
   var riskSuffix=MACRO.warActive?" ⚠️ Koristiti 50-70% normale pozicije (rat aktivan).":"";
-  if(conf>=60&&score>=2){
+
+  // ✅ zahtijeva: high conf, score, confluence ≥3, volume OK, BTC nije u danger zoni
+  var passesAllGates=conf>=60&&score>=2&&confluenceCount>=3&&volumeOK&&!btcCtx.danger;
+  if(passesAllGates){
     verdict="✅ Ulazi — dobra prilika";
     var keyReason=hasTrifecta?"💎 Trifecta signal — izniman poklopaj indikatora.":hasMtf3?"💪 MTF 3/3 alignment (1h+4h+Daily) — trend potvrđen na svim vremenskim okvirima.":topBullSignal?"Ključni signal: "+topBullSignal+".":"Višestruki bullish signali.";
-    verdictWhy=keyReason+" "+(achievable3d?"ATR pokriva "+settings.targetPct+"% u "+(settings.targetPct===10?"5":"3")+" dana.":"Volatilnost niska, potez može trajati dulje.")+riskSuffix;
+    verdictWhy=keyReason+" 📊 Confluence "+confluenceCount+"/5 · Vol "+(vs?vs.ratio.toFixed(1):'?')+"× · "+(achievable3d?"ATR pokriva "+settings.targetPct+"% u "+(settings.targetPct===10?"5":"3")+" dana.":"Volatilnost niska.")+riskSuffix;
+  } else if(conf>=60&&score>=2){
+    // Bio bi ✅ ali nedostaje neki gate → downgrade na 🟡 s eksplicitnim razlogom
+    verdict="🟡 Ulaz s oprezom";
+    var blockers=[];
+    if(confluenceCount<3)blockers.push("samo "+confluenceCount+"/5 kategorija signala");
+    if(!volumeOK)blockers.push("volumen "+(vs?vs.ratio.toFixed(1)+"×":"nedostupan")+" (treba ≥1.3×)");
+    if(btcCtx.danger)blockers.push("BTC u downtrendu ("+btcCtx.c24.toFixed(1)+"% 24h, "+btcCtx.trend1h+" 1h)");
+    verdictWhy="High conf ali blokirano: "+blockers.join(" · ")+". Pričekaj potvrdu."+riskSuffix;
   } else if(conf>=48){
     verdict="🟡 Ulaz s oprezom";
     var stopPriceWhy=+(price*(1-(settings.targetPct===10?0.03:settings.maxRisk/100))).toFixed(4);
@@ -1523,11 +1605,16 @@ function analyze3D(sym){
     cats:cats,warns:warns2,
     opt:opt||null,
     vp:vp||null,
-    targetPct:settings.targetPct,
+    targetPct:+actualTargetPct.toFixed(2),
     mtfInfo:mtfInfo,
     confirmTrigger:confirmTrigger,
     missingSignals:missingSignals,
-    promotionGap:promotionGap
+    promotionGap:promotionGap,
+    // Tier 1 entry gates
+    confluenceCount:confluenceCount,
+    volumeOK:volumeOK,
+    btcDanger:btcCtx.danger,
+    dynamicTarget:dynTarget!==null
   };
 }
 
@@ -2125,6 +2212,13 @@ function autoClosePreds(){
 function autoTrackOpps(opps, source){
   var now=Date.now();
   var added=false;
+  // ── Tier 1: drawdown circuit breaker — pauziraj nakon 2 uzastopna PROMAŠAJa
+  // Sprječava revenge cascade kad signali ne rade dobro
+  var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,2);
+  if(recentClosed.length===2&&recentClosed.every(function(p){return p.status==="PROMAŠAJ";})){
+    var lastClose=recentClosed[0].timestamp||parseInt(recentClosed[0].id||"0");
+    if(now-lastClose<6*3600*1000){return;} // 6h cooldown nakon 2 uzastopna miss-a
+  }
   opps.forEach(function(o){
     if(!o||!o.sym||!o.price)return;
     // Preskoči ako već ima AKTIVAN tracking za ovaj token (bilo koji source)
@@ -2135,6 +2229,9 @@ function autoTrackOpps(opps, source){
       return p.sym===o.sym&&p.status!=="AKTIVAN"&&(now-(p.timestamp||parseInt(p.id||"0")))<12*3600*1000;
     });
     if(recentlyClosed)return;
+    // ── Tier 1: WAIT-FOR-CONFIRMATION za ✅ entries
+    // Cijena mora pokazivati pozitivnu inerciju — sprječava ulaz tijekom slobodnog pada
+    if(source==="ulaz"&&!isMomentumConfirmed(o.sym))return;
     var isMeme=MEME_SYMS.indexOf(o.sym)>-1;
     var p={
       id:now+"_"+o.sym,

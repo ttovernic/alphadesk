@@ -204,7 +204,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.26</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.27</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -3679,8 +3679,7 @@ function analyzeMeme(sym){
     cats:[],warns:[],opt:null,vp:vp||null,targetPct:TARGET};
 }
 
-var memeMinConf=48;
-function setMemeConf(v){memeMinConf=v;render();}
+var memeMinConf=40;
 function getMemeOpportunities(){
   return getMemeSYMS().map(analyzeMeme)
     .filter(function(x){return x&&x.conf>=memeMinConf&&x.achievable3d;})
@@ -3692,16 +3691,7 @@ function rMeme(){
   var h='<div class="pg">';
   h+='<div style="background:linear-gradient(135deg,rgba(213,0,249,.08),rgba(255,109,0,.04));border:.5px solid rgba(213,0,249,.2);border-radius:20px;padding:16px;margin-bottom:14px">';
   h+='<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">🎰 Meme Coins · 10% u 3 dana</div>';
-  h+='<div style="display:flex;gap:5px;align-items:center;margin-bottom:10px">';
-  h+='<span style="font-size:11px;color:var(--t3);font-weight:600;flex-shrink:0">Min conf:</span>';
-  [48,60,70,80].forEach(function(v){
-    var on=memeMinConf===v;
-    var vc=v>=80?"#ff6d00":v>=70?"#ffea00":v>=60?"#2979ff":"#00e676";
-    h+='<button onclick="setMemeConf('+v+')" style="flex:1;padding:7px 0;border-radius:10px;font-size:12px;font-weight:800;border:.5px solid '+(on?vc+'88':'var(--sep)')+';background:'+(on?vc+'22':'var(--s3)')+';color:'+(on?vc:'var(--t3)')+';cursor:pointer;font-family:inherit;transition:all .2s">'+v+'%</button>';
-  });
-  h+='</div>';
-  var posSize=memeMinConf>=80?'30':memeMinConf>=70?'20':'10';
-  h+='<div style="font-size:12px;color:rgba(213,0,249,.85);background:rgba(213,0,249,.06);border:.5px solid rgba(213,0,249,.2);border-radius:12px;padding:10px 14px;margin-bottom:12px">🎰 <strong>Kriterij:</strong> meme coini iz TOP 100 s pouzdanošću ≥'+memeMinConf+'% i ATR-om koji pokriva +10% u 3 dana — max '+posSize+'% pozicije.</div>';
+  h+='<div style="font-size:12px;color:rgba(213,0,249,.85);background:rgba(213,0,249,.06);border:.5px solid rgba(213,0,249,.2);border-radius:12px;padding:10px 14px;margin-bottom:12px">🎰 <strong>Kriterij:</strong> meme coini s pouzdanošću ≥40% i ATR-om koji pokriva +10% u 3 dana — max 10% pozicije.</div>';
   var activeMeme=getMemeSYMS();
   var allStats=activeMeme.map(analyzeMeme).filter(function(x){return x;});
   var pass=allStats.filter(function(x){return x.conf>=memeMinConf&&x.achievable3d;}).length;

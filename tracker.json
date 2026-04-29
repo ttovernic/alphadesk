@@ -49,7 +49,9 @@
       "d2Hit": false,
       "d3Hit": false,
       "d4Hit": false,
-      "d5Hit": false
+      "d5Hit": false,
+      "peakPrice": 12.47,
+      "peakPct": -0.1
     },
     {
       "id": "1776426593133_YLDS",
@@ -4798,5 +4800,5 @@
     "fgExtremeFear": 1,
     "fgFear": 1
   },
-  "updatedAt": "2026-04-29T07:12:28.646Z"
+  "updatedAt": "2026-04-29T07:15:21.002Z"
 }

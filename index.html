@@ -204,7 +204,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.13</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.14</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -426,6 +426,7 @@ var relStrength={};  // {sym:{rs24h,rs7d,leading,lagging}} — relativna snaga v
 var swingLevels={};  // {sym:{supports:[],resistances:[]}} — swing high/low S/R nivoi
 var newsData={};     // {sym:[{title,sentiment,ts}]} — CryptoPanic news sentiment
 var backtestResults={}; // {sym:{accuracy,n,hits,recent}} — historijski backtest na daily klines
+var signalBacktest=null; // {results:[{key,name,fires,hits,wr,lift}],baseline,syms,ts} — per-signal atribucija
 var liqZones={};     // {sym:{mark,fundingRate,longLiq20x,shortLiq20x,longPressure,shortPressure}} — procijenjene liq zone
 var wyckoffData={};  // {sym:{phase,signal,score,desc,rangeHigh,rangeLow,volRatio}} — Wyckoff price cycle faza
 var wyckoff4h={};    // isti format, 4h timeframe
@@ -2994,6 +2995,47 @@ function renderBacktestPanel(){
   return h;
 }
 
+// ── SIGNAL ATTRIBUTION BACKTEST PANEL ───────────────────────────
+function renderSignalBacktestPanel(){
+  if(!signalBacktest||!signalBacktest.results){
+    return'<div style="background:var(--s1);border-radius:14px;padding:12px 16px;margin-bottom:12px;border:.5px solid rgba(41,121,255,.1);text-align:center;color:var(--t3);font-size:12px">📡 Signal atribucija se pokreće u pozadini…</div>';
+  }
+  var sb=signalBacktest;
+  var base=sb.results.filter(function(r){return r.key==="baseline";})[0];
+  var rows=sb.results.filter(function(r){return r.key!=="baseline"&&r.fires>=5;}).sort(function(a,b){return(b.lift||0)-(a.lift||0);});
+  var h='<div style="background:var(--s1);border-radius:16px;padding:14px 16px;margin-bottom:12px;border:.5px solid rgba(41,121,255,.15)">';
+  h+='<div style="font-size:11px;font-weight:700;color:#2979ff;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">📡 Signal Atribucija ('+sb.syms+' tokena, 120 dana)</div>';
+  h+='<div style="font-size:10px;color:var(--t3);margin-bottom:10px">Koliko svaki signal poboljšava win rate vs. baseline · Target: +5% u 3 dana</div>';
+  if(base){
+    var bCol=sb.baseline>=60?"var(--gr)":sb.baseline>=50?"var(--ye)":"var(--re)";
+    h+='<div style="background:var(--s3);border-radius:10px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">';
+    h+='<div><div style="font-size:11px;font-weight:700;color:var(--t2)">📊 Baseline</div><div style="font-size:10px;color:var(--t4)">Svi pozitivni tehički setupi, bez filtera</div></div>';
+    h+='<div style="text-align:right"><div style="font-size:22px;font-weight:900;color:'+bCol+'">'+sb.baseline+'%</div><div style="font-size:9px;color:var(--t4)">'+base.fires+' slučajeva</div></div>';
+    h+='</div>';
+  }
+  h+='<div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:grid;grid-template-columns:1fr 58px 44px 52px;gap:4px;padding:0 10px">';
+  h+='<div>Signal</div><div style="text-align:right">Slučajevi</div><div style="text-align:right">Win%</div><div style="text-align:right">Lift</div>';
+  h+='</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:4px">';
+  rows.forEach(function(r){
+    var wrCol=r.wr>=60?"var(--gr)":r.wr>=50?"var(--ye)":"var(--re)";
+    var liftCol=r.lift>5?"var(--gr)":r.lift>0?"#aed581":r.lift<-5?"var(--re)":"#ff8f00";
+    var liftIcon=r.lift>5?"✅":r.lift>0?"↑ ":r.lift<-5?"❌":"↓ ";
+    var liftTxt=(r.lift>0?"+":"")+r.lift+"%";
+    h+='<div style="display:grid;grid-template-columns:1fr 58px 44px 52px;gap:4px;align-items:center;padding:7px 10px;background:var(--s2);border-radius:8px">';
+    h+='<div style="font-size:11px;color:var(--t2)">'+r.name+'</div>';
+    h+='<div style="font-size:10px;color:var(--t4);text-align:right">'+r.fires+'×</div>';
+    h+='<div style="font-size:13px;font-weight:700;color:'+wrCol+';text-align:right">'+r.wr+'%</div>';
+    h+='<div style="font-size:11px;font-weight:700;color:'+liftCol+';text-align:right">'+liftIcon+liftTxt+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  var ago=sb.ts?Math.round((Date.now()-sb.ts)/60000):null;
+  if(ago!==null)h+='<div style="font-size:9px;color:var(--t4);margin-top:8px;text-align:right">Izračunato prije '+ago+' min</div>';
+  h+='</div>';
+  return h;
+}
+
 function renderDailyRec(){
   // Skupi prilike iz sva tri engina
   var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0&&KNOWN_MEME.indexOf(s)<0;});
@@ -3211,6 +3253,7 @@ function rTracker(){
       }
       h+=renderKellyPanel();
       h+=renderBacktestPanel();
+      h+=renderSignalBacktestPanel();
       h+=renderWeightsPanel();
     }
     h+='</div>';
@@ -4712,6 +4755,142 @@ function runBacktest(){
   });
 }
 
+// ── PER-SIGNAL ATTRIBUTION BACKTEST ─────────────────────────────
+// Mjeri koliko svaki signal poboljšava (ili smanjuje) win rate vs. baseline
+// Koristi iste daily klines (closes+volume+high+low) za 10 tokena, 120 dana
+function runSignalBacktest(){
+  var btSyms=["BTC","ETH","SOL","XRP","BNB","ADA","LINK","AVAX","SUI","DOGE"];
+  var allData={};
+  var loaded=0;
+  function tryProcess(){
+    loaded++;
+    if(loaded===btSyms.length)processSignalBacktest(allData);
+  }
+  btSyms.forEach(function(sym,idx){
+    setTimeout(function(){
+      fetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1d&limit=120")
+        .then(function(r){return r.json();})
+        .then(function(data){
+          if(data&&data.length>=30)allData[sym]=data;
+          tryProcess();
+        }).catch(tryProcess);
+    },idx*750+8000); // 8s offset → ne gazi main backtest (5s start)
+  });
+}
+
+function processSignalBacktest(allData){
+  var TARGET_PCT=0.05;
+  var LOOKBACK=21; // treba 21 dana za pouzdane signale
+
+  // Definiraj sve signale s imenom i brojevima
+  var sigs={
+    baseline:{n:"Baseline (svi pozitivni setupi)",fires:0,hits:0},
+    rsi_lo:  {n:"RSI < 35 (jako oversold)",      fires:0,hits:0},
+    rsi_mid: {n:"RSI 35–45 (oversold)",           fires:0,hits:0},
+    rsi_hi:  {n:"RSI > 65 (overbought)",          fires:0,hits:0},
+    bb_below:{n:"Ispod Bollinger donje",           fires:0,hits:0},
+    macd_bull:{n:"MACD bullish cross",             fires:0,hits:0},
+    div_bull: {n:"Bullish divergencija",           fires:0,hits:0},
+    vol_3x:  {n:"Volume > 3× prosjek",            fires:0,hits:0},
+    vol_2x:  {n:"Volume 2–3× prosjek",            fires:0,hits:0},
+    vol_weak:{n:"Volume < 0.7× (slab)",           fires:0,hits:0},
+    ema_up:  {n:"EMA trend Gore",                 fires:0,hits:0},
+    ema_dn:  {n:"EMA trend Dolje",                fires:0,hits:0},
+    atr_ok:  {n:"ATR dovoljan za +5% u 3d",       fires:0,hits:0},
+    atr_low: {n:"ATR premali — ne može +5%",      fires:0,hits:0}
+  };
+
+  var syms=Object.keys(allData);
+  if(!syms.length)return;
+
+  syms.forEach(function(sym){
+    var data=allData[sym];
+    var closes=data.map(function(k){return parseFloat(k[4]);});
+    var highs= data.map(function(k){return parseFloat(k[2]);});
+    var lows=  data.map(function(k){return parseFloat(k[3]);});
+    var vols=  data.map(function(k){return parseFloat(k[5]);});
+
+    for(var i=LOOKBACK;i<closes.length-3;i++){
+      var slice=closes.slice(0,i+1);
+      var taR=compTA(slice);
+      var macdR=compMACD(slice);
+      if(!taR)continue;
+
+      var price=closes[i];
+
+      // ATR: avg 14-day true range kao % od cijene
+      var atrSum=0,atrN=0;
+      for(var j=Math.max(1,i-13);j<=i;j++){
+        var tr=Math.max(highs[j]-lows[j],Math.abs(highs[j]-closes[j-1]),Math.abs(lows[j]-closes[j-1]));
+        atrSum+=tr/closes[j]*100;
+        atrN++;
+      }
+      var atrPct=atrN>0?atrSum/atrN:0;
+      var atrAchievable=atrPct*3>=(TARGET_PCT*100); // može li 3 dana ATR pokriti 5%?
+
+      // Volume vs 20-day avg (isključuje trenutni dan)
+      var volAvg=0,volN=0;
+      for(var k2=Math.max(0,i-20);k2<i;k2++){volAvg+=vols[k2];volN++;}
+      volAvg=volN>0?volAvg/volN:0;
+      var volRatio=volAvg>0?vols[i]/volAvg:1;
+
+      // Tehički score (isti kao runBacktest) — preskačemo čiste bearove
+      var sig=0;
+      if(taR.rsi<32)sig+=3; else if(taR.rsi<42)sig+=1.5; else if(taR.rsi>72)sig-=3;
+      if(taR.trend==="UP")sig+=1.5; else if(taR.trend==="DOWN")sig-=2;
+      if(taR.bb&&price<taR.bb.l)sig+=2; else if(taR.bb&&price>taR.bb.u)sig-=2;
+      if(taR.divergence==="BULLISH")sig+=3; else if(taR.divergence==="BEARISH")sig-=2.5;
+      if(macdR&&macdR.cross==="BULLISH")sig+=3; else if(macdR&&macdR.cross==="BEARISH")sig-=2;
+      if(sig<0)continue; // preskači jasno bear setupove
+
+      // Ishod: je li cijena dostigla +5% u sljedeća 3 dana?
+      var future=[closes[i+1],closes[i+2],closes[i+3]].filter(function(v){return v!=null;});
+      var maxNext=future.length?Math.max.apply(null,future):price;
+      var hit=maxNext>=price*(1+TARGET_PCT)?1:0;
+
+      // Baseline
+      sigs.baseline.fires++;sigs.baseline.hits+=hit;
+      // RSI
+      if(taR.rsi<35){sigs.rsi_lo.fires++;sigs.rsi_lo.hits+=hit;}
+      if(taR.rsi>=35&&taR.rsi<45){sigs.rsi_mid.fires++;sigs.rsi_mid.hits+=hit;}
+      if(taR.rsi>65){sigs.rsi_hi.fires++;sigs.rsi_hi.hits+=hit;}
+      // BB
+      if(taR.bb&&price<taR.bb.l){sigs.bb_below.fires++;sigs.bb_below.hits+=hit;}
+      // MACD
+      if(macdR&&macdR.cross==="BULLISH"){sigs.macd_bull.fires++;sigs.macd_bull.hits+=hit;}
+      // Divergencija
+      if(taR.divergence==="BULLISH"){sigs.div_bull.fires++;sigs.div_bull.hits+=hit;}
+      // Volume
+      if(volRatio>3){sigs.vol_3x.fires++;sigs.vol_3x.hits+=hit;}
+      else if(volRatio>2){sigs.vol_2x.fires++;sigs.vol_2x.hits+=hit;}
+      if(volRatio<0.7){sigs.vol_weak.fires++;sigs.vol_weak.hits+=hit;}
+      // EMA trend
+      if(taR.trend==="UP"){sigs.ema_up.fires++;sigs.ema_up.hits+=hit;}
+      else if(taR.trend==="DOWN"){sigs.ema_dn.fires++;sigs.ema_dn.hits+=hit;}
+      // ATR achievable
+      if(atrAchievable){sigs.atr_ok.fires++;sigs.atr_ok.hits+=hit;}
+      else{sigs.atr_low.fires++;sigs.atr_low.hits+=hit;}
+    }
+  });
+
+  // Izračunaj win rate i lift vs baseline
+  var baseWR=sigs.baseline.fires>0?sigs.baseline.hits/sigs.baseline.fires:0;
+  var results=[];
+  Object.keys(sigs).forEach(function(k){
+    var s=sigs[k];
+    var wr=s.fires>0?+(s.hits/s.fires*100).toFixed(0):null;
+    var lift=wr!==null?Math.round(wr-baseWR*100):null;
+    results.push({key:k,name:s.n,fires:s.fires,hits:s.hits,wr:wr,lift:lift});
+  });
+
+  signalBacktest={
+    results:results,
+    baseline:Math.round(baseWR*100),
+    syms:syms.length,
+    ts:Date.now()
+  };
+}
+
 // ── BTC DOMINANCE LIVE (CoinGecko /global) ───────────────────────
 // Zamjena za hardkodirani MACRO.btcDom — dohvaća stvarne živuće podatke
 function fetchBTCDom(){
@@ -4911,6 +5090,7 @@ fetchDXY();             // US Dollar Index live (Yahoo Finance proxy)
 fetchNewsData();        // CryptoPanic news sentiment (free endpoint + auth token ako dostupan)
 fetchLiqHeatmap();      // Likvidacijske zone — Binance premiumIndex + opcionalno CoinGlass
 setTimeout(runBacktest, 5000); // Backtest engine — pokreni 5s nakon starta da ne blokira init
+setTimeout(runSignalBacktest, 15000); // Signal atribucija — 15s offset (nakon main backtest)
 setTimeout(function(){ta4hReady=true;},90000); // TA filter aktivan nakon 90s (da ta4h podaci stignu)
 // ── OPEN INTEREST (Binance Futures) ─────────────────────────────
 // OI raste + cijena raste = zdrav trend (novi kapital ulazi)
@@ -4965,6 +5145,7 @@ setInterval(fetchPolymarket, 900000);      // svako 15 min — Polymarket predic
 setInterval(fetchNewsData, 900000);        // svako 15 min — CryptoPanic news sentiment
 setInterval(fetchLiqHeatmap, 600000);      // svako 10 min — likvidacijske zone
 setInterval(runBacktest, 3600000);         // svako 60 min — backtest engine (sporo, skupo)
+setInterval(runSignalBacktest, 3600000);   // svako 60 min — signal atribucija backtest
 setInterval(computeRelStrength, 60000);   // svako 1 min — relative strength vs BTC (ovisi o WS cijenama)
 // ── BACKGROUND AUTO-TRACK (neovisno o aktivnom tabu) ─────────────
 function backgroundAutoTrack(){

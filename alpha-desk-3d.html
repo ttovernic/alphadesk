@@ -204,7 +204,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.23</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.24</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -313,12 +313,38 @@ function showToast(msg,isErr){
 }
 
 const SYMS=["BTC","ETH","XRP","BNB","ADA","LINK","SOL","AVAX","SUI"];
-const MEME_SYMS=["DOGE","SHIB","PEPE","WIF","BONK","FLOKI","BRETT","MOG","POPCAT","TURBO","MEW","NEIRO"]; // baza — uvijek uključeni
-// Svi poznati meme coini — dinamički se dodaju ako se nađu u TOP100
-const KNOWN_MEME=["DOGE","SHIB","PEPE","WIF","BONK","FLOKI",
-  "TRUMP","MELANIA","FARTCOIN","MOG","POPCAT","BRETT","TURBO","MEW",
-  "NEIRO","PONKE","BOME","SLERF","MYRO","MEME","COQ","GROK","AI16Z",
-  "GOAT","PNUT","ACT","VIRTUAL","PENGU","BABYDOGE","ELON","SAMO"];
+// MEME_SYMS — uvijek skenirani putem Binance WS (samo tokeni s USDT parom na Binanceu)
+const MEME_SYMS=[
+  // Classics — potvrđeno na Binanceu
+  "DOGE","SHIB","PEPE","WIF","BONK","FLOKI","TURBO","NEIRO",
+  // Prethodno u KNOWN_MEME, ali potvrđeni na Binanceu → promotaj u MEME_SYMS
+  "TRUMP","MEME","BOME","PENGU","PNUT",
+  // Novi — potvrđeni na Binanceu u travnju 2026
+  "NOT","PEOPLE","DOGS","ANIME","AIXBT","PUMP","ACT",
+  // Binance koristi 1000x/1M prefiks za mikro-price tokene
+  "1MBABYDOGE","1000CHEEMS"
+];
+// KNOWN_MEME — svi meme coini (isključuje iz regularnog scana; top 100 CoinGecko meme kategorija)
+// Napomena: tokeni bez Binance USDT para neće imati cijenu u meme scanu, ali ispravno su klasificirani
+const KNOWN_MEME=[
+  // ── Na Binanceu (isti kao MEME_SYMS) ────────────────────────────
+  "DOGE","SHIB","PEPE","WIF","BONK","FLOKI","TURBO","NEIRO",
+  "TRUMP","MEME","BOME","PENGU","PNUT",
+  "NOT","PEOPLE","DOGS","ANIME","AIXBT","PUMP","ACT",
+  "1MBABYDOGE","1000CHEEMS",
+  // ── Poznati meme coini — DEX/ostale burze, nema Binance USDT para ─
+  "BRETT","MOG","POPCAT","MEW","GOAT","GIGA","MOODENG",
+  "MELANIA","FARTCOIN","ELON","BABYDOGE","CHEEMS","SAMO",
+  "MYRO","SLERF","PONKE","GROK","COQ","SPX",
+  "WOJAK","SNEK","DEGEN","ZEREBRO","GRIFFAIN","NPC",
+  "MOCA","BROCCOLI","DOG","TOSHI","UFART",
+  // ── AI-meme borderline ───────────────────────────────────────────
+  "AI16Z",
+  // ── CoinGecko top 100 meme — ostali ─────────────────────────────
+  "CHILLGUY","MOTHER","FWOG","PUFFER","GIGGLE",
+  "NEET","PIPPIN","MANEKI","MICHI","CATBAL"
+  // VIRTUAL uklonjen — Virtuals Protocol je legitimna AI agent platforma s prihodima
+];
 const CFG={
   BTC:{i:"₿",c:"#f7931a",cn:"Bitcoin"},ETH:{i:"Ξ",c:"#c77dff",cn:"Ethereum"},
   XRP:{i:"✕",c:"#00e676",cn:"XRP"},BNB:{i:"B",c:"#f0b90b",cn:"BNB"},
@@ -335,7 +361,15 @@ const CFG={
   NEIRO:{i:"🐕",c:"#ffa726",cn:"Neiro"},MEME:{i:"💎",c:"#7c4dff",cn:"Memecoin"},
   GOAT:{i:"🐐",c:"#66bb6a",cn:"Goat"},PNUT:{i:"🥜",c:"#a1887f",cn:"Peanut"},
   PENGU:{i:"🐧",c:"#4fc3f7",cn:"Pudgy Penguins"},VIRTUAL:{i:"🤖",c:"#b2ff59",cn:"Virtuals"},
-  AI16Z:{i:"🤖",c:"#69f0ae",cn:"ai16z"},GROK:{i:"✦",c:"#e040fb",cn:"Grok"}
+  AI16Z:{i:"🤖",c:"#69f0ae",cn:"ai16z"},GROK:{i:"✦",c:"#e040fb",cn:"Grok"},
+  VIRTUAL:{i:"🤖",c:"#b2ff59",cn:"Virtuals Protocol"},
+  // Novi Binance meme coini
+  NOT:{i:"🔔",c:"#4dd0e1",cn:"Notcoin"},PEOPLE:{i:"📜",c:"#ef9a9a",cn:"ConstitutionDAO"},
+  DOGS:{i:"🐶",c:"#bcaaa4",cn:"Dogs"},ANIME:{i:"⛩️",c:"#f48fb1",cn:"Anime"},
+  AIXBT:{i:"🤖",c:"#80cbc4",cn:"AIXBT"},PUMP:{i:"🚀",c:"#ce93d8",cn:"Pump"},
+  ACT:{i:"🎭",c:"#ffe082",cn:"Act I"},
+  "1MBABYDOGE":{i:"🐶",c:"#ffcc02",cn:"Baby Doge (1M)"},
+  "1000CHEEMS":{i:"🐕",c:"#a5d6a7",cn:"Cheems (1000)"}
 };
 // Dinamička lista aktivnih meme coina (baza + iz TOP100)
 function getMemeSYMS(){

@@ -1,6 +1,57 @@
 {
   "predictions": [
     {
+      "id": "1777446748645_DEXE",
+      "timestamp": 1777446748645,
+      "sym": "DEXE",
+      "type": "regular",
+      "date": "29. tra",
+      "entry": 12.483,
+      "target": 13.1072,
+      "d1Target": 12.6958,
+      "d2Target": 12.87,
+      "d4Target": 13.1072,
+      "d5Target": 13.1072,
+      "d3Target": 13.1072,
+      "stop": 12.1928,
+      "conf": 41,
+      "score": 5.434,
+      "targetPct": 5,
+      "status": "AKTIVAN",
+      "closePrice": null,
+      "closePct": null,
+      "autoClose": false,
+      "direction": "LONG",
+      "autoTrack": true,
+      "autoSource": "watch",
+      "snap": {
+        "rsiOversold": true,
+        "rsiOverbought": false,
+        "trendUp": false,
+        "trendDown": true,
+        "bbBelow": false,
+        "divBullish": false,
+        "divBearish": false,
+        "macdBullCross": false,
+        "macdBearCross": false,
+        "lsRatioBull": false,
+        "lsRatioExtreme": false,
+        "basisBack": false,
+        "takerSell": false,
+        "btcDomHigh": true,
+        "btcDomLow": false,
+        "volSpike": true,
+        "mtfAllUp": false,
+        "fgExtremeFear": false,
+        "fgFear": true
+      },
+      "d1Hit": false,
+      "d2Hit": false,
+      "d3Hit": false,
+      "d4Hit": false,
+      "d5Hit": false
+    },
+    {
       "id": "1776426593133_YLDS",
       "timestamp": 1776426593133,
       "sym": "YLDS",
@@ -4747,5 +4798,5 @@
     "fgExtremeFear": 1,
     "fgFear": 1
   },
-  "updatedAt": "2026-04-29T07:12:06.736Z"
+  "updatedAt": "2026-04-29T07:12:28.646Z"
 }

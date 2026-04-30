@@ -17,10 +17,10 @@
       "conf": 41,
       "score": 5.434,
       "targetPct": 5,
-      "status": "AKTIVAN",
-      "closePrice": null,
-      "closePct": null,
-      "autoClose": false,
+      "status": "PROMAŠAJ",
+      "closePrice": 11.09,
+      "closePct": -11.16,
+      "autoClose": true,
       "direction": "LONG",
       "autoTrack": true,
       "autoSource": "watch",
@@ -51,7 +51,8 @@
       "d4Hit": false,
       "d5Hit": false,
       "peakPrice": 12.47,
-      "peakPct": -0.1
+      "peakPct": -0.1,
+      "closeReason": "🛑 Stop-loss hit"
     },
     {
       "id": "1776426593133_YLDS",
@@ -4782,11 +4783,11 @@
   "signalWeights": {
     "rsiOversold": 1,
     "rsiOverbought": 1,
-    "trendUp": 1.088,
+    "trendUp": 1.098,
     "trendDown": 1,
     "bbBelow": 1,
     "divBullish": 1,
-    "divBearish": 0.547,
+    "divBearish": 0.549,
     "macdBullCross": 1,
     "macdBearCross": 1,
     "lsRatioBull": 1,
@@ -4795,10 +4796,10 @@
     "takerSell": 1,
     "btcDomHigh": 1,
     "btcDomLow": 1,
-    "volSpike": 1.217,
-    "mtfAllUp": 0.772,
+    "volSpike": 1.196,
+    "mtfAllUp": 0.775,
     "fgExtremeFear": 1,
     "fgFear": 1
   },
-  "updatedAt": "2026-04-29T07:15:21.002Z"
+  "updatedAt": "2026-04-30T12:11:37.714Z"
 }

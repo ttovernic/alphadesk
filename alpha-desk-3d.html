@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.40</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.41</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -1469,6 +1469,67 @@ function applyEntryQualityMult(conf,t,price,vp,signals){
   return{conf:newConf,q:q};
 }
 
+// Macro penalty — war, oil, DXY uvjeti
+function scoreMacroPenalty(signals,warnings){
+  var delta=0;
+  if(MACRO.warActive){delta-=1.5;warnings.push({txt:"Iran rat — smanjuje pouzdanost. Manji kapital.",type:"warn"});}
+  if(MACRO.oil>110){delta-=1.5;warnings.push({txt:"Nafta $"+MACRO.oil+" — inflacijski pritisak",type:"warn"});}
+  else if(MACRO.oil<90){delta+=1;signals.push({txt:"Nafta jeftina — inflacija smirena",type:"bull"});}
+  if(MACRO.dxy&&MACRO.dxy>106){delta-=1;warnings.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — jak dolar, dodatni macro pritisak",type:"warn"});}
+  else if(MACRO.dxy&&MACRO.dxy<100){delta+=0.5;signals.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — slab dolar, macro tailwind",type:"bull"});}
+  return delta;
+}
+
+// Market regime adjustments (BEAR/BULL/RISK_OFF/ALT_ACCUM)
+function scoreRegimeAdjust(regime,sym,signals,warnings){
+  var delta=0;
+  if(regime==="BEAR_MARKET"){
+    delta-=2.5;
+    var sma200str=MACRO.btcSma200?"($"+MACRO.btcSma200.toLocaleString()+" SMA200)":"";
+    warnings.push({txt:"Bear market: BTC ispod 200 SMA "+sma200str+" — signali manje pouzdani, smanji pozicije",type:"bear"});
+  }
+  if(regime==="BULL_MARKET"&&sym!=="BTC"){delta+=1;signals.push({txt:"Bull market: BTC čvrsto iznad 200 SMA — altovi imaju repni vjetar",type:"bull"});}
+  if(regime==="MACRO_RISK_OFF"){delta-=0.5;warnings.push({txt:"Macro Risk-Off — konzervativni pristup",type:"warn"});}
+  if(regime==="ALT_ACCUMULATION"&&sym!=="BTC"){delta+=0.5;signals.push({txt:"Alt Accumulation regime — povoljno",type:"bull"});}
+  return delta;
+}
+
+// Trifecta multi-signal bonus — kad se 3+ jaka signala poklope
+function scoreTrifecta(t,m,vs,fd,price,sym,signals){
+  var count=0;
+  if(t&&t.rsi<35)count++;
+  if(t&&t.divergence==="BULLISH")count++;
+  if(m&&m.cross==="BULLISH")count++;
+  if(vs&&vs.ratio>2)count++;
+  if(t&&t.bb&&price<t.bb.l)count++;
+  if(fd&&fd.lsRatio!=null&&fd.lsRatio<0.7)count++;
+  if(fd&&fd.takerRatio!=null&&fd.takerRatio<0.75)count++;
+  if(cvdData[sym]&&(cvdData[sym].divergence==="BULLISH"||cvdData[sym].divergence==="STRONG_BULLISH"))count++;
+  if(count>=5){signals.push({txt:"🎯 TRIFECTA "+count+"/8: izniman multi-signal poklopaj — visoka pouzdanost",type:"bull"});return 3.5;}
+  if(count>=3){signals.push({txt:"🎯 Multi-signal "+count+"/8: jak setup, višestruka potvrda",type:"bull"});return 1.5;}
+  return 0;
+}
+
+// Compute price targets (D1, D2, D3) i stop — ATR-aware milestones
+// Vraca: {d1Price, d2Price, d3Price, stopPrice, stopPct, rr}
+function computeTargets(price,atrPct,targetPct,maxRisk){
+  var tgt=targetPct/100;
+  var risk=maxRisk/100;
+  var dailyAtr=atrPct/100;
+  var d1Step=dailyAtr>0?Math.min(tgt*0.35,dailyAtr*1.1):tgt*0.35;
+  var d2Step=dailyAtr>0?Math.min(tgt*0.70,dailyAtr*2.0):tgt*0.70;
+  var atrStopMin=dailyAtr*1.5; // minimalni stop = 1.5× dnevni ATR
+  var stopPct=Math.max(risk,atrStopMin);
+  return{
+    d1Price:+(price*(1+d1Step)).toFixed(4),
+    d2Price:+(price*(1+d2Step)).toFixed(4),
+    d3Price:+(price*(1+tgt)).toFixed(4),
+    stopPrice:+(price*(1-stopPct)).toFixed(4),
+    stopPct:stopPct,
+    rr:(price*tgt)/(price*stopPct)
+  };
+}
+
 // Score → Confidence calculation s war cap, calibration, token accuracy
 function computeConfidence(score,sym,targetPct){
   var maxScore=28;
@@ -1553,24 +1614,9 @@ function analyze3D(sym){
     if(d.c24<-8){score-=1;warnings.push({txt:d.c24.toFixed(1)+"% — jak pad, pazi na nastavak",type:"warn"});}
   }
 
-  // Macro war + oil + DXY penalty
-  if(MACRO.warActive){score-=1.5;warnings.push({txt:"Iran rat — smanjuje pouzdanost. Manji kapital.",type:"warn"});}
-  if(MACRO.oil>110){score-=1.5;warnings.push({txt:"Nafta $"+MACRO.oil+" — inflacijski pritisak",type:"warn"});}
-  else if(MACRO.oil<90){score+=1;signals.push({txt:"Nafta jeftina — inflacija smirena",type:"bull"});}
-  if(MACRO.dxy&&MACRO.dxy>106){score-=1;warnings.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — jak dolar, dodatni macro pritisak",type:"warn"});}
-  else if(MACRO.dxy&&MACRO.dxy<100){score+=0.5;signals.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — slab dolar, macro tailwind",type:"bull"});}
-
-  // Market regime bonus/penalty
-  // NAPOMENA: BTC_DOMINANCE_FEAR se NE penalizira ovdje — već je u scoreMarketSignals (btcDom check)
-  // MACRO_RISK_OFF: samo informativni mali penalty — war i oil su već penalizirani posebno
-  if(regime==="BEAR_MARKET"){
-    score-=2.5;
-    var sma200str=MACRO.btcSma200?"($"+MACRO.btcSma200.toLocaleString()+" SMA200)":"";
-    warnings.push({txt:"Bear market: BTC ispod 200 SMA "+sma200str+" — signali manje pouzdani, smanji pozicije",type:"bear"});
-  }
-  if(regime==="BULL_MARKET"&&sym!=="BTC"){score+=1;signals.push({txt:"Bull market: BTC čvrsto iznad 200 SMA — altovi imaju repni vjetar",type:"bull"});}
-  if(regime==="MACRO_RISK_OFF"){score-=0.5;warnings.push({txt:"Macro Risk-Off — konzervativni pristup",type:"warn"});}
-  if(regime==="ALT_ACCUMULATION"&&sym!=="BTC"){score+=0.5;signals.push({txt:"Alt Accumulation regime — povoljno",type:"bull"});}
+  // MACRO + REGIME (extracted helperi)
+  score+=scoreMacroPenalty(signals,warnings);
+  score+=scoreRegimeAdjust(regime,sym,signals,warnings);
 
   // Token-specific catalysts/warnings (extracted to scoreCatalysts helper)
   score+=scoreCatalysts(sym,signals,warnings);
@@ -1596,20 +1642,9 @@ function analyze3D(sym){
   // Tržišni signali: BTC dom, BTC trend, volume, order book, 7d trend, DXY
   score+=scoreMarketSignals(sym,signals,warnings);
 
-  // ── TRIFECTA SETUP — bonus kad se više jakih signala poklopi istovremeno ──
-  // Sinergija signala je jača od linearne sume — svaki dodatni potvrđuje setup
+  // TRIFECTA (extracted helper)
   var vs3d=volSpike[sym],fd3d=futuresData[sym];
-  var trifecta=0;
-  if(t&&t.rsi<35)trifecta++;
-  if(t&&t.divergence==="BULLISH")trifecta++;
-  if(m&&m.cross==="BULLISH")trifecta++;
-  if(vs3d&&vs3d.ratio>2)trifecta++;
-  if(t&&t.bb&&price<t.bb.l)trifecta++;
-  if(fd3d&&fd3d.lsRatio!=null&&fd3d.lsRatio<0.7)trifecta++;
-  if(fd3d&&fd3d.takerRatio!=null&&fd3d.takerRatio<0.75)trifecta++;
-  if(cvdData[sym]&&(cvdData[sym].divergence==="BULLISH"||cvdData[sym].divergence==="STRONG_BULLISH"))trifecta++;
-  if(trifecta>=5){score+=3.5;signals.push({txt:"🎯 TRIFECTA "+trifecta+"/8: izniman multi-signal poklopaj — visoka pouzdanost",type:"bull"});}
-  else if(trifecta>=3){score+=1.5;signals.push({txt:"🎯 Multi-signal "+trifecta+"/8: jak setup, višestruka potvrda",type:"bull"});}
+  score+=scoreTrifecta(t,m,vs3d,fd3d,price,sym,signals);
 
   // VOLUME BOOST + GROUP CATCH-UP + SCORE VELOCITY (extracted helperi)
   score+=scoreVolumeBoost(vs3d,signals,warnings);
@@ -1625,24 +1660,11 @@ function analyze3D(sym){
   var eqRes=applyEntryQualityMult(conf,t,price,vp3d,signals);
   conf=eqRes.conf;
 
-  // Expected 3-day price targets — ATR-aware milestones
-  // d1/d2 targets capped na 1.1x / 2.0x dnevnog ATR-a da budu realistični
-  // Npr. ATR=0.5%/dan → d1Target samo +0.55%, ne +1.75% koliko bi bio 35% of 5%
-  var tgt=settings.targetPct/100;
-  var risk=settings.maxRisk/100;
-  var dailyAtr3=atrPct/100; // ATR kao decimal (dnevni)
-  var d1Step=dailyAtr3>0?Math.min(tgt*0.35,dailyAtr3*1.1):tgt*0.35;
-  var d2Step=dailyAtr3>0?Math.min(tgt*0.70,dailyAtr3*2.0):tgt*0.70;
-  var d1Price=+(price*(1+d1Step)).toFixed(4);
-  var d2Price=+(price*(1+d2Step)).toFixed(4);
-  var d3Price=+(price*(1+tgt)).toFixed(4);       // day 3: full target
-  // ATR-aware stop — stop ne može biti manji od 1.5×ATR ispod ulaza
-  // Token s ATR-om 3% i fiksnim stopom od 2% = gotovo sigurni stop-out
-  var atrStopMin3=dailyAtr3*1.5; // minimalni stop = 1.5× dnevni ATR
-  var stopPct3=Math.max(risk,atrStopMin3);
-  var stopPrice=+(price*(1-stopPct3)).toFixed(4);
-
-  var rr=(price*tgt)/(price*stopPct3);
+  // TARGETS + STOP (extracted computeTargets helper)
+  var _tg=computeTargets(price,atrPct,settings.targetPct,settings.maxRisk);
+  var d1Price=_tg.d1Price,d2Price=_tg.d2Price,d3Price=_tg.d3Price;
+  var stopPrice=_tg.stopPrice,stopPct3=_tg.stopPct;
+  var rr=_tg.rr;
 
   // Probability estimate per day — ATR-weighted (visok ATR = brže do cilja)
   var baseProb=conf/100;

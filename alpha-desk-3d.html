@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.39</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.40</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -1420,6 +1420,55 @@ function scoreVolProfile(price,vp,signals,warnings){
   signals.push({txt:"Unutar VA, POC: "+fp(vp.poc),type:"bull"});return 0.5;
 }
 
+// Volume boost — direktni bonus za vol spike (povrh scoreMarketSignals)
+function scoreVolumeBoost(vs,signals,warnings){
+  if(!vs)return 0;
+  if(vs.ratio>4){signals.push({txt:"🔥 Volume "+vs.ratio.toFixed(1)+"× avg — jak momentum, setup ojačan",type:"bull"});return 2.5;}
+  if(vs.ratio>2.5){signals.push({txt:"📊 Volume "+vs.ratio.toFixed(1)+"× avg — momentum potvrđen",type:"bull"});return 1.5;}
+  if(vs.weak){warnings.push({txt:"📉 Volume slab — nema momentum potvrde, preskoči ili čekaj",type:"warn"});return -1.5;}
+  return 0;
+}
+
+// Group catch-up — token koji zaostaje za peer median je rotacijski kandidat
+function scoreGroupCatchUp(sym,d,t,signals,warnings){
+  var peers=TOP100.filter(function(s){return s!==sym&&px[s]&&px[s].c24!=null&&KNOWN_MEME.indexOf(s)<0;});
+  if(peers.length<8||d.c24==null)return 0;
+  var changes=peers.map(function(s){return px[s].c24;}).sort(function(a,b){return a-b;});
+  var median=changes[Math.floor(changes.length/2)];
+  var lag=d.c24-median;
+  if(lag<-5&&t&&t.rsi<45){signals.push({txt:"🔄 Catch-up: "+sym+" "+lag.toFixed(1)+"% vs peer medijan ("+median.toFixed(1)+"%) — rotacija moguća",type:"bull"});return 2;}
+  if(lag<-3&&t&&t.rsi<52){signals.push({txt:"🔄 Blagi catch-up potencijal ("+lag.toFixed(1)+"% vs peer medijan)",type:"bull"});return 1;}
+  if(lag>8&&t&&t.rsi>62){warnings.push({txt:"⚡ Prednjači +"+lag.toFixed(1)+"% vs peer medijan — moguća realizacija dobitka",type:"warn"});return -0.5;}
+  return 0;
+}
+
+// Score velocity — poboljšava li se setup ili slabi (vs. zadnji izračun)
+function scoreVelocity(sym,curScore,signals,warnings){
+  var prev=scoreHistory[sym]?scoreHistory[sym].score:curScore;
+  var vel=curScore-prev;
+  scoreHistory[sym]={score:curScore,ts:Date.now()};
+  if(vel>=3){signals.push({txt:"📈 Setup velocity +"+vel.toFixed(1)+" — signali se brzo poboljšavaju",type:"bull"});return 1;}
+  if(vel<=-3){warnings.push({txt:"📉 Setup slabi (velocity "+vel.toFixed(1)+") — signali se pogoršavaju, pazi na ulaz",type:"warn"});return -1;}
+  return 0;
+}
+
+// Entry quality multiplier — boost conf ako je ulaz na dobroj tehničkoj zoni
+// Vraća objekt: {newConf, q} — q je entry quality 0..3
+function applyEntryQualityMult(conf,t,price,vp,signals){
+  var q=0;
+  if(t&&t.bb&&price<t.bb.l)q+=1;
+  if(t&&t.ema50&&price<t.ema50)q+=0.5;
+  if(t&&t.rsi<35)q+=0.5;
+  if(vp&&price<vp.valueAreaLow)q+=1;
+  var mult=q>=2.5?1.10:q>=1.5?1.06:q>=0.5?1.03:1.0;
+  var newConf=Math.min(88,Math.round(conf*mult));
+  if(mult>1.05){
+    var labels=["","ispod BB","ispod BB+EMA50","ispod BB+EMA50+VAL","ispod BB+VAL+oversold+VAL"];
+    signals.push({txt:"🎯 Ulaz kvaliteta A: "+(labels[Math.round(q)]||"višestruka podrška potvrda"),type:"bull"});
+  }
+  return{conf:newConf,q:q};
+}
+
 // Score → Confidence calculation s war cap, calibration, token accuracy
 function computeConfidence(score,sym,targetPct){
   var maxScore=28;
@@ -1562,53 +1611,19 @@ function analyze3D(sym){
   if(trifecta>=5){score+=3.5;signals.push({txt:"🎯 TRIFECTA "+trifecta+"/8: izniman multi-signal poklopaj — visoka pouzdanost",type:"bull"});}
   else if(trifecta>=3){score+=1.5;signals.push({txt:"🎯 Multi-signal "+trifecta+"/8: jak setup, višestruka potvrda",type:"bull"});}
 
-  // ── VOLUME PRIORITY — isti princip kao meme engine ───────────────
-  // scoreMarketSignals daje +1-2 za volume, ali to nije dovoljno
-  // Visok volume je PRIMARNI momentum signal — dodajemo direktni bonus
-  if(vs3d){
-    if(vs3d.ratio>4){score+=2.5;signals.push({txt:"🔥 Volume "+vs3d.ratio.toFixed(1)+"× avg — jak momentum, setup ojačan",type:"bull"});}
-    else if(vs3d.ratio>2.5){score+=1.5;signals.push({txt:"📊 Volume "+vs3d.ratio.toFixed(1)+"× avg — momentum potvrđen",type:"bull"});}
-    else if(vs3d.weak){score-=1.5;warnings.push({txt:"📉 Volume slab — nema momentum potvrde, preskoči ili čekaj",type:"warn"});}
-  }
-
-  // ── GROUP CATCH-UP — zaostaje li token za peer grupom? ───────────
-  // Meme engine ima memeRelStrength catch-up; ovdje isto za regularni
-  // Token koji zaostaje 5%+ za peer medianom = rotacijski kandidat
-  var _gPeers=TOP100.filter(function(s){return s!==sym&&px[s]&&px[s].c24!=null&&KNOWN_MEME.indexOf(s)<0;});
-  if(_gPeers.length>=8&&d.c24!=null){
-    var _gChanges=_gPeers.map(function(s){return px[s].c24;}).sort(function(a,b){return a-b;});
-    var _gMedian=_gChanges[Math.floor(_gChanges.length/2)];
-    var _gLag=d.c24-_gMedian;
-    if(_gLag<-5&&t&&t.rsi<45){score+=2;signals.push({txt:"🔄 Catch-up: "+sym+" "+_gLag.toFixed(1)+"% vs peer medijan ("+_gMedian.toFixed(1)+"%) — rotacija moguća",type:"bull"});}
-    else if(_gLag<-3&&t&&t.rsi<52){score+=1;signals.push({txt:"🔄 Blagi catch-up potencijal ("+_gLag.toFixed(1)+"% vs peer medijan)",type:"bull"});}
-    else if(_gLag>8&&t&&t.rsi>62){score-=0.5;warnings.push({txt:"⚡ Prednjači +"+_gLag.toFixed(1)+"% vs peer medijan — moguća realizacija dobitka",type:"warn"});}
-  }
-
-  // ── SCORE VELOCITY — poboljšava li se setup ili slabi? ──────────
-  var prevSc3d=scoreHistory[sym]?scoreHistory[sym].score:score;
-  var scoreVel3d=score-prevSc3d; // pozitivno = setup se poboljšava
-  scoreHistory[sym]={score:score,ts:Date.now()};
-  if(scoreVel3d>=3){score+=1;signals.push({txt:"📈 Setup velocity +"+scoreVel3d.toFixed(1)+" — signali se brzo poboljšavaju",type:"bull"});}
-  else if(scoreVel3d<=-3){score-=1;warnings.push({txt:"📉 Setup slabi (velocity "+scoreVel3d.toFixed(1)+") — signali se pogoršavaju, pazi na ulaz",type:"warn"});}
+  // VOLUME BOOST + GROUP CATCH-UP + SCORE VELOCITY (extracted helperi)
+  score+=scoreVolumeBoost(vs3d,signals,warnings);
+  score+=scoreGroupCatchUp(sym,d,t,signals,warnings);
+  score+=scoreVelocity(sym,score,signals,warnings);
 
   // VIKEND + TIME-OF-DAY (extracted helper)
   score+=scoreTimeOfDay(signals,warnings);
 
-  // CONFIDENCE (extracted helper) — vraca conf [22..88] s kalibracijom
+  // CONFIDENCE + ENTRY QUALITY (extracted helperi)
   var conf=computeConfidence(score,sym,5);
-
-  // ── ENTRY QUALITY MULTIPLIER — je li ulaz na dobrom tehničkom nivou? ──
-  // Ulaz ispod BB donje linije + ispod VAL + oversold RSI = super ulaz → +10% conf
-  // Ulaz u sredini raspona bez podrške = neutralno
   var vp3d=volProfile[sym];
-  var entryQ3d=0;
-  if(t&&t.bb&&price<t.bb.l)entryQ3d+=1;      // ispod donje Bollinger → klasična oversold zona
-  if(t&&t.ema50&&price<t.ema50)entryQ3d+=0.5; // ispod EMA50 → mean reversion potencijal
-  if(t&&t.rsi<35)entryQ3d+=0.5;               // oversold RSI potvrda
-  if(vp3d&&price<vp3d.valueAreaLow)entryQ3d+=1; // ispod VAL → strong bounce zona
-  var entryMult3d=entryQ3d>=2.5?1.10:entryQ3d>=1.5?1.06:entryQ3d>=0.5?1.03:1.0;
-  conf=Math.min(88,Math.round(conf*entryMult3d));
-  if(entryMult3d>1.05)signals.push({txt:"🎯 Ulaz kvaliteta A: "+["","ispod BB","ispod BB+EMA50","ispod BB+EMA50+VAL","ispod BB+VAL+oversold+VAL"][Math.round(entryQ3d)]||"višestruka podrška potvrda",type:"bull"});
+  var eqRes=applyEntryQualityMult(conf,t,price,vp3d,signals);
+  conf=eqRes.conf;
 
   // Expected 3-day price targets — ATR-aware milestones
   // d1/d2 targets capped na 1.1x / 2.0x dnevnog ATR-a da budu realistični

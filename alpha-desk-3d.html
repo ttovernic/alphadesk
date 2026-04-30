@@ -125,6 +125,15 @@ html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF P
 .mini-bar{height:3px;background:var(--s4);border-radius:2px;overflow:hidden}
 .mini-bar-fill{height:100%;border-radius:2px}
 
+/* Collapsible header buttons (Preporuke / Analitika u rTracker-u) */
+.collapse-btn{width:100%;padding:11px 14px;background:var(--s1);border:.5px solid var(--sep);border-radius:var(--r-md);display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:inherit;transition:background .15s}
+.collapse-btn:hover{background:var(--s2)}
+.collapse-btn.open{margin-bottom:8px;border-color:var(--sep)}
+
+/* Soft danger button (Obrisi sve) */
+.btn-danger-soft{background:none;border:.5px solid rgba(255,23,68,.22);color:rgba(255,23,68,.5);font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer;font-family:inherit;transition:color .15s,border-color .15s}
+.btn-danger-soft:hover{color:var(--bear);border-color:rgba(255,23,68,.4)}
+
 /* ACTION BUTTONS — semantic, no inline */
 .act-row{padding:12px 16px;display:flex;gap:8px}
 .act-btn{flex:1;padding:10px 12px;border-radius:var(--r-md);font-size:var(--text-sm);font-weight:var(--fw-x);cursor:pointer;font-family:inherit;border:.5px solid;transition:transform .1s,background .15s;letter-spacing:-.2px}
@@ -273,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.37</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.38</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -3654,15 +3663,15 @@ function rTracker(){
 
     // Brisanje
     h+='<div style="text-align:right;margin:4px 0 6px">';
-    h+='<button onclick="clearTracker()" style="background:none;border:.5px solid rgba(255,23,68,.22);color:rgba(255,23,68,.5);font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer;font-family:inherit">🗑 Obriši sve</button>';
+    h+='<button onclick="clearTracker()" class="btn-danger-soft">🗑 Obriši sve</button>';
     h+='</div>';
 
     // ── 5. PREPORUKA — sklopiva ────────────────────────────────────
     var recOpen=lsGet("ad3d_rec_open")==="1";
     h+='<div style="margin-top:6px">';
-    h+='<button onclick="lsSet(\'ad3d_rec_open\',\''+(recOpen?"0":"1")+'\');render()" style="width:100%;padding:10px 14px;background:var(--s1);border:.5px solid var(--sep);border-radius:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:inherit;margin-bottom:'+(recOpen?"8":"0")+'px">';
-    h+='<span style="font-size:12px;font-weight:700;color:var(--t2)">💡 Preporuka ulaganja</span>';
-    h+='<span style="font-size:11px;color:var(--t4)">'+(recOpen?"▲ Sakrij":"▾ Prikaži")+'</span>';
+    h+='<button onclick="lsSet(\'ad3d_rec_open\',\''+(recOpen?"0":"1")+'\');render()" class="collapse-btn'+(recOpen?' open':'')+'">';
+    h+='<span class="txt-t2" style="font-size:12px;font-weight:var(--fw-x)">💡 Preporuka ulaganja</span>';
+    h+='<span class="txt-t4" style="font-size:11px">'+(recOpen?"▲ Sakrij":"▾ Prikaži")+'</span>';
     h+='</button>';
     if(recOpen){h+=renderDailyRec();}
     h+='</div>';
@@ -3670,9 +3679,9 @@ function rTracker(){
     // ── 6. ANALITIKA — sklopiva (detaljna analiza, kelly, backtest) ─
     var anaOpen=lsGet("ad3d_ana_open")==="1";
     h+='<div style="margin-top:6px">';
-    h+='<button onclick="lsSet(\'ad3d_ana_open\',\''+(anaOpen?"0":"1")+'\');render()" style="width:100%;padding:10px 14px;background:var(--s1);border:.5px solid var(--sep);border-radius:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-family:inherit;margin-bottom:'+(anaOpen?"8":"0")+'px">';
-    h+='<span style="font-size:12px;font-weight:700;color:var(--t2)">📊 Analitika & Detalji</span>';
-    h+='<span style="font-size:11px;color:var(--t4)">'+(anaOpen?"▲ Sakrij":"▾ Prikaži")+'</span>';
+    h+='<button onclick="lsSet(\'ad3d_ana_open\',\''+(anaOpen?"0":"1")+'\');render()" class="collapse-btn'+(anaOpen?' open':'')+'">';
+    h+='<span class="txt-t2" style="font-size:12px;font-weight:var(--fw-x)">📊 Analitika & Detalji</span>';
+    h+='<span class="txt-t4" style="font-size:11px">'+(anaOpen?"▲ Sakrij":"▾ Prikaži")+'</span>';
     h+='</button>';
     if(anaOpen){
       var srcUlaz=predTracker.filter(function(p){return p.autoTrack&&p.autoSource==="ulaz";});
@@ -3681,13 +3690,17 @@ function rTracker(){
       function srcStats(arr){var cl=arr.filter(function(p){return p.status!=="AKTIVAN";});var hts=cl.filter(function(p){return p.status==="POGODAK";}).length;return{total:arr.length,closed:cl.length,hits:hts,acc:cl.length?Math.round(hts/cl.length*100):null};}
       var su=srcStats(srcUlaz),sw=srcStats(srcWatch),sm=srcStats(srcManual);
       if(srcUlaz.length||srcWatch.length){
-        h+='<div style="background:var(--s1);border-radius:14px;padding:14px 16px;margin-bottom:10px;border:.5px solid var(--sep)">';
-        h+='<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Točnost po izvoru signala</div>';
-        h+='<div style="display:grid;grid-template-columns:repeat('+(sm.total?3:2)+',1fr);gap:8px">';
-        function srcCell(lbl2,col2,ico,st){var accStr=st.acc!==null?st.acc+'%':'—';var accC2=st.acc===null?'var(--t3)':st.acc>=60?'var(--gr)':st.acc>=40?'var(--ye)':'var(--re)';return'<div style="background:var(--s2);border-radius:10px;padding:10px;text-align:center;border:.5px solid '+col2+'22"><div style="font-size:10px;font-weight:700;color:'+col2+';margin-bottom:4px">'+ico+' '+lbl2+'</div><div style="font-size:20px;font-weight:900;color:'+accC2+'">'+accStr+'</div><div style="font-size:10px;color:var(--t4);margin-top:2px">'+st.hits+'/'+st.closed+'</div></div>';}
-        h+=srcCell("Ulaz","#2979ff","⚡",su);
-        h+=srcCell("Watch","#ffea00","👁",sw);
-        if(sm.total)h+=srcCell("Ručno","#aaa","✍",sm);
+        h+='<div class="panel">';
+        h+='<div class="sec-lbl">Točnost po izvoru signala</div>';
+        h+='<div class="grid-'+(sm.total?'3':'2')+'">';
+        function srcCell(lbl2,colorClass,ico,st){
+          var accStr=st.acc!==null?st.acc+'%':'—';
+          var accC2=st.acc===null?'var(--t3)':st.acc>=60?'var(--bull)':st.acc>=40?'var(--warn)':'var(--bear)';
+          return'<div class="stat-box"><div style="font-size:10px;font-weight:var(--fw-x);margin-bottom:4px;'+(colorClass?'color:var(--'+colorClass+')':'')+'">'+ico+' '+lbl2+'</div><div class="stat-num" style="color:'+accC2+'">'+accStr+'</div><div class="stat-lbl">'+st.hits+'/'+st.closed+'</div></div>';
+        }
+        h+=srcCell("Ulaz","info","⚡",su);
+        h+=srcCell("Watch","warn","👁",sw);
+        if(sm.total)h+=srcCell("Ručno",null,"✍",sm);
         h+='</div></div>';
       }
       h+=renderKellyPanel();

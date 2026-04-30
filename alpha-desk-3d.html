@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.38</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.39</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -1357,6 +1357,85 @@ function fetchOrderbookImbalance(sym){
     }).catch(function(){return null;});
 }
 
+// ── ANALYZE3D HELPERS — ekstrahirani dijelovi monolita ────────────
+// Pristup: svaki helper vraca delta (broj) i mutira signals/warnings
+// Bez globalnog state-a — sve sto treba prolazi kao argument
+
+// Time-of-day + vikend penalty (Asian thin liquidity, US active)
+function scoreTimeOfDay(signals,warnings){
+  var delta=0;
+  var d=new Date();
+  if(d.getDay()===0||d.getDay()===6){delta-=0.5;warnings.push({txt:"📅 Vikend: niži volumen, lažni breakouti češći",type:"warn"});}
+  var utcH=d.getUTCHours();
+  if(utcH>=0&&utcH<6){
+    delta-=0.7;
+    warnings.push({txt:"🌏 Asian sesija ("+utcH+"h UTC): thin liquidity, fakeouti češći",type:"warn"});
+  } else if(utcH>=14&&utcH<21){
+    delta+=0.4; // US active session — najjaki volume
+  }
+  return delta;
+}
+
+// Token catalysts (bull) i warnings (bear) iz MACRO konteksta
+function scoreCatalysts(sym,signals,warnings){
+  var delta=0;
+  var cats=MACRO.catalysts[sym]||[];
+  delta+=cats.length*0.4;
+  cats.slice(0,2).forEach(function(c){signals.push({txt:c,type:"bull"});});
+  var warns=MACRO.warnings[sym]||[];
+  delta-=warns.length*0.3;
+  warns.slice(0,2).forEach(function(w){warnings.push({txt:w,type:"warn"});});
+  return delta;
+}
+
+// Options market signal — Put/Call ratio + 25Δ Skew + Max Pain
+function scoreOptions(opt,price,signals,warnings){
+  var delta=0;
+  if(!opt)return delta;
+  if(opt.putCallRatio){
+    if(opt.putCallRatio>1.3){delta+=2;signals.push({txt:"Put/Call "+opt.putCallRatio+" — previše shorta = kontrarian BUY",type:"bull"});}
+    else if(opt.putCallRatio>1.0){delta+=1;signals.push({txt:"Put/Call "+opt.putCallRatio+" — blago bullish",type:"bull"});}
+    else if(opt.putCallRatio<0.65){delta-=1.5;warnings.push({txt:"Put/Call "+opt.putCallRatio+" — previše longa = oprez",type:"bear"});}
+  }
+  if(opt.skew25d!=null){
+    if(opt.skew25d<-15){delta+=3;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — Extreme put premium = jak kontrarian BUY",type:"bull"});}
+    else if(opt.skew25d<-7){delta+=2;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — put skew = tržište štiti pad",type:"bull"});}
+    else if(opt.skew25d<-3){delta+=1;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — blago negativan = oprezno",type:"bull"});}
+    else if(opt.skew25d>10){delta-=2.5;warnings.push({txt:"25Δ Skew +"+opt.skew25d.toFixed(1)+"% — jak call premium = vrh blizu",type:"bear"});}
+    else if(opt.skew25d>5){delta-=1.5;warnings.push({txt:"25Δ Skew +"+opt.skew25d.toFixed(1)+"% — call skew = euforia u opcijama",type:"bear"});}
+  }
+  if(opt.maxPain&&price){
+    var mpDist=((opt.maxPain-price)/price*100);
+    if(mpDist>5&&mpDist<25){delta+=1;signals.push({txt:"Max Pain "+fp(opt.maxPain)+" (+"+mpDist.toFixed(0)+"%) — gravitacija gore",type:"bull"});}
+    else if(mpDist<-5&&mpDist>-25){delta-=1;warnings.push({txt:"Max Pain "+fp(opt.maxPain)+" ("+mpDist.toFixed(0)+"%) — gravitacija dolje",type:"warn"});}
+  }
+  return delta;
+}
+
+// Volume Profile — POC, Value Area
+function scoreVolProfile(price,vp,signals,warnings){
+  if(!vp||!price)return 0;
+  if(price<vp.valueAreaLow){signals.push({txt:"Ispod Value Area ("+fp(vp.valueAreaLow)+") — mean reversion bullish",type:"bull"});return 2;}
+  if(price>vp.valueAreaHigh){warnings.push({txt:"Iznad Value Area ("+fp(vp.valueAreaHigh)+") — skupo",type:"warn"});return -1;}
+  signals.push({txt:"Unutar VA, POC: "+fp(vp.poc),type:"bull"});return 0.5;
+}
+
+// Score → Confidence calculation s war cap, calibration, token accuracy
+function computeConfidence(score,sym,targetPct){
+  var maxScore=28;
+  var rawConf=Math.round(44+(score/maxScore)*42);
+  var warCap=score>=4?55:score>=2?50:44;
+  var conf=Math.min(MACRO.warActive?warCap:88,Math.max(22,rawConf));
+  var calCap=getConfCalibrationCap(targetPct||5);
+  if(calCap!==null)conf=Math.min(conf,calCap);
+  var tokAcc=getTokenAccuracy(sym,targetPct||5);
+  if(tokAcc!==null){
+    var tokCap=Math.round((tokAcc*100+12)/5)*5;
+    conf=Math.min(conf,Math.max(25,tokCap));
+  }
+  return conf;
+}
+
 // ── CORE 3-DAY ANALYSIS ENGINE ───────────────────────────────────
 function analyze3D(sym){
   var d=px[sym]||{},t=ta[sym],m=macd[sym],a=atr[sym],f=fr[sym];
@@ -1444,49 +1523,21 @@ function analyze3D(sym){
   if(regime==="MACRO_RISK_OFF"){score-=0.5;warnings.push({txt:"Macro Risk-Off — konzervativni pristup",type:"warn"});}
   if(regime==="ALT_ACCUMULATION"&&sym!=="BTC"){score+=0.5;signals.push({txt:"Alt Accumulation regime — povoljno",type:"bull"});}
 
-  // Token-specific catalysts (zadržano, ali statični boost uklonjen)
+  // Token-specific catalysts/warnings (extracted to scoreCatalysts helper)
+  score+=scoreCatalysts(sym,signals,warnings);
+  // cats/warns2 zadrzati za return objekt:
   var cats=MACRO.catalysts[sym]||[];
-  score+=cats.length*0.4;
-  cats.slice(0,2).forEach(function(c2){signals.push({txt:c2,type:"bull"});});
-
   var warns2=MACRO.warnings[sym]||[];
-  score-=warns2.length*0.3;
-  warns2.slice(0,2).forEach(function(w){warnings.push({txt:w,type:"warn"});});
 
   // BTC/Gold makro korelacija
   if(macroAssets.btcGoldRatio&&macroAssets.btcGoldRatio<15&&sym!=="BTC"){
     score-=0.5;warnings.push({txt:"BTC/Gold ratio nizak — makro bearish",type:"warn"});}
 
-  // OPTIONS MARKET SIGNAL
+  // OPTIONS + VOLUME PROFILE (extracted helpers)
   var opt=optionsData[sym];
-  if(opt&&opt.putCallRatio){
-    if(opt.putCallRatio>1.3){score+=2;signals.push({txt:"Put/Call "+opt.putCallRatio+" — previše shorta = kontrarian BUY",type:"bull"});}
-    else if(opt.putCallRatio>1.0){score+=1;signals.push({txt:"Put/Call "+opt.putCallRatio+" — blago bullish",type:"bull"});}
-    else if(opt.putCallRatio<0.65){score-=1.5;warnings.push({txt:"Put/Call "+opt.putCallRatio+" — previše longa = oprez",type:"bear"});}
-  }
-  // 25-DELTA SKEW — najvažniji institucijski options signal
-  // Negativan skew = puti skupi = tržište se štiti od pada = strah
-  // Jako negativan (<-10%) = Extreme Fear u opcijama = kontrarian BUY
-  if(opt&&opt.skew25d!=null){
-    if(opt.skew25d<-15){score+=3;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — Extreme put premium = jak kontrarian BUY",type:"bull"});}
-    else if(opt.skew25d<-7){score+=2;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — put skew = tržište štiti pad",type:"bull"});}
-    else if(opt.skew25d<-3){score+=1;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — blago negativan = oprezno",type:"bull"});}
-    else if(opt.skew25d>10){score-=2.5;warnings.push({txt:"25Δ Skew +"+opt.skew25d.toFixed(1)+"% — jak call premium = vrh blizu",type:"bear"});}
-    else if(opt.skew25d>5){score-=1.5;warnings.push({txt:"25Δ Skew +"+opt.skew25d.toFixed(1)+"% — call skew = euforia u opcijama",type:"bear"});}
-  }
-  if(opt&&opt.maxPain&&price){
-    var mpDist=((opt.maxPain-price)/price*100);
-    if(mpDist>5&&mpDist<25){score+=1;signals.push({txt:"Max Pain "+fp(opt.maxPain)+" (+"+mpDist.toFixed(0)+"%) — gravitacija gore",type:"bull"});}
-    else if(mpDist<-5&&mpDist>-25){score-=1;warnings.push({txt:"Max Pain "+fp(opt.maxPain)+" ("+mpDist.toFixed(0)+"%) — gravitacija dolje",type:"warn"});}
-  }
-
-  // VOLUME PROFILE SIGNAL
+  score+=scoreOptions(opt,price,signals,warnings);
   var vp=volProfile[sym];
-  if(vp&&price){
-    if(price<vp.valueAreaLow){score+=2;signals.push({txt:"Ispod Value Area ("+fp(vp.valueAreaLow)+") — mean reversion bullish",type:"bull"});}
-    else if(price>vp.valueAreaHigh){score-=1;warnings.push({txt:"Iznad Value Area ("+fp(vp.valueAreaHigh)+") — skupo",type:"warn"});}
-    else{score+=0.5;signals.push({txt:"Unutar VA, POC: "+fp(vp.poc),type:"bull"});}
-  }
+  score+=scoreVolProfile(price,vp,signals,warnings);
 
   // ATR — volatility determines if 5% is achievable in 3 days
   var atrPct=a?parseFloat(a.pct):2.0;
@@ -1540,36 +1591,11 @@ function analyze3D(sym){
   if(scoreVel3d>=3){score+=1;signals.push({txt:"📈 Setup velocity +"+scoreVel3d.toFixed(1)+" — signali se brzo poboljšavaju",type:"bull"});}
   else if(scoreVel3d<=-3){score-=1;warnings.push({txt:"📉 Setup slabi (velocity "+scoreVel3d.toFixed(1)+") — signali se pogoršavaju, pazi na ulaz",type:"warn"});}
 
-  // ── VIKEND PENALTY — niži volumen = više false signala ───────────
-  var _day3d=new Date().getDay();
-  if(_day3d===0||_day3d===6){score-=0.5;warnings.push({txt:"📅 Vikend: niži volumen, lažni breakouti češći",type:"warn"});}
+  // VIKEND + TIME-OF-DAY (extracted helper)
+  score+=scoreTimeOfDay(signals,warnings);
 
-  // ── TIME-OF-DAY FILTER — Asian session (00-06 UTC) = thin liquidity ───
-  var _utcH=new Date().getUTCHours();
-  if(_utcH>=0&&_utcH<6){
-    score-=0.7;
-    warnings.push({txt:"🌏 Asian sesija ("+_utcH+"h UTC): thin liquidity, fakeouti češći",type:"warn"});
-  } else if(_utcH>=14&&_utcH<21){
-    // US active session — najjaki volume, najpouzdaniji signali
-    score+=0.4;
-  }
-
-  // Confidence calculation — rekalibrirani maxScore i strožiji war cap
-  // Baza 44 (ne 50) — nulti score ne zaslužuje 50% conf, realnija procjena
-  var maxScore=28;
-  var rawConf=Math.round(44+(score/maxScore)*42);
-  // War cap — dovoljno visok da se prikažu signali, ali konzervativniji od mirnog tržišta
-  var warCap=score>=4?55:score>=2?50:44;
-  var conf=Math.min(MACRO.warActive?warCap:88,Math.max(22,rawConf));
-  // Historijska kalibracija — prilagodi prema stvarnoj točnosti
-  var calCap=getConfCalibrationCap(5);
-  if(calCap!==null)conf=Math.min(conf,calCap);
-  // Token-specifična kalibracija (min 3 predikcije po tokenu)
-  var tokAcc=getTokenAccuracy(sym,5);
-  if(tokAcc!==null){
-    var tokCap=Math.round((tokAcc*100+12)/5)*5;
-    conf=Math.min(conf,Math.max(25,tokCap));
-  }
+  // CONFIDENCE (extracted helper) — vraca conf [22..88] s kalibracijom
+  var conf=computeConfidence(score,sym,5);
 
   // ── ENTRY QUALITY MULTIPLIER — je li ulaz na dobrom tehničkom nivou? ──
   // Ulaz ispod BB donje linije + ispod VAL + oversold RSI = super ulaz → +10% conf

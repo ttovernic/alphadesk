@@ -204,7 +204,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.30</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.31</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -469,6 +469,7 @@ var marketBreadth={bullCount:0,bearCount:0,neutralCount:0,total:0,ts:0}; // mult
 var coinbasePremium={value:null,trend:null,ts:0}; // CB BTC vs Binance BTC premium %
 var fundingHistory={};  // {sym:[{rate,ts}]} — za detekciju akceleracije
 var liqClusters={};  // {sym:[{price,total,side}]} — clusterirane likvidacije za target selection
+var orderBookData={}; // {sym:{bidVol,askVol,ratio,imbalance}} — L2 spot depth imbalance
 var newsData={};     // {sym:[{title,sentiment,ts}]} — CryptoPanic news sentiment
 var backtestResults={}; // {sym:{accuracy,n,hits,recent}} — historijski backtest na daily klines
 var signalBacktest=null; // {results:[{key,name,fires,hits,wr,lift}],baseline,syms,ts} — per-signal atribucija
@@ -1238,21 +1239,50 @@ function isMomentumConfirmed(sym){
   return recent>=older*0.999; // recent treba biti barem flat — ne padajuće
 }
 
-// Dinamički target iz swing levels (umjesto fiksnih 5%/10%)
+// Dinamički target iz swing levels + likvidacijskih klastera (jer su to price magneti)
 // Vraća null ako nema reasonable resistance — onda koristimo fiksni target
 function getDynamicTarget(sym,price,basePct){
-  var sw=swingLevels[sym];
-  if(!sw||!sw.resistances||sw.resistances.length===0)return null;
-  var sorted=sw.resistances.slice().sort(function(a,b){return a-b;});
-  // Tražimo prvi resistance unutar [basePct*0.6 ... basePct*1.6] iznad cijene
   var minPct=Math.max(3,basePct*0.6);
   var maxPct=basePct*1.6;
-  for(var i=0;i<sorted.length;i++){
-    var r=sorted[i];
-    var pct=(r-price)/price*100;
-    if(pct>=minPct && pct<=maxPct) return r;
+  var candidates=[];
+
+  // 1. Swing resistances (klasične S/R razine)
+  var sw=swingLevels[sym];
+  if(sw&&sw.resistances&&sw.resistances.length){
+    sw.resistances.forEach(function(r){
+      var pct=(r-price)/price*100;
+      if(pct>=minPct&&pct<=maxPct)candidates.push({price:r,pct:pct,type:"swing",weight:1.0});
+    });
   }
-  return null;
+
+  // 2. Likvidacijski klasteri (short liq = magneti za rast — squeeze targets)
+  var lz=liqZones[sym];
+  if(lz){
+    [lz.shortLiq20x,lz.shortLiq10x].forEach(function(r){
+      if(!r)return;
+      var pct=(r-price)/price*100;
+      if(pct>=minPct&&pct<=maxPct)candidates.push({price:r,pct:pct,type:"liq",weight:1.2});
+    });
+  }
+
+  if(candidates.length===0)return null;
+  // Sortiraj po blizini, ali boostaj liq klastere (jaci magneti)
+  candidates.sort(function(a,b){return (a.pct/a.weight)-(b.pct/b.weight);});
+  return candidates[0].price;
+}
+
+// Order book L2 imbalance (spot Binance depth)
+// Bid/ask depth ratio — duboki bidovi = buying support, duboki askovi = resistance
+function fetchOrderbookImbalance(sym){
+  return fetch("https://api.binance.com/api/v3/depth?symbol="+sym+"USDT&limit=100")
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d||!d.bids||!d.asks)return null;
+      var bidVol=d.bids.reduce(function(s,b){return s+parseFloat(b[1]);},0);
+      var askVol=d.asks.reduce(function(s,a){return s+parseFloat(a[1]);},0);
+      var ratio=askVol>0?bidVol/askVol:1;
+      return{bidVol:bidVol,askVol:askVol,ratio:+ratio.toFixed(2),imbalance:ratio>1.5?"BULL":ratio<0.67?"BEAR":"NEUTRAL"};
+    }).catch(function(){return null;});
 }
 
 // ── CORE 3-DAY ANALYSIS ENGINE ───────────────────────────────────
@@ -1594,6 +1624,25 @@ function analyze3D(sym){
     }
   }
 
+  // ── ORDER BOOK L2 IMBALANCE (spot depth) ─────────────────────────
+  var ob=orderBookData[sym];
+  if(ob&&ob.ratio){
+    if(ob.ratio>=2.0){score+=1.2;signals.push({txt:"📊 OB bid/ask "+ob.ratio.toFixed(1)+" — duboki bidovi, buying pressure",type:"bull"});}
+    else if(ob.ratio>=1.5){score+=0.6;signals.push({txt:"📊 OB ratio "+ob.ratio.toFixed(2)+" — bidovi dominiraju",type:"bull"});}
+    else if(ob.ratio<=0.5){score-=1.2;warnings.push({txt:"📊 OB bid/ask "+ob.ratio.toFixed(2)+" — duboki askovi, selling pressure",type:"bear"});}
+    else if(ob.ratio<=0.67){score-=0.6;warnings.push({txt:"📊 OB ratio "+ob.ratio.toFixed(2)+" — askovi dominiraju",type:"warn"});}
+  }
+
+  // ── WYCKOFF VERDICT GATE (samo za jaki bull setup) ──────────────
+  // Wyckoff je već u scoringu kroz scoreMarketSignals; ovdje koristimo kao verdict modifier
+  var wyMain=wyckoff4h[sym]||wyckoffData[sym];
+  var wyBlocker=null;
+  if(wyMain){
+    if(wyMain.phase==="UTAD"||wyMain.phase==="DISTRIBUTION"){
+      wyBlocker="Wyckoff "+wyMain.phase+" (distribucija)";
+    }
+  }
+
   // 4. DYNAMIC TARGET iz swing levels (ako postoji reasonable resistance)
   var dynTarget=getDynamicTarget(sym,price,settings.targetPct);
   var actualTargetPct=settings.targetPct;
@@ -1618,8 +1667,8 @@ function analyze3D(sym){
   var topWarnSignal=warnings.length>0?warnings[0].txt:"";
   var riskSuffix=MACRO.warActive?" ⚠️ Koristiti 50-70% normale pozicije (rat aktivan).":"";
 
-  // ✅ zahtijeva: high conf, score, confluence ≥3, volume OK, BTC nije u danger zoni
-  var passesAllGates=conf>=60&&score>=2&&confluenceCount>=3&&volumeOK&&!btcCtx.danger;
+  // ✅ zahtijeva: high conf, score, confluence ≥3, volume OK, BTC nije u danger zoni, Wyckoff nije distribucija
+  var passesAllGates=conf>=60&&score>=2&&confluenceCount>=3&&volumeOK&&!btcCtx.danger&&!wyBlocker;
   if(passesAllGates){
     verdict="✅ Ulazi — dobra prilika";
     var keyReason=hasTrifecta?"💎 Trifecta signal — izniman poklopaj indikatora.":hasMtf3?"💪 MTF 3/3 alignment (1h+4h+Daily) — trend potvrđen na svim vremenskim okvirima.":topBullSignal?"Ključni signal: "+topBullSignal+".":"Višestruki bullish signali.";
@@ -1631,6 +1680,7 @@ function analyze3D(sym){
     if(confluenceCount<3)blockers.push("samo "+confluenceCount+"/5 kategorija signala");
     if(!volumeOK)blockers.push("volumen "+(vsT1?vsT1.ratio.toFixed(1)+"×":"nedostupan")+" (treba ≥1.3×)");
     if(btcCtx.danger)blockers.push("BTC u downtrendu ("+btcCtx.c24.toFixed(1)+"% 24h, "+btcCtx.trend1h+" 1h)");
+    if(wyBlocker)blockers.push(wyBlocker);
     verdictWhy="High conf ali blokirano: "+blockers.join(" · ")+". Pričekaj potvrdu."+riskSuffix;
   } else if(conf>=48){
     verdict="🟡 Ulaz s oprezom";
@@ -5256,11 +5306,15 @@ function runBacktest(){
             var conf=Math.max(20,Math.min(90,Math.round(50+(sig/24)*38)));
             if(conf<50||sig<0)continue;
             // Provjera ishoda: je li cijena dostigla +5% u sljedeća 3 dana?
-            var entry=closes[i];
+            // REALISTIČNO: ulaz s +0.05% slippage, target hit minus 0.15% round-trip fees
+            var FEE=0.0015; // 0.075% × 2 strane = 0.15% round trip
+            var SLIP=0.0005; // 0.05% slippage
+            var entry=closes[i]*(1+SLIP); // realan ulaz uvijek malo iznad
+            var effectiveTarget=entry*(1+TARGET_PCT+FEE); // moram dosegnuti više da pokrijem fees
             var future=[closes[i+1],closes[i+2],closes[i+3]].filter(function(v){return v!=null;});
             var maxNext=future.length?Math.max.apply(null,future):entry;
-            var hit=maxNext>=entry*(1+TARGET_PCT);
-            var actualPct=+((maxNext-entry)/entry*100).toFixed(1);
+            var hit=maxNext>=effectiveTarget;
+            var actualPct=+((maxNext-entry)/entry*100-FEE*100).toFixed(1);
             results.push({
               date:new Date(parseInt(data[i][0])).toLocaleDateString("hr-HR",{month:"short",day:"numeric"}),
               conf:conf,sig:+sig.toFixed(1),hit:hit,pct:actualPct,rsi:+taR.rsi.toFixed(0)
@@ -5610,6 +5664,17 @@ fetchFuturesSignals();
 fetchAllFundingRates(); // svi funding rates odjednom (sve futures parove)
 setTimeout(fetchCoinbasePremium, 5000); // CB Premium 5s nakon starta (nakon BTC px)
 setInterval(fetchCoinbasePremium, 60000); // refresh svake minute
+// Order book L2 — top 15 tokena svake 2 minute
+function fetchAllOrderbooks(){
+  var topSyms=TOP100.slice(0,15);
+  topSyms.forEach(function(sym,idx){
+    setTimeout(function(){
+      fetchOrderbookImbalance(sym).then(function(d){if(d)orderBookData[sym]=d;});
+    },idx*200);
+  });
+}
+setTimeout(fetchAllOrderbooks, 8000);
+setInterval(fetchAllOrderbooks, 120000);
 setInterval(fetchAllFundingRates, 30*60*1000); // funding history sample svakih 30min
 fetchTopTraderRatio();  // institucijski L/S ratio — pametan novac
 fetchNetflow();         // exchange netflow — samo ako CryptoQuant API key dostupan

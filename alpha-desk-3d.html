@@ -204,7 +204,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.29</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.30</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -464,6 +464,11 @@ var polyRaw=[];   // raw lista aktivnih kripto marketa s Polymarketa
 var cvdData={};      // {sym:{cvd,trend,divergence}} — Cumulative Volume Delta (skrivena akumulacija)
 var relStrength={};  // {sym:{rs24h,rs7d,leading,lagging}} — relativna snaga vs BTC
 var swingLevels={};  // {sym:{supports:[],resistances:[]}} — swing high/low S/R nivoi
+var adxData={};      // {sym:{adx,trending}} — ADX 14 trending strength
+var marketBreadth={bullCount:0,bearCount:0,neutralCount:0,total:0,ts:0}; // multi-token sentiment
+var coinbasePremium={value:null,trend:null,ts:0}; // CB BTC vs Binance BTC premium %
+var fundingHistory={};  // {sym:[{rate,ts}]} — za detekciju akceleracije
+var liqClusters={};  // {sym:[{price,total,side}]} — clusterirane likvidacije za target selection
 var newsData={};     // {sym:[{title,sentiment,ts}]} — CryptoPanic news sentiment
 var backtestResults={}; // {sym:{accuracy,n,hits,recent}} — historijski backtest na daily klines
 var signalBacktest=null; // {results:[{key,name,fires,hits,wr,lift}],baseline,syms,ts} — per-signal atribucija
@@ -1437,6 +1442,16 @@ function analyze3D(sym){
   var _day3d=new Date().getDay();
   if(_day3d===0||_day3d===6){score-=0.5;warnings.push({txt:"📅 Vikend: niži volumen, lažni breakouti češći",type:"warn"});}
 
+  // ── TIME-OF-DAY FILTER — Asian session (00-06 UTC) = thin liquidity ───
+  var _utcH=new Date().getUTCHours();
+  if(_utcH>=0&&_utcH<6){
+    score-=0.7;
+    warnings.push({txt:"🌏 Asian sesija ("+_utcH+"h UTC): thin liquidity, fakeouti češći",type:"warn"});
+  } else if(_utcH>=14&&_utcH<21){
+    // US active session — najjaki volume, najpouzdaniji signali
+    score+=0.4;
+  }
+
   // Confidence calculation — rekalibrirani maxScore i strožiji war cap
   // Baza 44 (ne 50) — nulti score ne zaslužuje 50% conf, realnija procjena
   var maxScore=28;
@@ -1515,6 +1530,69 @@ function analyze3D(sym){
 
   // 3. BTC CORRELATION GATE (samo za alte LONG)
   var btcCtx=sym!=="BTC"?getBtcContext():{danger:false,c24:0,trend1h:"FLAT"};
+
+  // ── ADX TRENDING vs RANGING DETECTION ───────────────────────────
+  // ADX > 25 = trending → favoriziraj momentum/breakout signale
+  // ADX < 20 = ranging → favoriziraj mean-reversion (RSI extreme, BB)
+  var adxInfo=adxData[sym];
+  var marketMode="UNKNOWN";
+  if(adxInfo&&adxInfo.adx!=null){
+    if(adxInfo.adx>=25){
+      marketMode="TRENDING";
+      // U trending market, RSI oversold često nastavlja padati — kaznimo to
+      if(t&&t.rsi<35&&!(m&&m.cross==="BULLISH")){
+        score-=0.8;
+        warnings.push({txt:"📊 ADX "+adxInfo.adx.toFixed(0)+" (trending) + RSI low bez MACD — trend nastavlja",type:"warn"});
+      }
+      // Ali u trending uptrendu, EMA pullback je solid setup
+      if(t&&t.trend==="UP"&&adxInfo.adx>=30){
+        score+=0.6;
+        signals.push({txt:"📊 Strong trend (ADX "+adxInfo.adx.toFixed(0)+") + EMA up — momentum continuation",type:"bull"});
+      }
+    } else if(adxInfo.adx<20){
+      marketMode="RANGING";
+      // U ranging market, RSI extreme = zlatan signal za mean reversion
+      if(t&&t.rsi<32){
+        score+=0.7;
+        signals.push({txt:"📊 ADX "+adxInfo.adx.toFixed(0)+" (ranging) + RSI oversold — mean reversion setup",type:"bull"});
+      }
+      // Ali momentum signali su slabi u rangu
+      if(m&&m.cross==="BULLISH"&&t&&t.rsi>55){
+        score-=0.4;
+        warnings.push({txt:"📊 ADX low (range) — MACD signal nepouzdan u sideways",type:"warn"});
+      }
+    }
+  }
+
+  // ── MULTI-TOKEN CORRELATION (market breadth) ────────────────────
+  // Ako je >70% TOP100 trenutno bullish, pojedinačni signal je jači
+  if(marketBreadth.total>=20){
+    var bullPct=marketBreadth.bullCount/marketBreadth.total*100;
+    if(bullPct>70){score+=0.5;signals.push({txt:"🌐 Tržišni breadth bull "+bullPct.toFixed(0)+"% — širi pokret",type:"bull"});}
+    else if(bullPct<25){score-=0.5;warnings.push({txt:"🌐 Tržišni breadth bear "+bullPct.toFixed(0)+"% — kapital izlazi",type:"warn"});}
+  }
+
+  // ── COINBASE PREMIUM (US smart money flow) ──────────────────────
+  if(coinbasePremium.value!=null){
+    if(coinbasePremium.value>0.05){score+=0.6;signals.push({txt:"💵 CB Premium +"+coinbasePremium.value.toFixed(3)+"% — US institucionalni novac kupuje",type:"bull"});}
+    else if(coinbasePremium.value<-0.05){score-=0.6;warnings.push({txt:"💵 CB Premium "+coinbasePremium.value.toFixed(3)+"% — US institucionalna prodaja",type:"bear"});}
+  }
+
+  // ── FUNDING RATE ACCELERATION ───────────────────────────────────
+  // Ne samo trenutni FR, nego i je li ubrzava (kontrarian signal)
+  var fHist=fundingHistory[sym];
+  if(fHist&&fHist.length>=2&&f&&f.rate!=null){
+    var oldRate=fHist[0].rate*100;
+    var curRate=f.rate*100;
+    var rateChange=curRate-oldRate;
+    if(rateChange<-0.04&&curRate<-0.02){
+      score+=1.5;
+      signals.push({txt:"📉 FR akceleracija: "+oldRate.toFixed(2)+"% → "+curRate.toFixed(2)+"% — agresivni shortovi se gomilaju",type:"bull"});
+    } else if(rateChange>0.04&&curRate>0.05){
+      score-=1.0;
+      warnings.push({txt:"📈 FR akceleracija: "+oldRate.toFixed(2)+"% → "+curRate.toFixed(2)+"% — long greed rastuća",type:"bear"});
+    }
+  }
 
   // 4. DYNAMIC TARGET iz swing levels (ako postoji reasonable resistance)
   var dynTarget=getDynamicTarget(sym,price,settings.targetPct);
@@ -1632,7 +1710,16 @@ function getOpportunities(){
   });
   // achievable3d kao hard filter — isto kao meme engine
   // Token bez dovoljnog ATR-a nema šanse dosegnuti cilj, ne prikazujemo ga
-  var all=syms.map(analyzeFn).filter(function(x){return x&&x.conf>=minConf&&x.achievable3d;});
+  var allAnalyzed=syms.map(analyzeFn).filter(function(x){return x;});
+  // Update market breadth — koliko tokena je bullish/bearish
+  if(allAnalyzed.length>=20){
+    marketBreadth.bullCount=allAnalyzed.filter(function(x){return x.score>=2;}).length;
+    marketBreadth.bearCount=allAnalyzed.filter(function(x){return x.score<=-2;}).length;
+    marketBreadth.neutralCount=allAnalyzed.length-marketBreadth.bullCount-marketBreadth.bearCount;
+    marketBreadth.total=allAnalyzed.length;
+    marketBreadth.ts=Date.now();
+  }
+  var all=allAnalyzed.filter(function(x){return x.conf>=minConf&&x.achievable3d;});
   var totalAnalyzed=syms.length;
   // Sort po selektiranom modu
   if(ulazSortMode==="rr"){
@@ -2167,6 +2254,21 @@ function autoClosePreds(){
       :+((cur-p.entry)/p.entry*100).toFixed(2);
     var reason=null;var hit=false;
 
+    // ── TIER 2: SMART EXIT — signal reversal detection ──────────────
+    // Ako se dogodio reversal signal mid-trade (bear divergence, MTF flip),
+    // exit at break-even ili manji profit umjesto čekanja stop/target
+    var t_x=ta[p.sym],m_x=macd[p.sym],t4h_x=ta4h[p.sym];
+    var bearReversal=!isShort&&pct>0.5&&(  // samo ako smo u (malom) profitu
+      (t_x&&t_x.divergence==="BEARISH")||
+      (m_x&&m_x.cross==="BEARISH")||
+      (t4h_x&&t4h_x.trend==="DOWN"&&t_x&&t_x.trend==="DOWN")
+    );
+    var bullReversal=isShort&&pct>0.5&&(
+      (t_x&&t_x.divergence==="BULLISH")||
+      (m_x&&m_x.cross==="BULLISH")||
+      (t4h_x&&t4h_x.trend==="UP"&&t_x&&t_x.trend==="UP")
+    );
+
     if(isShort){
       if(p.targetPct===10){
         var halfT=p.entry*(1-0.05);
@@ -2174,10 +2276,17 @@ function autoClosePreds(){
         if(cur>=p.stop){reason="🛑 Stop-loss hit";hit=false;}
         else if(u.valleyPrice&&u.valleyPrice<=halfT&&cur>=trailS){reason="🔒 Trailing stop (čuvam profit)";hit=true;}
         else if(cur<=u.target){reason="🎯 -10% Target dostignut";hit=true;}
+        else if(bullReversal){reason="🔄 Bull reversal signal — exit u profitu";hit=pct>0;}
         else if(elapsed>=5*DAY){reason="⏰ 5 dana isteklo";hit=u.valleyPrice&&u.valleyPrice<=halfT;}
       } else {
+        // Smart exit za 5% SHORT: trailing stop nakon hit-a D1
+        var halfShortT=p.entry*(1-(p.targetPct||5)/2/100); // half target
+        var trailShortS=p.entry*(1+0.005); // trail na +0.5% iznad entry (čuvam mali profit)
         if(cur>=p.stop){reason="🛑 Stop-loss hit";hit=false;}
         else if(u.d3Hit){reason="🎯 Target D3 dostignut";hit=true;}
+        else if(u.d1Hit&&u.valleyPrice&&u.valleyPrice<=halfShortT&&cur>=trailShortS){reason="🔒 Trailing stop (čuvam profit)";hit=true;}
+        else if(bullReversal){reason="🔄 Bull reversal — exit u profitu";hit=pct>0;}
+        else if(elapsed>=2*DAY&&pct<-0.5){reason="⏰ 2 dana, gubimo — soft exit";hit=false;}
         else if(elapsed>=3*DAY){reason="⏰ 3 dana istekla";hit=cur<p.entry;}
       }
     } else {
@@ -2187,10 +2296,17 @@ function autoClosePreds(){
         if(cur<=p.stop){reason="🛑 Stop-loss -3% hit";hit=false;}
         else if(u.peakPrice>=halfTarget&&cur<=trailStop){reason="🔒 Trailing stop (čuvam +3% dobitak)";hit=true;}
         else if(cur>=u.target){reason="🎯 +10% Target dostignut";hit=true;}
+        else if(bearReversal){reason="🔄 Bear reversal — exit u profitu";hit=pct>0;}
         else if(elapsed>=5*DAY){reason="⏰ 5 dana isteklo";hit=cur>=(p.entry*(1+0.05));}
       } else {
+        // Smart exit za 5% LONG: trailing stop nakon hit-a D1, soft time exit
+        var halfLongT=p.entry*(1+(p.targetPct||5)/2/100); // half target = +2.5%
+        var trailLongS=p.entry*(1-0.005); // trail na -0.5% ispod entry (čuvam break-even)
         if(cur<=p.stop){reason="🛑 Stop-loss hit";hit=false;}
         else if(u.d3Hit){reason="🎯 Target D3 dostignut";hit=true;}
+        else if(u.d1Hit&&u.peakPrice>=halfLongT&&cur<=trailLongS){reason="🔒 Trailing stop (čuvam profit)";hit=true;}
+        else if(bearReversal){reason="🔄 Bear reversal — exit u profitu";hit=pct>0;}
+        else if(elapsed>=2*DAY&&pct<-0.5){reason="⏰ 2 dana, gubimo — soft exit";hit=false;}
         else if(elapsed>=3*DAY){reason="⏰ 3 dana istekla";hit=cur>p.entry;}
       }
     }
@@ -4281,6 +4397,55 @@ function fetchVP3D(){
         if(closes.length>=50){ta[sym]=compTA(closes);}
         if(closes.length>=27){macd[sym]=compMACD(closes);}
         if(closes.length>=15){atr[sym]=compATR(closes);}
+
+        // ── ADX (Average Directional Index) — trending vs ranging ──
+        // ADX > 25 = trending market, < 20 = ranging, oscillates 0-100
+        if(data.length>=30){
+          var highs=data.map(function(k){return parseFloat(k[2]);});
+          var lows=data.map(function(k){return parseFloat(k[3]);});
+          var ADX_LEN=14;
+          var trs=[],pdms=[],ndms=[];
+          for(var ai=1;ai<closes.length;ai++){
+            var hi=highs[ai],lo=lows[ai],pc=closes[ai-1];
+            var tr=Math.max(hi-lo,Math.abs(hi-pc),Math.abs(lo-pc));
+            var hiDiff=hi-highs[ai-1];
+            var loDiff=lows[ai-1]-lo;
+            var pdm=(hiDiff>loDiff&&hiDiff>0)?hiDiff:0;
+            var ndm=(loDiff>hiDiff&&loDiff>0)?loDiff:0;
+            trs.push(tr);pdms.push(pdm);ndms.push(ndm);
+          }
+          // Wilder's smoothing
+          if(trs.length>=ADX_LEN*2){
+            var smoothTR=trs.slice(0,ADX_LEN).reduce(function(a,b){return a+b;},0);
+            var smoothPDM=pdms.slice(0,ADX_LEN).reduce(function(a,b){return a+b;},0);
+            var smoothNDM=ndms.slice(0,ADX_LEN).reduce(function(a,b){return a+b;},0);
+            var dxArr=[];
+            for(var ai2=ADX_LEN;ai2<trs.length;ai2++){
+              smoothTR=smoothTR-(smoothTR/ADX_LEN)+trs[ai2];
+              smoothPDM=smoothPDM-(smoothPDM/ADX_LEN)+pdms[ai2];
+              smoothNDM=smoothNDM-(smoothNDM/ADX_LEN)+ndms[ai2];
+              var pdi=smoothTR>0?100*smoothPDM/smoothTR:0;
+              var ndi=smoothTR>0?100*smoothNDM/smoothTR:0;
+              var diSum=pdi+ndi;
+              var dx=diSum>0?100*Math.abs(pdi-ndi)/diSum:0;
+              dxArr.push(dx);
+            }
+            // ADX = Wilder smoothed DX
+            if(dxArr.length>=ADX_LEN){
+              var adxVal=dxArr.slice(0,ADX_LEN).reduce(function(a,b){return a+b;},0)/ADX_LEN;
+              for(var ai3=ADX_LEN;ai3<dxArr.length;ai3++){
+                adxVal=(adxVal*(ADX_LEN-1)+dxArr[ai3])/ADX_LEN;
+              }
+              adxData[sym]={
+                adx:+adxVal.toFixed(1),
+                trending:adxVal>=25,
+                strong:adxVal>=40,
+                ranging:adxVal<20,
+                ts:Date.now()
+              };
+            }
+          }
+        }
         // Ažuriraj i sparkline s klines podacima ako WS još nije aktivan
         if(!hist[sym]||hist[sym].length<5){hist[sym]=closes.slice(-50);}
         // VWAP (zadnjih 24h = zadnje 24 svjećice, tipični trader VWAP)
@@ -4608,8 +4773,38 @@ function fetchAllFundingRates(){
         if(!d.symbol||!d.symbol.endsWith("USDT"))return;
         var sym=d.symbol.replace("USDT","");
         var rate=parseFloat(d.lastFundingRate);
-        if(!isNaN(rate))fr[sym]={rate:rate};
+        if(!isNaN(rate)){
+          fr[sym]={rate:rate};
+          // Funding history za detekciju akceleracije
+          if(!fundingHistory[sym])fundingHistory[sym]=[];
+          // Push samo ako je >= 30 min od zadnjeg
+          var lastTs=fundingHistory[sym].length?fundingHistory[sym][fundingHistory[sym].length-1].ts:0;
+          if(Date.now()-lastTs>=30*60*1000){
+            fundingHistory[sym].push({rate:rate,ts:Date.now()});
+            // Drži samo zadnjih 8 (4h history s 30min sample)
+            if(fundingHistory[sym].length>8)fundingHistory[sym]=fundingHistory[sym].slice(-8);
+          }
+        }
       });
+    }).catch(function(){});
+}
+
+// ── COINBASE PREMIUM (US smart money flow) ─────────────────────────
+// Razlika izmedu Coinbase (USD) i Binance (USDT) BTC cijene
+// Pozitivno = US institucije kupuju, negativno = prodaju
+function fetchCoinbasePremium(){
+  fetch("https://api.coinbase.com/v2/prices/BTC-USD/spot")
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d||!d.data||!d.data.amount)return;
+      var cbPrice=parseFloat(d.data.amount);
+      var binPrice=px["BTC"]?px["BTC"].p:0;
+      if(!cbPrice||!binPrice)return;
+      var premium=((cbPrice-binPrice)/binPrice*100);
+      var prev=coinbasePremium.value;
+      coinbasePremium.value=+premium.toFixed(3);
+      coinbasePremium.trend=prev!==null?(premium>prev?"UP":premium<prev?"DOWN":"FLAT"):"FLAT";
+      coinbasePremium.ts=Date.now();
     }).catch(function(){});
 }
 
@@ -5413,6 +5608,9 @@ fetchOpenInterest();
 fetch4hTA();
 fetchFuturesSignals();
 fetchAllFundingRates(); // svi funding rates odjednom (sve futures parove)
+setTimeout(fetchCoinbasePremium, 5000); // CB Premium 5s nakon starta (nakon BTC px)
+setInterval(fetchCoinbasePremium, 60000); // refresh svake minute
+setInterval(fetchAllFundingRates, 30*60*1000); // funding history sample svakih 30min
 fetchTopTraderRatio();  // institucijski L/S ratio — pametan novac
 fetchNetflow();         // exchange netflow — samo ako CryptoQuant API key dostupan
 fetchSocialData();      // social sentiment — samo ako LunarCrush API key dostupan

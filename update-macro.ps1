@@ -129,30 +129,49 @@ ZADATAK: Azuriraj macro-context.json za crypto trading dashboard.
 Tokeni: $tokenListStr
 Datum: $today
 
-## KORACI - izvrsi tocno ovim redom:
+## KORACI:
 
-1. **Read tool**: $JSON_PATH (procitaj trenutnu strukturu)
-2. **WebSearch**: bitcoin price today
-3. **WebSearch**: crypto fear greed index today
-4. **WebSearch**: DXY dollar index today live
-5. **WebSearch**: bitcoin dominance today percentage
-6. **WebSearch**: crypto news today $today
+1. **Read tool**: $JSON_PATH
+2. **WebSearch**: bitcoin price today, fear greed index today, DXY dollar index today, bitcoin dominance today, crypto news today
 $PREV_CONTEXT
-7. **Write tool**: file_path = "$JSON_PATH", content = (popunjeni JSON):
+3. **Write tool**: file_path = "$JSON_PATH"
 
-{"lastUpdated":"<ISO now>","warActive":false,"macroPenalty":<0-6>,"oil":<broj>,"dxy":<broj>,"btcDom":<broj>,"stableDom":<broj>,"fearGreed":<0-100>,"regime":"<BULL|BEAR|ALT_SEASON|CRAB|VOLATILE|NEUTRAL>","aiSummary":"<2-3 HR recenice>","changeSummary":"<1 HR recenica vs prethodni>","catalysts":{$catsTpl},"warnings":{$catsTpl},"sentimentScore":{$sentimentTpl}}
+## OBAVEZNI JSON FORMAT (TOCNO ova polja, nista dodatno, nista manjkavo):
 
-## PRAVILA:
+{
+  "lastUpdated": "<ISO now>",
+  "warActive": <true|false>,
+  "macroPenalty": <broj 0-6>,
+  "oil": <broj>,
+  "dxy": <broj>,
+  "btcDom": <broj 0-100>,
+  "stableDom": <broj>,
+  "fearGreed": <broj 0-100>,
+  "regime": "<BULL|BEAR|ALT_SEASON|CRAB|VOLATILE|NEUTRAL>",
+  "aiSummary": "<2-3 hrvatske recenice>",
+  "changeSummary": "<1 hrvatska recenica o promjenama>",
+  "catalysts": {$catsTpl},
+  "warnings": {$catsTpl},
+  "sentimentScore": {$sentimentTpl}
+}
 
-regime: BULL (BTC iznad SMA200, FG>55), BEAR (BTC ispod SMA200, FG<30), ALT_SEASON (BTC dom<45%), CRAB (sideways FG 35-55), VOLATILE (veliki swingovi), NEUTRAL (default)
+## STROGO PRIDRZAVAJ SE FORMATA:
+- DXY, fearGreed, regime, sentimentScore SU OBAVEZNI top-level brojevi/string (ne objekti, ne stringovi za brojeve)
+- changeSummary JE STRING (1 recenica), NE objekt
+- NE dodaj dodatna polja (npr. "prices", "macro", "changeSummary kao objekt") — app ih ignorira i lomi parsing
+- sentimentScore mora imati SVE tokene iz popisa, kao brojeve od -3 do 3
+
+## PRAVILA ZA VRIJEDNOSTI:
+
+regime izbor: BULL (BTC>SMA200,FG>55) | BEAR (BTC<SMA200,FG<30) | ALT_SEASON (BTC dom<45%) | CRAB (sideways,FG 35-55) | VOLATILE (veliki swingovi) | NEUTRAL (default)
 
 macroPenalty (zbroji u 0-6): +2 warActive, +2 DXY>108, +1 DXY 106-108, -1 DXY<100, +1 oil>110, +2 oil>125, +1 FG>75, -1 FG<20
 
-sentimentScore (-3 do +3): -3=SEC tuzba/hack, -2=regulatorni rizik, -1=FUD, 0=neutral, +1=mali update, +2=listing/proboj, +3=ETF/halving
+sentimentScore (-3..+3): -3=SEC/hack, -2=regulatorni rizik, -1=FUD, 0=neutral, +1=update, +2=listing/proboj, +3=ETF/halving
 
-catalysts/warnings: max 65 znakova po vijesti.
+catalysts/warnings: max 65 znakova po vijesti, hrvatski.
 
-## CILJ: TVOJA POSLJEDNJA AKCIJA MORA BITI POZIV WRITE TOOL-A.
+## CILJ: ZADNJA AKCIJA = WRITE TOOL S FORMATOM IZNAD.
 "@
 
 $claudeOk = Invoke-ClaudeAnalysis $PROMPT

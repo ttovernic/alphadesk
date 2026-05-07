@@ -80,7 +80,7 @@ if (Test-Path $JSON_PATH) {
     }
 }
 
-# Helper za Claude pokretanje (s timeoutom)
+# Helper za Claude pokretanje - direct call (kao v2, koji je radio)
 function Invoke-ClaudeAnalysis {
     param([string]$prompt)
     $claudeExe = "C:\Users\ttovernic\.local\bin\claude.exe"
@@ -88,19 +88,28 @@ function Invoke-ClaudeAnalysis {
         Write-Log "[ERROR] Claude CLI nije pronaden na: $claudeExe" "Red"
         return $false
     }
-    Write-Log "Claude se pokrece (timeout 8 min)..."
-    $job = Start-Job -ScriptBlock {
-        param($exe, $promptText)
-        & $exe --allowedTools "WebSearch,WebFetch,Write" -p $promptText 2>&1
-    } -ArgumentList $claudeExe, $prompt
-    $finished = Wait-Job $job -Timeout 480
-    if (-not $finished) {
-        Write-Log "[ERROR] Claude timeout (8 min isteklo)" "Red"
-        Stop-Job $job; Remove-Job $job
+    Write-Log "Claude se pokrece (prompt $($prompt.Length) znakova)..."
+    $startTime = Get-Date
+    # KLJUC: --dangerously-skip-permissions je obavezan za non-interactive Write tool
+    # (Bez toga Claude tiho fejla i samo printa markdown na stdout)
+    # $null | signalizira "nema stdin" (Claude CLI v2 inace ceka 3s)
+    # 2>&1 spaja stderr sa stdout — bez toga PS5.1 postavlja LASTEXITCODE=1 kad ima stderr writes
+    # Read je obavezan: Claude CLI v2 zahtijeva Read prije Write (sigurnosna provjera prepisa)
+    $null | & $claudeExe --tools "WebSearch,WebFetch,Read,Write" --dangerously-skip-permissions -p $prompt 2>&1 | Out-Null
+    $exitCode = $LASTEXITCODE
+    $elapsed = ((Get-Date) - $startTime).TotalSeconds
+    # Provjeri stvarni uspjeh: je li JSON datoteka stvorena/azurirana
+    $jsonExists = Test-Path $JSON_PATH
+    $jsonFresh = $false
+    if ($jsonExists) {
+        $age = (Get-Date) - (Get-Item $JSON_PATH).LastWriteTime
+        $jsonFresh = $age.TotalSeconds -lt ($elapsed + 60)
+    }
+    if (-not $jsonFresh) {
+        Write-Log "[ERROR] Claude exit $exitCode i JSON nije svjez (trajalo $($elapsed.ToString('F1'))s)" "Red"
         return $false
     }
-    $output = Receive-Job $job
-    Remove-Job $job
+    Write-Log "Claude zavrsen (trajalo $($elapsed.ToString('F1'))s, JSON svjez)" "Green"
     return $true
 }
 
@@ -115,98 +124,35 @@ $today = Get-Date -Format "yyyy-MM-dd"
 $tokenListStr = $ALL_TOKENS -join ", "
 
 $PROMPT = @"
-Ti si crypto market analyst. Tvoj output direktno utjece na trading dashboard signal engine - svako polje ima konkretan ucinak.
+ZADATAK: Azuriraj macro-context.json za crypto trading dashboard.
 
-## TOKENI ZA ANALIZU ($($ALL_TOKENS.Count)):
-$tokenListStr
-
+Tokeni: $tokenListStr
 Datum: $today
+
+## KORACI - izvrsi tocno ovim redom:
+
+1. **Read tool**: $JSON_PATH (procitaj trenutnu strukturu)
+2. **WebSearch**: bitcoin price today
+3. **WebSearch**: crypto fear greed index today
+4. **WebSearch**: DXY dollar index today live
+5. **WebSearch**: bitcoin dominance today percentage
+6. **WebSearch**: crypto news today $today
 $PREV_CONTEXT
+7. **Write tool**: file_path = "$JSON_PATH", content = (popunjeni JSON):
 
-## KORACI:
+{"lastUpdated":"<ISO now>","warActive":false,"macroPenalty":<0-6>,"oil":<broj>,"dxy":<broj>,"btcDom":<broj>,"stableDom":<broj>,"fearGreed":<0-100>,"regime":"<BULL|BEAR|ALT_SEASON|CRAB|VOLATILE|NEUTRAL>","aiSummary":"<2-3 HR recenice>","changeSummary":"<1 HR recenica vs prethodni>","catalysts":{$catsTpl},"warnings":{$catsTpl},"sentimentScore":{$sentimentTpl}}
 
-### Korak 1: WebSearch pretrage (obavezno izvrsi sve)
-Macro:
-  - "crypto fear greed index today site:alternative.me"
-  - "bitcoin dominance today percentage site:coinmarketcap.com"
-  - "stablecoin dominance USDT USDC today percentage"
-  - "DXY US dollar index today live"
-  - "crude oil WTI price today live"
-  - "Iran Israel war crypto markets today"
-  - "Fed FOMC meeting CPI inflation today crypto impact"
+## PRAVILA:
 
-Per-token vijesti (samo glavni, ostali iz konteksta):
-  - "Bitcoin BTC news today"
-  - "Ethereum ETH news today"
-  - "Solana SOL news today"
-  - "TRUMP MELANIA crypto news today"
-  - "Notcoin Pengu crypto news today"
+regime: BULL (BTC iznad SMA200, FG>55), BEAR (BTC ispod SMA200, FG<30), ALT_SEASON (BTC dom<45%), CRAB (sideways FG 35-55), VOLATILE (veliki swingovi), NEUTRAL (default)
 
-### Korak 2: Napisi JSON u: $JSON_PATH
+macroPenalty (zbroji u 0-6): +2 warActive, +2 DXY>108, +1 DXY 106-108, -1 DXY<100, +1 oil>110, +2 oil>125, +1 FG>75, -1 FG<20
 
-POLJA - svako direktno ulazi u signal engine:
+sentimentScore (-3 do +3): -3=SEC tuzba/hack, -2=regulatorni rizik, -1=FUD, 0=neutral, +1=mali update, +2=listing/proboj, +3=ETF/halving
 
-"fearGreed" (broj 0-100):
-  - 0-24 = Extreme Fear -> bullish kontrarian
-  - 25-49 = Fear
-  - 50-74 = Greed
-  - 75-100 = Extreme Greed -> bearish
+catalysts/warnings: max 65 znakova po vijesti.
 
-"regime" (jedna od ovih):
-  - "BULL"        BTC iznad SMA200, FG>55, altovi rastu
-  - "BEAR"        BTC ispod SMA200, FG<30
-  - "ALT_SEASON"  BTC dom < 45%, altovi outperformaju
-  - "CRAB"        sideways FG 35-55
-  - "VOLATILE"    veliki swingovi
-  - "NEUTRAL"     default
-
-"macroPenalty" (broj 0-6):
-  +2 ako warActive=true
-  +2 ako DXY>108, +1 ako 106-108
-  -1 ako DXY<100
-  +1 ako Oil>110, +2 ako >125
-  +1 ako fearGreed>75
-  -1 ako fearGreed<20
-  Zaokruzi rezultat u raspon 0-6
-
-"sentimentScore" za svaki token (broj -3 do +3):
-  +3 = izniman bullish (ETF, halving, jak partnership)
-  +2 = bullish (regulatorni proboj, listing na Binanceu)
-  +1 = blago pozitivno
-   0 = nema znacajnih vijesti
-  -1 = blago negativno
-  -2 = bearish (regulatorni rizik, manji hack)
-  -3 = jako bearish (SEC tuzba, veliki hack, ban)
-
-"catalysts" - lista bullish vijesti za svaki token (max 65 znakova)
-"warnings" - lista bearish vijesti/rizika za svaki token (max 65 znakova)
-"aiSummary" - 2-3 recenice NA HRVATSKOM (DXY, F&G, sto ocekivati)
-"changeSummary" - 1 recenica NA HRVATSKOM o promjenama (ako postoji prev kontekst)
-
-### Korak 3: Tocno ovaj JSON format (samo validni JSON, bez markdown):
-{
-  "lastUpdated": "<ISO timestamp>",
-  "warActive": <true ili false>,
-  "macroPenalty": <0-6>,
-  "oil": <broj>,
-  "dxy": <broj>,
-  "btcDom": <broj>,
-  "stableDom": <broj>,
-  "fearGreed": <0-100>,
-  "regime": "<BULL|BEAR|ALT_SEASON|CRAB|VOLATILE|NEUTRAL>",
-  "aiSummary": "<2-3 recenice HR>",
-  "changeSummary": "<1 recenica HR>",
-  "catalysts": { $catsTpl },
-  "warnings": { $catsTpl },
-  "sentimentScore": { $sentimentTpl }
-}
-
-VAZNO:
-- SAMO validan JSON u datoteku, bez markdown blokova ni komentara
-- SVI tokeni iz popisa u sentimentScore/catalysts/warnings (cak i ako prazno)
-- regime tocno jedan od 6 navedenih stringova
-- catalysts/warnings tekstovi max 65 znakova
-- sentimentScore brojevi (ne stringovi)
+## CILJ: TVOJA POSLJEDNJA AKCIJA MORA BITI POZIV WRITE TOOL-A.
 "@
 
 $claudeOk = Invoke-ClaudeAnalysis $PROMPT

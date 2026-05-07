@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.48</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.49</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -4453,8 +4453,7 @@ function applySettings(){
 // ── OPTIONS + VOLUME PROFILE + MACRO ─────────────────────────────
 function fetchOptions3D(){
   ["BTC","ETH","SOL"].forEach(function(sym){
-    fetch("https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency="+sym+"&kind=option")
-      .then(function(r){return r.json();})
+    safeFetch("https://www.deribit.com/api/v2/public/get_book_summary_by_currency?currency="+sym+"&kind=option")
       .then(function(d){
         if(!d||!d.result)return;
         var items=d.result;
@@ -4530,8 +4529,7 @@ function fetchVP3D(){
   allS.forEach(function(sym,idx){
     // Batchiranje: 5 tokena svake 500ms da ne bombardiramo API
     setTimeout(function(){
-    fetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1h&limit=200")
-      .then(function(r){return r.json();})
+    safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1h&limit=200")
       .then(function(data){
         if(!data||!data.length)return;
         var profile={},totalVol=0;
@@ -4718,8 +4716,7 @@ function fetchFuturesSignals(){
       // 1. FUTURES BASIS — spot vs perp razlika
       // Negativan basis (backwardation) = strah = kontrarian bullish
       // Visok pozitivan basis = greed = oprez
-      fetch("https://fapi.binance.com/fapi/v1/premiumIndex?symbol="+pair)
-        .then(function(r){return r.json();})
+      safeFetch("https://fapi.binance.com/fapi/v1/premiumIndex?symbol="+pair)
         .then(function(d){
           if(!d||!d.markPrice||!d.indexPrice)return;
           var mark=parseFloat(d.markPrice),index=parseFloat(d.indexPrice);
@@ -4728,13 +4725,12 @@ function fetchFuturesSignals(){
           futuresData[sym].basis=basis;
           futuresData[sym].basisTrend=basis<-0.05?"BACKWARDATION":basis>0.1?"CONTANGO_HIGH":basis>0.03?"CONTANGO":"FLAT";
           lastRefresh.futures=Date.now();
-        }).catch(function(){});
+        });
 
       // 2. LONG/SHORT RATIO — omjer long vs short pozicija
       // < 0.8 = previše shortova = kontrarian BUY (jako pouzdan signal)
       // > 2.5 = previše longova = oprez, squeeze moguć
-      fetch("https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol="+pair+"&period=1h&limit=2")
-        .then(function(r){return r.json();})
+      safeFetch("https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol="+pair+"&period=1h&limit=2")
         .then(function(d){
           if(!d||!d.length)return;
           var latest=d[d.length-1],prev=d[0];
@@ -4744,20 +4740,19 @@ function fetchFuturesSignals(){
           if(!futuresData[sym])futuresData[sym]={};
           futuresData[sym].lsRatio=+ratio.toFixed(3);
           futuresData[sym].lsTrend=trend;
-        }).catch(function(){});
+        });
 
       // 3. TAKER BUY/SELL RATIO — agresivni kupci vs prodavači
       // Taker ratio < 0.8 = agresivno prodavanje = panic = kontrarian bottom signal
       // Taker ratio > 1.3 = agresivna kupnja = momentum potvrda
-      fetch("https://fapi.binance.com/futures/data/takerlongshortRatio?symbol="+pair+"&period=1h&limit=6")
-        .then(function(r){return r.json();})
+      safeFetch("https://fapi.binance.com/futures/data/takerlongshortRatio?symbol="+pair+"&period=1h&limit=6")
         .then(function(d){
           if(!d||!d.length)return;
           // Uzmi prosjek zadnjih 6h za stabilniji signal
           var avg=d.reduce(function(s,x){return s+parseFloat(x.buySellRatio);},0)/d.length;
           if(!futuresData[sym])futuresData[sym]={};
           futuresData[sym].takerRatio=+avg.toFixed(3);
-        }).catch(function(){});
+        });
 
     },idx*400);
   });
@@ -4920,8 +4915,7 @@ function fetchPolymarket(){
 
 // ── SVE FUNDING RATES — jedan REST poziv, svi futures tokeni ────────
 function fetchAllFundingRates(){
-  fetch("https://fapi.binance.com/fapi/v1/premiumIndex")
-    .then(function(r){return r.json();})
+  safeFetch("https://fapi.binance.com/fapi/v1/premiumIndex")
     .then(function(data){
       if(!Array.isArray(data))return;
       data.forEach(function(d){
@@ -4966,8 +4960,7 @@ function fetchTopTraderRatio(){
   var syms=["BTC","ETH","XRP","SOL","BNB","ADA","LINK","AVAX","DOGE","SUI"];
   syms.forEach(function(sym,idx){
     setTimeout(function(){
-      fetch("https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol="+sym+"USDT&period=1h&limit=4")
-        .then(function(r){return r.json();})
+      safeFetch("https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol="+sym+"USDT&period=1h&limit=4")
         .then(function(d){
           if(!d||!d.length)return;
           var latest=d[d.length-1];
@@ -4976,7 +4969,7 @@ function fetchTopTraderRatio(){
             longPct:+parseFloat(latest.longAccount).toFixed(3),
             shortPct:+parseFloat(latest.shortAccount).toFixed(3)
           };
-        }).catch(function(){});
+        });
     },idx*350);
   });
 }
@@ -5072,8 +5065,7 @@ function fetchLiqHeatmap(){
   var fSyms=["BTC","ETH","SOL","XRP","BNB","ADA","LINK","AVAX","DOGE","SUI","NEAR","DOT","UNI","ATOM","OP"];
   fSyms.forEach(function(sym,idx){
     setTimeout(function(){
-      fetch("https://fapi.binance.com/fapi/v1/premiumIndex?symbol="+sym+"USDT")
-        .then(function(r){return r.json();})
+      safeFetch("https://fapi.binance.com/fapi/v1/premiumIndex?symbol="+sym+"USDT")
         .then(function(d){
           if(!d||!d.markPrice)return;
           var mark=parseFloat(d.markPrice);
@@ -5139,8 +5131,7 @@ function fetch4hTA(){
   allS.forEach(function(sym,idx){
     setTimeout(function(){
       // 4h klines — 60 svjećica = 10 dana povijesti
-      fetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=4h&limit=80")
-        .then(function(r){return r.json();})
+      safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=4h&limit=80")
         .then(function(data){
           if(!data||data.length<50)return;
           var closes=data.map(function(k){return parseFloat(k[4]);});
@@ -5150,11 +5141,10 @@ function fetch4hTA(){
           // Wyckoff na 4h — pouzdaniji za swing trading
           var wy4=detectWyckoff(closes,vols4h);
           if(wy4)wyckoff4h[sym]=wy4;
-        }).catch(function(){});
+        });
       // Daily klines — 220 svjećica za BTC (treba 200 za SMA200), 60 za ostale
       var dailyLimit=(sym==="BTC")?220:60;
-      fetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1d&limit="+dailyLimit)
-        .then(function(r){return r.json();})
+      safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1d&limit="+dailyLimit)
         .then(function(data){
           if(!data||data.length<50)return;
           var closes=data.map(function(k){return parseFloat(k[4]);});
@@ -5176,23 +5166,21 @@ function fetchOrderBooks(){
   var allS2=TOP100.concat(MEME_SYMS.filter(function(s){return TOP100.indexOf(s)<0;}));
   allS2.forEach(function(sym,idx){
     setTimeout(function(){
-    fetch("https://api.binance.com/api/v3/depth?symbol="+sym+"USDT&limit=20")
-      .then(function(r){return r.json();})
+    safeFetch("https://api.binance.com/api/v3/depth?symbol="+sym+"USDT&limit=20")
       .then(function(d){
         if(!d||!d.bids||!d.asks)return;
         var bidVol=d.bids.reduce(function(s,b){return s+parseFloat(b[0])*parseFloat(b[1]);},0);
         var askVol=d.asks.reduce(function(s,a){return s+parseFloat(a[0])*parseFloat(a[1]);},0);
         var ratio=askVol>0?+(bidVol/askVol).toFixed(2):1;
         orderBook[sym]={bidAskRatio:ratio,bullish:ratio>1.25,bearish:ratio<0.75};
-      }).catch(function(){});
+      });
     },idx*200); // stagger: 200ms po tokenu
   });
 }
 
 // ── LOAD TOP 100 (CoinGecko → inicijalizira tokene + WS) ─────────
 function loadTop100(){
-  fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=7d,30d")
-    .then(function(r){return r.json();})
+  safeFetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=7d,30d")
     .then(function(data){
       if(!data||!data.length)return;
       var syms=[];
@@ -5235,39 +5223,36 @@ function loadTop100(){
 
 function fetchEurUsd(){
   // EUR/USD kao proxy za USD snagu u scoring signalima
-  fetch("https://api.frankfurter.app/latest?from=USD&to=EUR")
-    .then(function(r){return r.json();})
+  safeFetch("https://api.frankfurter.app/latest?from=USD&to=EUR")
     .then(function(d){
       if(!d||!d.rates||!d.rates.EUR)return;
       var eurUsd=+(1/d.rates.EUR).toFixed(4);
       dxyData.eurUsd=eurUsd;
       dxyData.bullish=eurUsd>1.07; // >1.07 = relativno slabiji USD
-    }).catch(function(){});
+    });
 }
 
 function fetchMacro3D(){
   // oil i dxyPressure sada dolaze iz MACRO objekta direktno (uklonjena duplikacija)
-  fetch("https://api.binance.com/api/v3/ticker/24hr?symbol=PAXGUSDT")
-    .then(function(r){return r.json();})
+  safeFetch("https://api.binance.com/api/v3/ticker/24hr?symbol=PAXGUSDT")
     .then(function(d){
       if(d&&d.lastPrice){
         macroAssets.gold=parseFloat(d.lastPrice);
         var btcP=px["BTC"]?px["BTC"].p:0;
         if(btcP&&macroAssets.gold)macroAssets.btcGoldRatio=+(btcP/macroAssets.gold).toFixed(4);
       }
-    }).catch(function(){});
+    });
 }
 
 // ── FEAR & GREED (alternative.me) ────────────────────────────────
 function fetchFearGreed(){
-  fetch("https://api.alternative.me/fng/?limit=1")
-    .then(function(r){return r.json();})
+  safeFetch("https://api.alternative.me/fng/?limit=1")
     .then(function(d){
       if(d&&d.data&&d.data[0]){
         var val=parseInt(d.data[0].value);
         if(!isNaN(val)){MACRO.fg=val;lastRefresh.fg=Date.now();}
       }
-    }).catch(function(){});
+    });
 }
 
 // ── RELATIVNA SNAGA vs BTC ───────────────────────────────────────
@@ -5360,8 +5345,7 @@ function runBacktest(){
   var btSyms=["BTC","ETH","SOL","XRP","BNB","ADA","LINK","AVAX","SUI","DOGE"];
   btSyms.forEach(function(sym,idx){
     setTimeout(function(){
-      fetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1d&limit=120")
-        .then(function(r){return r.json();})
+      safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1d&limit=120")
         .then(function(data){
           if(!data||data.length<30)return;
           var closes=data.map(function(k){return parseFloat(k[4]);});
@@ -5423,8 +5407,7 @@ function runSignalBacktest(){
   }
   btSyms.forEach(function(sym,idx){
     setTimeout(function(){
-      fetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1d&limit=120")
-        .then(function(r){return r.json();})
+      safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1d&limit=120")
         .then(function(data){
           if(data&&data.length>=30)allData[sym]=data;
           tryProcess();
@@ -5549,8 +5532,7 @@ function processSignalBacktest(allData){
 // ── BTC DOMINANCE LIVE (CoinGecko /global) ───────────────────────
 // Zamjena za hardkodirani MACRO.btcDom — dohvaća stvarne živuće podatke
 function fetchBTCDom(){
-  fetch("https://api.coingecko.com/api/v3/global")
-    .then(function(r){return r.json();})
+  safeFetch("https://api.coingecko.com/api/v3/global")
     .then(function(d){
       if(!d||!d.data||!d.data.market_cap_percentage)return;
       var mcp=d.data.market_cap_percentage;
@@ -5630,8 +5612,7 @@ function fetchMacroContext(manual){
     if(txt)txt.textContent="🤖 Osvježavam…";
     if(wrap)wrap.style.display="flex";
   }
-  fetch("https://raw.githubusercontent.com/pajdo2/alphadesk/main/macro-context.json?t="+Date.now())
-    .then(function(r){if(!r.ok)throw new Error("no file");return r.json();})
+  safeFetch("https://raw.githubusercontent.com/pajdo2/alphadesk/main/macro-context.json?t="+Date.now())
     .then(function(d){
       if(!d)return;
       if(d.warActive!=null)MACRO.warActive=d.warActive;
@@ -5776,14 +5757,12 @@ function fetchOpenInterest(){
   fSyms.forEach(function(sym,idx){
     setTimeout(function(){
       // Trenutni OI
-      fetch("https://fapi.binance.com/fapi/v1/openInterest?symbol="+sym+"USDT")
-        .then(function(r){return r.json();})
+      safeFetch("https://fapi.binance.com/fapi/v1/openInterest?symbol="+sym+"USDT")
         .then(function(cur){
           if(!cur||!cur.openInterest)return;
           var curOI=parseFloat(cur.openInterest);
           // Povijesni OI (zadnjih 24h, 1h interval)
-          fetch("https://fapi.binance.com/futures/data/openInterestHist?symbol="+sym+"USDT&period=1h&limit=25")
-            .then(function(r2){return r2.json();})
+          safeFetch("https://fapi.binance.com/futures/data/openInterestHist?symbol="+sym+"USDT&period=1h&limit=25")
             .then(function(hist2){
               if(!hist2||!hist2.length)return;
               var oldOI=parseFloat(hist2[0].sumOpenInterest)||curOI;
@@ -5791,8 +5770,8 @@ function fetchOpenInterest(){
               var trend=oiChg>5?"RISING_FAST":oiChg>2?"RISING":oiChg<-5?"FALLING_FAST":oiChg<-2?"FALLING":"FLAT";
               openInterest[sym]={oiChange24h:oiChg,trend:trend,ts:Date.now()};
               lastRefresh.oi=Date.now();
-            }).catch(function(){});
-        }).catch(function(){});
+            });
+        });
     },idx*300);
   });
 }

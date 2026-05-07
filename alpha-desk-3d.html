@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.50</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.51</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -387,6 +387,61 @@ svg.sp{overflow:visible;display:block}
 <script>
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+
+// ── STATE API — centralizirano upravljanje localStorage ───────────
+// Zamjena za 8+ razbacanih sitnih kljuceva (UI flagovi).
+// Veliki data kljucevi (ad3d_track, ad3d_weights, ad3d_apikeys, ad3d_s, ad3d_errors)
+// ostaju zasebni — frequent UI mutations ne diraju njihov payload.
+var STATE_VERSION = 2;
+var stateAPI = {
+  ui: {
+    _cache: null,
+    _read: function(){
+      if(this._cache===null){
+        try{this._cache = JSON.parse(localStorage.getItem("ad3d_ui")||"{}");}
+        catch(e){this._cache = {};}
+      }
+      return this._cache;
+    },
+    _write: function(){
+      try{localStorage.setItem("ad3d_ui", JSON.stringify(this._cache));}catch(e){}
+    },
+    isOpen: function(key){return !!this._read()[key];},
+    set: function(key, val){this._read()[key] = !!val; this._write();},
+    toggle: function(key){
+      var u = this._read();
+      u[key] = !u[key];
+      this._write();
+      return u[key];
+    }
+  },
+  migrate: function(){
+    if(localStorage.getItem("ad3d_v")===String(STATE_VERSION))return;
+    var ui = this.ui._read();
+    var migratedCount = 0;
+    ["ad3d_rec_open","ad3d_ana_open","ad3d_more","ad3d_poly_open",
+     "ad3d_grp_act","ad3d_grp_hit","ad3d_grp_mis"].forEach(function(k){
+      var v = localStorage.getItem(k);
+      if(v!==null){
+        ui[k.replace("ad3d_","")] = (v==="1"||v==="true");
+        localStorage.removeItem(k); migratedCount++;
+      }
+    });
+    ["ulaz","watch","meme"].forEach(function(t){
+      var k = "ad3d_sp_"+t;
+      var v = localStorage.getItem(k);
+      if(v!==null){
+        ui["sp_"+t] = (v!=="0");
+        localStorage.removeItem(k); migratedCount++;
+      }
+    });
+    this.ui._cache = ui;
+    this.ui._write();
+    localStorage.setItem("ad3d_v", String(STATE_VERSION));
+  }
+};
+try{ stateAPI.migrate(); }catch(e){}
+
 function showToast(msg,isErr){
   var t=document.getElementById("toast");
   if(!t)return;
@@ -3231,8 +3286,9 @@ function renderMiniSuccessChart(sorted){
 // tabKey: "ulaz" | "watch" | "meme"
 // Filtriranje: ulaz=svi non-meme tradovi, watch=autoSource watch, meme=type meme
 function renderTabSuccessPanel(tabKey){
-  var lsKey="ad3d_sp_"+tabKey;
-  var open=lsGet(lsKey)!=="0";
+  var spKey="sp_"+tabKey;
+  // Default = open (true); samo eksplicitno false znaci closed
+  var open=stateAPI.ui._read()[spKey]!==false;
   var closed=predTracker.filter(function(p){return p.status!=="AKTIVAN";});
   var preds;
   if(tabKey==="meme")  preds=closed.filter(function(p){return p.type==="meme";});
@@ -3252,7 +3308,7 @@ function renderTabSuccessPanel(tabKey){
 
   var h='<div style="margin-top:18px;border-top:.5px solid var(--sep2);padding-top:14px">';
   // Collapsible header
-  h+='<div onclick="(function(){var v=localStorage.getItem(\''+lsKey+'\')!==\'0\';localStorage.setItem(\''+lsKey+'\',v?\'0\':\'1\');render();})()" ';
+  h+='<div onclick="(function(){var u=stateAPI.ui._read();u[\''+spKey+'\']=u[\''+spKey+'\']===false;stateAPI.ui._write();render();})()" ';
   h+='style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:'+(open?'10':'0')+'px;user-select:none">';
   h+='<div style="display:flex;align-items:center;gap:8px">';
   h+='<span style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">📊 Uspješnost — '+tabLabel+'</span>';
@@ -3742,10 +3798,12 @@ function rTracker(){
 
     // ── 4. EXPANDABLE GRUPE ────────────────────────────────────────
     function grpSection(openKey,icon,label,count,col,innerFn){
-      var open=lsGet(openKey)==="1";
+      // openKey moze biti staru "ad3d_grp_act" ili novi short "grp_act" — normalize
+      var shortKey=openKey.replace(/^ad3d_/,"");
+      var open=stateAPI.ui.isOpen(shortKey);
       var br=open?'12px 12px 0 0':'12px';
       var g='<div style="margin-bottom:6px">';
-      g+='<button onclick="lsSet(\''+openKey+'\',\''+(open?"0":"1")+'\');render()" style="width:100%;padding:11px 14px;background:var(--s1);border:.5px solid '+(open?col+'55':'var(--sep)')+';border-radius:'+br+';display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit">';
+      g+='<button onclick="stateAPI.ui.toggle(\''+shortKey+'\');render()" style="width:100%;padding:11px 14px;background:var(--s1);border:.5px solid '+(open?col+'55':'var(--sep)')+';border-radius:'+br+';display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit">';
       g+='<span style="font-size:14px">'+icon+'</span>';
       g+='<span style="font-size:12px;font-weight:700;color:'+(open?col:'var(--t2)')+'">'+label+'</span>';
       g+='<span style="font-size:11px;font-weight:900;color:'+col+';background:'+col+'18;border-radius:8px;padding:2px 8px;margin-left:2px">'+count+'</span>';
@@ -3790,9 +3848,9 @@ function rTracker(){
     h+='</div>';
 
     // ── 5. PREPORUKA — sklopiva ────────────────────────────────────
-    var recOpen=lsGet("ad3d_rec_open")==="1";
+    var recOpen=stateAPI.ui.isOpen("rec_open");
     h+='<div style="margin-top:6px">';
-    h+='<button onclick="lsSet(\'ad3d_rec_open\',\''+(recOpen?"0":"1")+'\');render()" class="collapse-btn'+(recOpen?' open':'')+'">';
+    h+='<button onclick="stateAPI.ui.toggle(\'rec_open\');render()" class="collapse-btn'+(recOpen?' open':'')+'">';
     h+='<span class="txt-t2" style="font-size:12px;font-weight:var(--fw-x)">💡 Preporuka ulaganja</span>';
     h+='<span class="txt-t4" style="font-size:11px">'+(recOpen?"▲ Sakrij":"▾ Prikaži")+'</span>';
     h+='</button>';
@@ -3800,9 +3858,9 @@ function rTracker(){
     h+='</div>';
 
     // ── 6. ANALITIKA — sklopiva (detaljna analiza, kelly, backtest) ─
-    var anaOpen=lsGet("ad3d_ana_open")==="1";
+    var anaOpen=stateAPI.ui.isOpen("ana_open");
     h+='<div style="margin-top:6px">';
-    h+='<button onclick="lsSet(\'ad3d_ana_open\',\''+(anaOpen?"0":"1")+'\');render()" class="collapse-btn'+(anaOpen?' open':'')+'">';
+    h+='<button onclick="stateAPI.ui.toggle(\'ana_open\');render()" class="collapse-btn'+(anaOpen?' open':'')+'">';
     h+='<span class="txt-t2" style="font-size:12px;font-weight:var(--fw-x)">📊 Analitika & Detalji</span>';
     h+='<span class="txt-t4" style="font-size:11px">'+(anaOpen?"▲ Sakrij":"▾ Prikaži")+'</span>';
     h+='</button>';
@@ -4162,8 +4220,8 @@ function render(){
     h+='</div>';
 
     // ── 3. "VIŠE" expand — sve sekundarno (macro detalji, AI, legenda) ──
-    var moreOpen=lsGet("ad3d_more")==="1";
-    h+='<button onclick="lsSet(\'ad3d_more\',\''+(moreOpen?"0":"1")+'\');render()" class="collapse-btn" style="margin-bottom:'+(moreOpen?"10":"14")+'px">';
+    var moreOpen=stateAPI.ui.isOpen("more");
+    h+='<button onclick="stateAPI.ui.toggle(\'more\');render()" class="collapse-btn" style="margin-bottom:'+(moreOpen?"10":"14")+'px">';
     h+='<span class="txt-t3" style="font-size:11px;font-weight:var(--fw-b)">📊 Macro detalji & AI sažetak</span>';
     h+='<span class="txt-t4" style="font-size:11px">'+(moreOpen?"▲":"▾")+'</span>';
     h+='</button>';
@@ -4304,7 +4362,7 @@ function render(){
 
   // ── POLYMARKET PANEL — Pregled tab, sklopiv ──────────────────────
   if(isPregled){
-    var polyOpen=lsGet("ad3d_poly_open")==="1";
+    var polyOpen=stateAPI.ui.isOpen("poly_open");
     var allPolyMarkets=[];
     Object.keys(polyData).forEach(function(sym){
       polyData[sym].forEach(function(m){
@@ -4314,7 +4372,7 @@ function render(){
     });
     allPolyMarkets.sort(function(a,b){return b.volume-a.volume;});
     var topMarkets=allPolyMarkets.slice(0,8);
-    h+='<button onclick="lsSet(\'ad3d_poly_open\',\''+(polyOpen?"0":"1")+'\');render()" class="collapse-btn" style="margin-bottom:'+(polyOpen?"10":"14")+'px">';
+    h+='<button onclick="stateAPI.ui.toggle(\'poly_open\');render()" class="collapse-btn" style="margin-bottom:'+(polyOpen?"10":"14")+'px">';
     h+='<span class="row" style="gap:8px"><span class="chip chip-info" style="background:rgba(129,140,248,.15);color:#818cf8;border-color:rgba(129,140,248,.3)">📊 POLYMARKET</span><span class="txt-t3" style="font-size:11px">Prediction Markets ('+topMarkets.length+')</span></span>';
     h+='<span class="txt-t4" style="font-size:11px">'+(polyOpen?"▲":"▾")+'</span>';
     h+='</button>';

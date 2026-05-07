@@ -117,6 +117,35 @@ function Invoke-ClaudeAnalysis {
 $sentimentTpl = ($ALL_TOKENS | ForEach-Object { '"' + $_ + '": 0' }) -join ', '
 $catsTpl = ($ALL_TOKENS | ForEach-Object { '"' + $_ + '": []' }) -join ', '
 
+# 1c. PREPISI JSON S ISPRAVNIM TEMPLATE-OM ==========================
+# KLJUCNO: Claude Read-a postojeci JSON i nasljeđuje strukturu.
+# Ako prethodni JSON ima pogresne fieldove (npr. "prices" objekt umjesto top-level dxy),
+# Claude ce nastaviti s tom strukturom. Zato OVDJE prepisujemo s ispravnim template-om
+# kako bi Claude samo trebao POPUNITI vrijednosti.
+Write-Log "[1c] Prepisivanje JSON-a s ispravnim template-om..."
+$skeletonJson = @{
+    lastUpdated = "PLACEHOLDER_ISO"
+    warActive = $false
+    macroPenalty = 0
+    oil = 0
+    dxy = 0
+    btcDom = 0
+    stableDom = 0
+    fearGreed = 50
+    regime = "NEUTRAL"
+    aiSummary = "PLACEHOLDER"
+    changeSummary = "PLACEHOLDER"
+    catalysts = @{}
+    warnings = @{}
+    sentimentScore = @{}
+}
+foreach ($t in $ALL_TOKENS) {
+    $skeletonJson.catalysts[$t] = @()
+    $skeletonJson.warnings[$t] = @()
+    $skeletonJson.sentimentScore[$t] = 0
+}
+$skeletonJson | ConvertTo-Json -Depth 10 | Out-File -FilePath $JSON_PATH -Encoding utf8
+
 # 2. CLAUDE ANALIZA =================================================
 Write-Log "[2/6] Claude analizira trziste..."
 
@@ -124,42 +153,34 @@ $today = Get-Date -Format "yyyy-MM-dd"
 $tokenListStr = $ALL_TOKENS -join ", "
 
 $PROMPT = @"
-ZADATAK: Azuriraj macro-context.json za crypto trading dashboard.
+ZADATAK: Popuni vrijednosti u macro-context.json. Datoteka VEC POSTOJI s ispravnom strukturom — NE MIJENJAJ STRUKTURU, samo popuni placeholder vrijednosti.
 
-Tokeni: $tokenListStr
+Tokeni za sentimentScore: $tokenListStr
 Datum: $today
 
 ## KORACI:
 
-1. **Read tool**: $JSON_PATH
-2. **WebSearch**: bitcoin price today, fear greed index today, DXY dollar index today, bitcoin dominance today, crypto news today
+1. **Read tool**: $JSON_PATH (vidjet ces template s placeholder vrijednostima)
+2. **WebSearch**: bitcoin price today
+3. **WebSearch**: crypto fear greed index today
+4. **WebSearch**: DXY dollar index today
+5. **WebSearch**: bitcoin dominance today
+6. **WebSearch**: crypto news today
 $PREV_CONTEXT
-3. **Write tool**: file_path = "$JSON_PATH"
+7. **Write tool**: file_path = "$JSON_PATH"
 
-## OBAVEZNI JSON FORMAT (TOCNO ova polja, nista dodatno, nista manjkavo):
+## KLJUCNO PRAVILO: Datoteka koju citas IMA TOCAN FORMAT. Tvoj zadatak je samo POPUNITI vrijednosti, NE mijenjati strukturu.
 
-{
-  "lastUpdated": "<ISO now>",
-  "warActive": <true|false>,
-  "macroPenalty": <broj 0-6>,
-  "oil": <broj>,
-  "dxy": <broj>,
-  "btcDom": <broj 0-100>,
-  "stableDom": <broj>,
-  "fearGreed": <broj 0-100>,
-  "regime": "<BULL|BEAR|ALT_SEASON|CRAB|VOLATILE|NEUTRAL>",
-  "aiSummary": "<2-3 hrvatske recenice>",
-  "changeSummary": "<1 hrvatska recenica o promjenama>",
-  "catalysts": {$catsTpl},
-  "warnings": {$catsTpl},
-  "sentimentScore": {$sentimentTpl}
-}
+NE smijes:
+- Dodavati nova top-level polja (npr. "prices", "macro", "fed_policy") — STRUKTURA SE NE MIJENJA
+- Pretvarati changeSummary u objekt — to je STRING (1 hrvatska recenica)
+- Mijenjati tipove (fearGreed je BROJ, regime je STRING)
+- Brisati postojeca polja (sva top-level polja iz template-a moraju ostati)
 
-## STROGO PRIDRZAVAJ SE FORMATA:
-- DXY, fearGreed, regime, sentimentScore SU OBAVEZNI top-level brojevi/string (ne objekti, ne stringovi za brojeve)
-- changeSummary JE STRING (1 recenica), NE objekt
-- NE dodaj dodatna polja (npr. "prices", "macro", "changeSummary kao objekt") — app ih ignorira i lomi parsing
-- sentimentScore mora imati SVE tokene iz popisa, kao brojeve od -3 do 3
+Smijes:
+- Mijenjati VRIJEDNOSTI placeholder polja (PLACEHOLDER_ISO -> stvarni timestamp itd.)
+- Dodavati elemente u nizove unutar catalysts/warnings (max 65 znakova svaki)
+- Mijenjati brojeve u sentimentScore (od -3 do +3)
 
 ## PRAVILA ZA VRIJEDNOSTI:
 
@@ -169,9 +190,11 @@ macroPenalty (zbroji u 0-6): +2 warActive, +2 DXY>108, +1 DXY 106-108, -1 DXY<10
 
 sentimentScore (-3..+3): -3=SEC/hack, -2=regulatorni rizik, -1=FUD, 0=neutral, +1=update, +2=listing/proboj, +3=ETF/halving
 
-catalysts/warnings: max 65 znakova po vijesti, hrvatski.
+aiSummary: 2-3 hrvatske recenice (DXY, F&G, sto ocekivati)
+changeSummary: TOCNO 1 hrvatska recenica - kakva je promjena vs prethodni JSON
+catalysts/warnings: max 65 znakova po stavki, hrvatski
 
-## CILJ: ZADNJA AKCIJA = WRITE TOOL S FORMATOM IZNAD.
+## CILJ: Pozovi Write tool s ISTOM strukturom kao u Read-u, ali popunjenim stvarnim vrijednostima iz pretrage.
 "@
 
 $claudeOk = Invoke-ClaudeAnalysis $PROMPT

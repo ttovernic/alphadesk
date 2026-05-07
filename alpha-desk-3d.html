@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.49</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.50</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -5723,7 +5723,7 @@ fetch4hTA();
 fetchFuturesSignals();
 fetchAllFundingRates(); // svi funding rates odjednom (sve futures parove)
 setTimeout(fetchCoinbasePremium, 5000); // CB Premium 5s nakon starta (nakon BTC px)
-setInterval(fetchCoinbasePremium, 60000); // refresh svake minute
+// (svaka minuta refresh je sad u scheduler-u)
 // Order book L2 — top 15 tokena svake 2 minute
 function fetchAllOrderbooks(){
   var topSyms=TOP100.slice(0,15);
@@ -5734,8 +5734,7 @@ function fetchAllOrderbooks(){
   });
 }
 setTimeout(fetchAllOrderbooks, 8000);
-setInterval(fetchAllOrderbooks, 120000);
-setInterval(fetchAllFundingRates, 30*60*1000); // funding history sample svakih 30min
+// (fetchAllOrderbooks i fundingHistory su sad u scheduler-u)
 fetchTopTraderRatio();  // institucijski L/S ratio — pametan novac
 fetchNetflow();         // exchange netflow — samo ako CryptoQuant API key dostupan
 fetchSocialData();      // social sentiment — samo ako LunarCrush API key dostupan
@@ -5776,31 +5775,67 @@ function fetchOpenInterest(){
   });
 }
 
-setInterval(fetchOptions3D, 600000);   // svako 10 min
-setInterval(fetchVP3D, 600000);        // svako 10 min (batched za 100 tokena)
-setInterval(fetchMacro3D, 120000);     // svako 2 min
-setInterval(fetchFearGreed, 300000);   // svako 5 min
-setInterval(fetchMacroContext, 600000);// svako 10 min
-setInterval(fetchOrderBooks, 300000);  // svako 5 min (batched)
-setInterval(loadTop100, 900000);       // svako 15 min — osvježi top 100 + CoinGecko podaci
-setInterval(fetchEurUsd, 1800000);     // svako 30 min — EUR/USD proxy za scoring
-setInterval(fetchDXY, 1800000);        // svako 30 min
-setInterval(fetchOpenInterest, 600000);    // svako 10 min
-setInterval(fetch4hTA, 1800000);           // svako 30 min (4h+daily sporije se mijenjaju)
-setInterval(fetchBTCDom, 900000);          // svako 15 min — BTC dominance + stablecoin dom
-setInterval(fetchOilPrice, 1800000);       // svako 30 min — WTI nafta
-setInterval(fetchFuturesSignals, 300000);  // svako 5 min (basis/LS/taker brzo se mijenjaju)
-setInterval(fetchAllFundingRates, 300000); // svako 5 min — funding rates svih tokena
-setInterval(fetchTopTraderRatio, 600000);  // svako 10 min — institucijski L/S
-setInterval(fetchSPX, 1800000);            // svako 30 min — SPX macro korelacija
-setInterval(fetchNetflow, 600000);         // svako 10 min — exchange netflow (ako key)
-setInterval(fetchSocialData, 900000);      // svako 15 min — social sentiment (ako key)
-setInterval(fetchPolymarket, 900000);      // svako 15 min — Polymarket prediction markets
-setInterval(fetchNewsData, 900000);        // svako 15 min — CryptoPanic news sentiment
-setInterval(fetchLiqHeatmap, 600000);      // svako 10 min — likvidacijske zone
-setInterval(runBacktest, 3600000);         // svako 60 min — backtest engine (sporo, skupo)
-setInterval(runSignalBacktest, 3600000);   // svako 60 min — signal atribucija backtest
-setInterval(computeRelStrength, 60000);   // svako 1 min — relative strength vs BTC (ovisi o WS cijenama)
+// ── TICK SCHEDULER — centralizirani timer za sve data fetch-e ─────
+// Zamjena za 25+ razbacanih setInterval-a. Master tick svakih 30s.
+// Svaki task ima ime, interval (sec) i fn — ako fn baci, automatski log.
+var scheduler = {
+  tasks: [],
+  add: function(name, sec, fn){
+    // Dodaj jitter na lastRun da inicijalno staggera prve runove (ne svi odjednom)
+    var jitter = Math.random() * sec * 1000 * 0.3; // do 30% interval-a
+    this.tasks.push({name:name, sec:sec, lastRun:Date.now()-jitter, fn:fn});
+  },
+  tick: function(){
+    var now = Date.now();
+    this.tasks.forEach(function(t){
+      if(now - t.lastRun >= t.sec * 1000){
+        try{ t.fn(); }
+        catch(e){ if(typeof logError==='function') logError("sched:"+t.name, e); }
+        t.lastRun = now;
+      }
+    });
+  },
+  // Debug: koliko se task ceka do sljedeceg run-a
+  status: function(){
+    var now = Date.now();
+    return this.tasks.map(function(t){
+      var nextSec = t.sec - Math.floor((now-t.lastRun)/1000);
+      return {name:t.name, intervalSec:t.sec, nextRunIn:Math.max(0,nextSec)};
+    });
+  }
+};
+// Master tick svakih 30s (provjera, ne pokretanje svega)
+setInterval(function(){ scheduler.tick(); }, 30000);
+
+// Registracija svih data taskova (interval u sekundama):
+scheduler.add("options3D",       600, fetchOptions3D);          // 10 min
+scheduler.add("vp3D",            600, fetchVP3D);               // 10 min
+scheduler.add("macro3D",         120, fetchMacro3D);            // 2 min
+scheduler.add("fearGreed",       300, fetchFearGreed);          // 5 min
+scheduler.add("macroContext",    600, fetchMacroContext);       // 10 min
+scheduler.add("orderBooks",      300, fetchOrderBooks);         // 5 min
+scheduler.add("top100",          900, loadTop100);              // 15 min
+scheduler.add("eurUsd",         1800, fetchEurUsd);             // 30 min
+scheduler.add("dxy",            1800, fetchDXY);                // 30 min
+scheduler.add("openInterest",    600, fetchOpenInterest);       // 10 min
+scheduler.add("ta4h",           1800, fetch4hTA);               // 30 min
+scheduler.add("btcDom",          900, fetchBTCDom);             // 15 min
+scheduler.add("oilPrice",       1800, fetchOilPrice);           // 30 min
+scheduler.add("futuresSignals",  300, fetchFuturesSignals);     // 5 min
+scheduler.add("fundingRates",    300, fetchAllFundingRates);    // 5 min
+scheduler.add("topTraderRatio",  600, fetchTopTraderRatio);     // 10 min
+scheduler.add("spx",            1800, fetchSPX);                // 30 min
+scheduler.add("netflow",         600, fetchNetflow);            // 10 min
+scheduler.add("social",          900, fetchSocialData);         // 15 min
+scheduler.add("polymarket",      900, fetchPolymarket);         // 15 min
+scheduler.add("news",            900, fetchNewsData);           // 15 min
+scheduler.add("liqHeatmap",      600, fetchLiqHeatmap);         // 10 min
+scheduler.add("backtest",       3600, runBacktest);             // 60 min
+scheduler.add("signalBacktest", 3600, runSignalBacktest);       // 60 min
+scheduler.add("relStrength",      60, computeRelStrength);      // 1 min
+scheduler.add("coinbasePremium",  60, fetchCoinbasePremium);    // 1 min
+scheduler.add("orderbooksL2",    120, fetchAllOrderbooks);      // 2 min
+scheduler.add("fundingHistory", 1800, fetchAllFundingRates);    // 30 min — sample history
 // ── BACKGROUND AUTO-TRACK (neovisno o aktivnom tabu) ─────────────
 function backgroundAutoTrack(){
   var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
@@ -5840,14 +5875,19 @@ function backgroundAutoTrack(){
 })();
 
 syncFromGH(function(){render();}); // učitaj sa GitHuba pri startu, pa renderiraj
-// Svakih 5 min povuci promjene s GitHuba (sinkronizacija između uređaja)
-setInterval(function(){
+
+// Render je vrlo cest (10s) — ostaje kao native setInterval (UI responsiveness)
+setInterval(render, 10000);
+
+// Ostali interni taskovi idu u scheduler:
+scheduler.add("syncFromGH", 300, function(){
   syncFromGH(function(){if(activeFilter==="tracker")render();});
-},300000);
-setInterval(render,10000);
-setInterval(backgroundAutoTrack, 120000); // svako 2 min, neovisno o tabu
-setInterval(refreshWeights, 1800000);    // rekalibracija težina svako 30 min
-setInterval(function(){if(autoClosePreds()&&activeFilter==="tracker")render();},60000);
+});
+scheduler.add("autoTrack",  120, backgroundAutoTrack);
+scheduler.add("weights",   1800, refreshWeights);
+scheduler.add("autoClose",   60, function(){
+  if(autoClosePreds()&&activeFilter==="tracker")render();
+});
 // Retroaktivno zatvori stare predikcije nakon 8s (WS treba vremena za cijene)
 setTimeout(function(){if(autoClosePreds()){syncToGH();if(activeFilter==="tracker")render();}},8000);
 </script>

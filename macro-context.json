@@ -1,7 +1,7 @@
-﻿{
-    "dxy":  0,
-    "changeSummary":  "PLACEHOLDER",
-    "lastUpdated":  "PLACEHOLDER_ISO",
+{
+    "dxy":  98.2,
+    "changeSummary":  "DXY pao na 98.2, Fear & Greed snižen na 47, BTC dominacija porasla na 60% uz geopolitičke napetosti SAD-Iran koje su podigle makro penalty na 1.",
+    "lastUpdated":  "2026-05-08T12:00:00Z",
     "warnings":  {
                      "ACT":  [
 
@@ -13,7 +13,7 @@
 
                                ],
                      "XRP":  [
-
+                                 "Metodična prodaja, podrška $1.35 na riziku"
                              ],
                      "BNB":  [
 
@@ -52,7 +52,7 @@
 
                                ],
                      "ETH":  [
-
+                                 "Pad >6% uz $344M likvidirani; rizik daljnjeg pada"
                              ],
                      "LINK":  [
 
@@ -64,7 +64,7 @@
 
                                ],
                      "BTC":  [
-
+                                 "Otpor na $80K, rizik pada ispod $78K uz Iran napetosti"
                              ]
                  },
     "catalysts":  {
@@ -129,17 +129,18 @@
 
                                 ],
                       "BTC":  [
-
+                                  "ETF fondovi apsorbiraju mining output – supply crunch",
+                                  "BTC drži $80K unatoč risk-off raspoloženju"
                               ]
                   },
-    "fearGreed":  50,
-    "macroPenalty":  0,
-    "regime":  "NEUTRAL",
+    "fearGreed":  47,
+    "macroPenalty":  1,
+    "regime":  "CRAB",
     "sentimentScore":  {
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  0,
+                           "XRP":  -1,
                            "BNB":  0,
                            "SUI":  0,
                            "AVAX":  0,
@@ -152,15 +153,15 @@
                            "ADA":  0,
                            "PNUT":  0,
                            "AIXBT":  0,
-                           "ETH":  0,
+                           "ETH":  -1,
                            "LINK":  0,
                            "PUMP":  0,
                            "TRUMP":  0,
-                           "BTC":  0
+                           "BTC":  1
                        },
-    "aiSummary":  "PLACEHOLDER",
-    "warActive":  false,
-    "btcDom":  0,
-    "stableDom":  0,
-    "oil":  0
+    "aiSummary":  "DXY je pao na 98.2, oslabljeni dolar pruža blagi tailwind za kripto, ali geopolitičke napetosti SAD-Iran unose risk-off raspoloženje. Fear & Greed indeks iznosi 47 (neutralno), a BTC dominacija ostaje visoka na 60% – kapital još nije rotirao u altcoine. Kratkoročno se očekuje bočno kretanje s ključnom podrškom na $78K i rizikom daljnje korelacije s naftom koja se drži oko $95.",
+    "warActive":  true,
+    "btcDom":  60,
+    "stableDom":  12,
+    "oil":  95
 }

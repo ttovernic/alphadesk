@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.57</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.58</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -305,9 +305,9 @@ svg.sp{overflow:visible;display:block}
     <div class="filter-top">
       <div class="tab-row">
         <button class="tab on" id="tab-pregled" onclick="setTab('pregled')">Pregled</button>
-        <button class="tab" id="tab-ulaz" onclick="setTab('ulaz')">Ulaz</button>
-        <button class="tab" id="tab-watch" onclick="setTab('watch')">Watch</button>
+        <button class="tab" id="tab-signali" onclick="setTab('signali')">🎯 Signali</button>
         <button class="tab" id="tab-meme" onclick="setTab('meme')">🎰 Meme</button>
+        <button class="tab" id="tab-rezultati" onclick="setTab('rezultati')">📈 Rezultati</button>
       </div>
       <div class="pct-toggle" id="pct-desktop">
         <button class="pct-btn on" id="btn5d" onclick="setPct(5)">5%</button>
@@ -875,6 +875,7 @@ var activeFilter="all";
 var activePct=5;
 var trackerFilter="sve"; // "sve" | "aktivan" | "pogodak" | "promasaj"
 var ulazSortMode="conf"; // "conf" | "rr"
+var signalChip="all";    // "all" | "ulaz" | "watch_y" | "watch_b" — chip filter unutar Signali taba
 var expandedSigs={};   // {sym: true} — expanded signal chips
 var expandedDetails={}; // {sym: true} — expanded card details (timeline, signali, kelly...)
 // Options + Volume Profile + Macro
@@ -2386,19 +2387,17 @@ function analyze3D(sym){
 
 // ── FILTER & SORT ────────────────────────────────────────────────
 function getOpportunities(){
-  var analyzeFn=(activeFilter==="ulaz"||activeFilter==="watch")&&activePct===10?analyze10pct:analyze3D;
   var is10pct=activePct===10;
-  var minConf=activeFilter==="watch"?Math.min(settings.minConf,45):is10pct?Math.max(settings.minConf,55):settings.minConf;
+  var analyzeFn=(activeFilter==="signali")&&is10pct?analyze10pct:analyze3D;
+  // Signali tab koristi siroki min (45) jer chip filter dalje filtrira
+  var minConf=activeFilter==="signali"?(is10pct?Math.max(settings.minConf,55):Math.min(settings.minConf,45)):settings.minConf;
   var syms=TOP100.filter(function(s){
     if(!px[s]||!px[s].p||px[s].p<=0||KNOWN_MEME.indexOf(s)>-1)return false;
-    // TA filter: nakon što ta4h podaci stignu, preskoči tokene bez ikakvog TA podatka
     if(ta4hReady&&!ta4h[s]&&!ta[s])return false;
     return true;
   });
-  // achievable3d kao hard filter — isto kao meme engine
-  // Token bez dovoljnog ATR-a nema šanse dosegnuti cilj, ne prikazujemo ga
   var allAnalyzed=syms.map(analyzeFn).filter(function(x){return x;});
-  // Update market breadth — koliko tokena je bullish/bearish
+  // Update market breadth
   if(allAnalyzed.length>=20){
     marketBreadth.bullCount=allAnalyzed.filter(function(x){return x.score>=2;}).length;
     marketBreadth.bearCount=allAnalyzed.filter(function(x){return x.score<=-2;}).length;
@@ -2408,28 +2407,31 @@ function getOpportunities(){
   }
   var all=allAnalyzed.filter(function(x){return x.conf>=minConf&&x.achievable3d;});
   var totalAnalyzed=syms.length;
-  // Sort po selektiranom modu
   if(ulazSortMode==="rr"){
     all.sort(function(a,b){return b.rr-a.rr||b.conf-a.conf;});
   } else {
     all.sort(function(a,b){return b.conf-a.conf||b.score-a.score;});
   }
 
-  if(activeFilter==="ulaz"){
+  // SIGNALI tab — unificiran ulaz+watch s chip filterom
+  if(activeFilter==="signali"){
     var ulazRes=all.filter(function(x){return x.verdict&&x.verdict.indexOf("✅")===0;});
+    var yellow=all.filter(function(x){return x.verdict&&x.verdict.indexOf("🟡")===0;});
+    var blue=all.filter(function(x){return x.verdict&&x.verdict.indexOf("🔵")===0;});
+    var watchRes=yellow.concat(blue);
+    // Auto-track svaku grupu po vlastitom source-u (kao i prije)
     autoTrackOpps(ulazRes,"ulaz");
-    ulazRes._totalAnalyzed=totalAnalyzed;
-    return ulazRes;
-  }
-  if(activeFilter==="watch"){
-    var watchRes=all.filter(function(x){return x.verdict&&(x.verdict.indexOf("🟡")===0||x.verdict.indexOf("🔵")===0);});
     autoTrackOpps(watchRes,"watch");
-    watchRes._totalAnalyzed=totalAnalyzed;
-    watchRes._yellow=watchRes.filter(function(x){return x.verdict.indexOf("🟡")===0;});
-    watchRes._blue=watchRes.filter(function(x){return x.verdict.indexOf("🔵")===0;});
-    return watchRes;
+    // Vrati po chip filteru
+    var result;
+    if(signalChip==="ulaz")     result=ulazRes;
+    else if(signalChip==="watch_y") result=yellow;
+    else if(signalChip==="watch_b") result=blue;
+    else                        result=ulazRes.concat(yellow,blue);
+    result._totalAnalyzed=totalAnalyzed;
+    result._counts={all:ulazRes.length+yellow.length+blue.length, ulaz:ulazRes.length, yellow:yellow.length, blue:blue.length};
+    return result;
   }
-  if(activeFilter==="hot")return all.filter(function(x){return x.isHot;});
   return all;
 }
 
@@ -4567,11 +4569,11 @@ function render(){
   lastRefresh.analysis=Date.now();
   var sc=document.getElementById("sc");
   if(activeFilter==="tracker"){sc.innerHTML=rTracker();return;}
-  if(activeFilter==="pct10"){sc.innerHTML=r10pct();return;}
   if(activeFilter==="meme"){sc.innerHTML=rMeme();return;}
   var opps=getOpportunities();
 
   var isPregled=activeFilter==="all";
+  var isSignali=activeFilter==="signali";
   var h='<div class="pg">';
 
   if(isPregled){
@@ -4633,47 +4635,61 @@ function render(){
     }
   }
 
-  // Kompaktni header — samo na Ulaz i Watch tabu
-  if(activeFilter==="ulaz"&&opps.length>0){
-    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-    h+='<span style="font-size:13px;font-weight:800;color:var(--gr)">✅ '+opps.length+' '+(opps.length===1?"prilika":"prilike")+'</span>';
-    h+='<div style="display:flex;gap:4px">';
-    function sortBtn(val,label){var on=ulazSortMode===val;return'<button onclick="ulazSortMode=\''+val+'\';render()" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:8px;cursor:pointer;font-family:inherit;border:.5px solid '+(on?'var(--gr)':'rgba(255,255,255,.12)')+';background:'+(on?'rgba(0,230,118,.1)':'transparent')+';color:'+(on?'var(--gr)':'var(--t4)')+'">'+label+'</button>';}
+  // ── SIGNALI tab — chip filter + sort + lista ──────────────────
+  if(isSignali){
+    var c=opps._counts||{all:0,ulaz:0,yellow:0,blue:0};
+    h+='<div class="row-between" style="margin-bottom:10px;flex-wrap:wrap;gap:8px">';
+    // Chip filter
+    h+='<div class="row" style="gap:5px;flex-wrap:wrap">';
+    function chipBtn(val,emoji,lbl,count,col){
+      var on=signalChip===val;
+      var bg = on ? col+'22' : 'transparent';
+      var bord = on ? col+'66' : 'rgba(255,255,255,.12)';
+      var fg = on ? col : 'var(--t3)';
+      return'<button onclick="setSignalChip(\''+val+'\')" style="font-size:11px;font-weight:var(--fw-x);padding:5px 11px;border-radius:14px;cursor:pointer;font-family:inherit;border:.5px solid '+bord+';background:'+bg+';color:'+fg+'">'+emoji+' '+lbl+' <span style="opacity:.7;font-weight:var(--fw-r)">'+count+'</span></button>';
+    }
+    h+=chipBtn("all","🎯","Sve",c.all,"var(--t1)");
+    h+=chipBtn("ulaz","✅","Ulazi",c.ulaz,"var(--bull)");
+    h+=chipBtn("watch_y","🟡","Oprez",c.yellow,"var(--warn)");
+    h+=chipBtn("watch_b","🔵","Spek",c.blue,"var(--info)");
+    h+='</div>';
+    // Sort
+    h+='<div class="row" style="gap:4px">';
+    function sortBtn(val,label){var on=ulazSortMode===val;return'<button onclick="ulazSortMode=\''+val+'\';render()" style="font-size:10px;font-weight:var(--fw-x);padding:4px 10px;border-radius:8px;cursor:pointer;font-family:inherit;border:.5px solid '+(on?'var(--info)':'rgba(255,255,255,.12)')+';background:'+(on?'rgba(41,121,255,.1)':'transparent')+';color:'+(on?'var(--info)':'var(--t4)')+'">'+label+'</button>';}
     h+=sortBtn("conf","Conf ↓");
     h+=sortBtn("rr","R/R ↓");
-    h+='</div></div>';
-  } else if(activeFilter==="watch"&&opps.length>0){
-    var wY=(opps._yellow||[]).length,wB=(opps._blue||[]).length;
-    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-    h+='<div style="display:flex;gap:7px;align-items:center">';
-    h+='<span style="font-size:13px;font-weight:800;color:#ffea00">👁 '+opps.length+'</span>';
-    if(wY)h+='<span style="font-size:10px;padding:2px 7px;border-radius:7px;background:rgba(255,234,0,.1);color:#ffea00;border:.5px solid rgba(255,234,0,.3)">🟡 '+wY+'</span>';
-    if(wB)h+='<span style="font-size:10px;padding:2px 7px;border-radius:7px;background:rgba(41,121,255,.08);color:#2979ff;border:.5px solid rgba(41,121,255,.25)">🔵 '+wB+'</span>';
-    h+='</div>';
-    h+='<div style="display:flex;gap:4px">';
-    function sortBtnW(val,label){var on=ulazSortMode===val;return'<button onclick="ulazSortMode=\''+val+'\';render()" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:8px;cursor:pointer;font-family:inherit;border:.5px solid '+(on?'#ffea00':'rgba(255,255,255,.12)')+';background:'+(on?'rgba(255,234,0,.1)':'transparent')+';color:'+(on?'#ffea00':'var(--t4)')+'">'+label+'</button>';}
-    h+=sortBtnW("conf","Conf ↓");
-    h+=sortBtnW("rr","R/R ↓");
     h+='</div></div>';
   }
 
   if(opps.length===0&&activeFilter!=="all"){
-    if(activeFilter==="ulaz"){
-      h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">🔍</div><div style="font-size:17px;font-weight:600;color:var(--t2);margin-bottom:6px">Nema ✅ ulaza</div><div style="font-size:13px;color:var(--t3);margin-bottom:16px">Nema tokena s pouzdanošću ≥60% i višestrukim bullish signalima.<br>Provjeri Watch tab za prilike u razvoju.</div><button onclick="setTab(\'watch\')" style="padding:10px 22px;background:rgba(255,234,0,.1);border:.5px solid rgba(255,234,0,.3);border-radius:12px;font-size:13px;font-weight:700;color:#ffea00;cursor:pointer;font-family:inherit">👁 Idi na Watch</button></div>';
+    if(isSignali){
+      var hint=signalChip==="ulaz"?"Nema ✅ ulaza s ≥60% conf. Provjeri 🟡 Oprez ili 🔵 Spek.":(signalChip==="all"?"Nema signala. Smanji min conf u Postavkama ili pričekaj bolji setup.":"Nema u ovoj tier kategoriji. Probaj 'Sve' chip.");
+      h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">🔍</div><div style="font-size:15px;font-weight:600;color:var(--t2);margin-bottom:6px">Nema signala</div><div style="font-size:12px;color:var(--t3)">'+hint+'</div></div>';
     } else {
-      h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">🔍</div><div style="font-size:17px;font-weight:600;color:var(--t2);margin-bottom:6px">Nema prilike</div><div style="font-size:13px;color:var(--t3)">Trenutni uvjeti ne zadovoljavaju kriterije.<br>Smanji min. pouzdanost ili pričekaj bolji setup.</div></div>';
+      h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">🔍</div><div style="font-size:17px;font-weight:600;color:var(--t2);margin-bottom:6px">Nema prilike</div><div style="font-size:13px;color:var(--t3)">Trenutni uvjeti ne zadovoljavaju kriterije.</div></div>';
     }
-  } else if(activeFilter==="watch"&&opps.length>0){
-    // 🟡 sekcija
-    var watchYellow=opps._yellow||[];
-    var watchBlue=opps._blue||[];
-    if(watchYellow.length>0){
-      h+='<div style="font-size:10px;font-weight:700;color:#ffea00;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🟡 Ulaz s oprezom — čekaj potvrdu</div>';
-      watchYellow.forEach(function(o){h+=renderOpp(o);});
-    }
-    if(watchBlue.length>0){
-      h+='<div style="font-size:10px;font-weight:700;color:#2979ff;text-transform:uppercase;letter-spacing:.08em;margin:'+(watchYellow.length?'14px':'0')+'px 0 8px">🔵 Spekulativni — visok rizik</div>';
-      watchBlue.forEach(function(o){h+=renderOpp(o);});
+  } else if(isSignali&&opps.length>0){
+    // Render filtrirani opps po signal chip-u
+    if(signalChip==="all"){
+      // Sekcijski grouping kad je "Sve" filter
+      var ulazPart=opps.filter(function(x){return x.verdict.indexOf("✅")===0;});
+      var yellowPart=opps.filter(function(x){return x.verdict.indexOf("🟡")===0;});
+      var bluePart=opps.filter(function(x){return x.verdict.indexOf("🔵")===0;});
+      if(ulazPart.length){
+        h+='<div class="sec-lbl txt-bull" style="margin-bottom:8px;color:var(--bull)">✅ Ulazi — spremno za trade</div>';
+        ulazPart.forEach(function(o){h+=renderOpp(o);});
+      }
+      if(yellowPart.length){
+        h+='<div class="sec-lbl txt-warn" style="margin:14px 0 8px;color:var(--warn)">🟡 Oprez — čekaj potvrdu</div>';
+        yellowPart.forEach(function(o){h+=renderOpp(o);});
+      }
+      if(bluePart.length){
+        h+='<div class="sec-lbl txt-info" style="margin:14px 0 8px;color:var(--info)">🔵 Spekulativno — visok rizik</div>';
+        bluePart.forEach(function(o){h+=renderOpp(o);});
+      }
+    } else {
+      // Single chip filter
+      opps.forEach(function(o){h+=renderOpp(o);});
     }
   } else if(activeFilter==="all"){
     // ── PREGLED HERO: TOP 3 NAJJAČA SIGNALA (combined ulaz + watch) ──
@@ -4801,11 +4817,17 @@ function render(){
 // ── FILTER ───────────────────────────────────────────────────────
 function setTab(t){
   document.querySelectorAll(".tab").forEach(function(el){el.classList.remove("on");});
-  document.getElementById("tab-"+t).classList.add("on");
-  if(t==="pregled") activeFilter=activePct===10?"pct10":"all";
-  else if(t==="ulaz") activeFilter="ulaz";
-  else if(t==="watch") activeFilter="watch";
-  else if(t==="meme") activeFilter="meme";
+  var btn=document.getElementById("tab-"+t);
+  if(btn)btn.classList.add("on");
+  if(t==="pregled")        activeFilter="all";
+  else if(t==="signali")   activeFilter="signali";
+  else if(t==="meme")      activeFilter="meme";
+  else if(t==="rezultati") activeFilter="tracker";
+  render();
+}
+// Chip filter unutar Signali taba
+function setSignalChip(c){
+  signalChip=c;
   render();
 }
 function setPct(pct){
@@ -4814,8 +4836,7 @@ function setPct(pct){
     var el=document.getElementById(id); if(el) el.classList.toggle("on",id==="btn"+pct);
     var eld=document.getElementById(id+"d"); if(eld) eld.classList.toggle("on",id==="btn"+pct);
   });
-  var onPregled=activeFilter==="all"||activeFilter==="pct10";
-  if(onPregled) activeFilter=pct===10?"pct10":"all";
+  // pct10 skriveni view UKLONJEN — toggle samo mijenja activePct, render ostaje na trenutnom tabu
   render();
 }
 

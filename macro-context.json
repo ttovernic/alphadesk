@@ -1,7 +1,7 @@
-{
-    "dxy":  98.03,
-    "changeSummary":  "BTC dominacija blago porasla na 59.9% uz nepromijenjen DXY 98 i F&G 47; macroPenalty snižen na 0 jer DXY ostaje ispod 100, dok altcoini nastavljaju slabiti.",
-    "lastUpdated":  "2026-05-07T21:00:00.000Z",
+﻿{
+    "dxy":  0,
+    "changeSummary":  "PLACEHOLDER",
+    "lastUpdated":  "PLACEHOLDER_ISO",
     "warnings":  {
                      "ACT":  [
 
@@ -13,7 +13,7 @@
 
                                ],
                      "XRP":  [
-                         "XRP pada prema $1.40 — gubitak momentum ispod $1.50"
+
                              ],
                      "BNB":  [
 
@@ -22,7 +22,7 @@
 
                              ],
                      "AVAX":  [
-                         "Altcoin sektor slabi uz Smart Contract Index -2%"
+
                               ],
                      "PENGU":  [
 
@@ -40,7 +40,7 @@
 
                                 ],
                      "SOL":  [
-                         "SOL $88-89 — slabi bez povratka prema $100"
+
                              ],
                      "ADA":  [
 
@@ -52,8 +52,7 @@
 
                                ],
                      "ETH":  [
-                         "Bears u kontroli; $2,400 resistancija ostaje čvrsta",
-                         "CoinDesk Smart Contract Index -2%+ 24h"
+
                              ],
                      "LINK":  [
 
@@ -62,11 +61,10 @@
 
                               ],
                      "TRUMP":  [
-                         "Senator Gillibrand blokira bez ethics klauzule"
+
                                ],
                      "BTC":  [
-                         "7x odbijanje od SMA200 ($82.2K) od listopada 2025",
-                         "Konsolidacija ispod SMA200 bez potvrde novog trenda"
+
                              ]
                  },
     "catalysts":  {
@@ -80,7 +78,7 @@
 
                                 ],
                       "XRP":  [
-                          "XRP raste na tokenizacijskim vijestima"
+
                               ],
                       "BNB":  [
 
@@ -119,7 +117,7 @@
 
                                 ],
                       "ETH":  [
-                          "Kraken regulirani spot margin trading (Bitnomial)"
+
                               ],
                       "LINK":  [
 
@@ -128,25 +126,23 @@
 
                                ],
                       "TRUMP":  [
-                          "Clarity Act: White House cilja July 4 za potpun prolaz",
-                          "Senate markup ovaj mj., floor vote lipanj, House srpanj"
+
                                 ],
                       "BTC":  [
-                          "Tom Lee: završetak May iznad $76K = potvrda bull marketa",
-                          "Clarity Act July 4 deadline — bullish regulatorna jasnoća"
+
                               ]
                   },
-    "fearGreed":  47,
+    "fearGreed":  50,
     "macroPenalty":  0,
-    "regime":  "CRAB",
+    "regime":  "NEUTRAL",
     "sentimentScore":  {
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  -1,
+                           "XRP":  0,
                            "BNB":  0,
                            "SUI":  0,
-                           "AVAX":  -1,
+                           "AVAX":  0,
                            "PENGU":  0,
                            "BOME":  0,
                            "DOGS":  0,
@@ -156,15 +152,15 @@
                            "ADA":  0,
                            "PNUT":  0,
                            "AIXBT":  0,
-                           "ETH":  -1,
+                           "ETH":  0,
                            "LINK":  0,
                            "PUMP":  0,
-                           "TRUMP":  1,
+                           "TRUMP":  0,
                            "BTC":  0
                        },
-    "aiSummary":  "DXY 98.03 slabi ispod 100 zbog napretka US-Iran pregovora, snižavajući macroPenalty na 0; Fear & Greed 47 (Neutral) potvrđuje bezizrazno raspoloženje tržišta bez jasnih signala ni u jednom smjeru. BTC $81,022 sedmi put odbijen od SMA200 ($82,228) — tržište ostaje u CRAB fazi s rasponom $79K-$83K; ETH $2,336 bori se ispod $2,400 dok altcoini bilježe dnevne gubitke uz CoinDesk Smart Contract Index -2%+. Clarity Act July 4 deadline (Senate markup ovaj mjesec, vote lipanj) i Tom Lee $76K kraj-maja teza ostaju ključni bullish katalizatori, no bez zatvaranja iznad SMA200 nema potvrde novog trenda.",
+    "aiSummary":  "PLACEHOLDER",
     "warActive":  false,
-    "btcDom":  59.9,
-    "stableDom":  10.5,
-    "oil":  101.00
+    "btcDom":  0,
+    "stableDom":  0,
+    "oil":  0
 }

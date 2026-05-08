@@ -1,7 +1,7 @@
 {
     "dxy":  98.2,
-    "changeSummary":  "DXY pao na 98.2, Fear & Greed snižen na 47, BTC dominacija porasla na 60% uz geopolitičke napetosti SAD-Iran koje su podigle makro penalty na 1.",
-    "lastUpdated":  "2026-05-08T12:00:00Z",
+    "changeSummary":  "Tržište pod pritiskom SAD-Iran tenzija, BTC pao s $82K na ~$80K uz ETH slabljenje 6%, dok DXY ostaje stabilan oko 98.2 i macroPenalty nepromjenjen na 1.",
+    "lastUpdated":  "2026-05-08T21:00:00Z",
     "warnings":  {
                      "ACT":  [
 
@@ -13,7 +13,7 @@
 
                                ],
                      "XRP":  [
-                                 "Metodična prodaja, podrška $1.35 na riziku"
+                                 "XRP ispod $1.41 – rizik pada prema $1.30"
                              ],
                      "BNB":  [
 
@@ -52,7 +52,7 @@
 
                                ],
                      "ETH":  [
-                                 "Pad >6% uz $344M likvidirani; rizik daljnjeg pada"
+                                 "ETH pao 6%, $344M long likvidacija"
                              ],
                      "LINK":  [
 
@@ -61,10 +61,10 @@
 
                               ],
                      "TRUMP":  [
-
+                                   "Risk-off raspoloženje, geopolitičke tenzije"
                                ],
                      "BTC":  [
-                                 "Otpor na $80K, rizik pada ispod $78K uz Iran napetosti"
+                                 "BTC pao s $82K na ~$80K, pritisak prodavača"
                              ]
                  },
     "catalysts":  {
@@ -129,8 +129,7 @@
 
                                 ],
                       "BTC":  [
-                                  "ETF fondovi apsorbiraju mining output – supply crunch",
-                                  "BTC drži $80K unatoč risk-off raspoloženju"
+                                  "FHFA: kripto kao imovina za hipoteke (Fannie/Freddie)"
                               ]
                   },
     "fearGreed":  47,
@@ -156,12 +155,12 @@
                            "ETH":  -1,
                            "LINK":  0,
                            "PUMP":  0,
-                           "TRUMP":  0,
-                           "BTC":  1
+                           "TRUMP":  -1,
+                           "BTC":  0
                        },
-    "aiSummary":  "DXY je pao na 98.2, oslabljeni dolar pruža blagi tailwind za kripto, ali geopolitičke napetosti SAD-Iran unose risk-off raspoloženje. Fear & Greed indeks iznosi 47 (neutralno), a BTC dominacija ostaje visoka na 60% – kapital još nije rotirao u altcoine. Kratkoročno se očekuje bočno kretanje s ključnom podrškom na $78K i rizikom daljnje korelacije s naftom koja se drži oko $95.",
+    "aiSummary":  "DXY je pao na 98.2 i nastavlja slabiti, pružajući blagi tailwind za kripto, no geopolitičke napetosti SAD-Iran uzrokuju risk-off raspoloženje i pad tržišta ~4% uz masovne likvidacije. Fear & Greed indeks stoji na 47 (neutralno), BTC se bori zadržati iznad $80K nakon povlačenja s tjednog vrha $82K, dok ETH pada 6% s $344M likvidiranih longova. BTC dominacija ostaje visoka oko 59%, kapital se ne rotira u altcoine, a jedini pozitivni signal je FHFA odluka da kripto može biti imovina za hipoteke.",
     "warActive":  true,
-    "btcDom":  60,
-    "stableDom":  12,
+    "btcDom":  59,
+    "stableDom":  6,
     "oil":  95
 }

@@ -1,106 +1,136 @@
 {
     "dxy":  97.6,
-    "changeSummary":  "BTC pao s $82k na $80k uz jake ETF priljeve ($1.63B/tjedan), DXY oslabio na 97.6 dok sentiment ostaje neutralan na 47.",
-    "lastUpdated":  "2026-05-08T09:00:00.000Z",
+    "changeSummary":  "Makroekonomska slika gotovo nepromijenjena — DXY drži 97.6, Fear & Greed stagnira na 47, BTC učvršćuje poziciju iznad $81k uz snažne ETF priljeve dok naftni sektor bilježi blagi pad zbog mirovnih pregovora na Bliskom istoku.",
+    "lastUpdated":  "2026-05-08T11:00:00.000Z",
     "warnings":  {
                      "ACT":  [
+
                              ],
                      "MEME":  [
-                                 "Kapital rotira nazad u BTC, memecoini gube"
+                               "Purganje milijuna tokena - upozorenje Ben Cowen"
                               ],
                      "ANIME":  [
+
                                ],
                      "XRP":  [
+                               "Pad cijene usprkos pozitivnim fundamentima"
                              ],
                      "BNB":  [
+
                              ],
                      "SUI":  [
+
                              ],
                      "AVAX":  [
+
                               ],
                      "PENGU":  [
+                                "Memecoin sektor pod pritiskom"
                                ],
                      "BOME":  [
-                                 "Spekulativan token, nema aktivnih fundamenta"
+                               "Memecoin sektor pod pritiskom"
                               ],
                      "DOGS":  [
+                               "Memecoin sektor pod pritiskom"
                               ],
                      "NOT":  [
+
                              ],
                      "PEOPLE":  [
+
                                 ],
                      "SOL":  [
+
                              ],
                      "ADA":  [
+
                              ],
                      "PNUT":  [
-                                 "Nema katalizatora, visoki spekulativni rizik"
+                               "Memecoin sektor pod pritiskom"
                               ],
                      "AIXBT":  [
+
                                ],
                      "ETH":  [
+
                              ],
                      "LINK":  [
+
                               ],
                      "PUMP":  [
+
                               ],
                      "TRUMP":  [
-                                  "Memecoin, visoka volatilnost, nema fundamenta"
+
                                ],
                      "BTC":  [
+
                              ]
                  },
     "catalysts":  {
                       "ACT":  [
+
                               ],
                       "MEME":  [
+
                                ],
                       "ANIME":  [
+
                                 ],
                       "XRP":  [
-                                  "Ripple+JPMorgan cross-border XRPL settlement",
-                                  "CLARITY Act napreduje u Senatu, bullish za XRP"
+                               "Ripple/JPMorgan tokenizacija na XRPL"
                               ],
                       "BNB":  [
+
                               ],
                       "SUI":  [
-                                  "Rastući ekosistem, opci bullish momentum"
+                               "Altcoini outperformaju BTC 07.05."
                               ],
                       "AVAX":  [
+
                                ],
                       "PENGU":  [
+
                                 ],
                       "BOME":  [
+
                                ],
                       "DOGS":  [
+
                                ],
                       "NOT":  [
+
                               ],
                       "PEOPLE":  [
+
                                  ],
                       "SOL":  [
-                                  "Jaki ekosistem, tokenizacija narrativa"
+                               "Altcoini outperformaju BTC 07.05."
                               ],
                       "ADA":  [
+
                               ],
                       "PNUT":  [
+
                                ],
                       "AIXBT":  [
-                                    "AI agentna financija novi narrativ 2026"
+                                 "AI agentic finance - kljucni narativ po Tom Leeu"
                                 ],
                       "ETH":  [
-                                  "ETH prati BTC rast, drži $2.280 razinu"
+                               "Raste uz BTC, drzi $2280"
                               ],
                       "LINK":  [
-                                   "Tokenizacija infrastruktura, kljucni rast"
+                                "Tokenizacija kao kljucni narativ ciklusa"
                                ],
                       "PUMP":  [
+
                                ],
                       "TRUMP":  [
+
                                 ],
                       "BTC":  [
-                                  "ETF priljevi $1.63B u prvom tjednu svibnja",
-                                  "Tokenizacija i AI narrativi pokrecu sektor"
+                               "ETF priljevi $1.63B u prvom tjednu svibnja",
+                               "Proboj $81k - max od sijecnja 2026"
                               ]
                   },
     "fearGreed":  47,
@@ -110,28 +140,28 @@
                            "ACT":  0,
                            "MEME":  -1,
                            "ANIME":  0,
-                           "XRP":  1,
+                           "XRP":  0,
                            "BNB":  0,
                            "SUI":  1,
                            "AVAX":  0,
                            "PENGU":  0,
-                           "BOME":  -1,
+                           "BOME":  0,
                            "DOGS":  0,
                            "NOT":  0,
                            "PEOPLE":  0,
                            "SOL":  1,
                            "ADA":  0,
-                           "PNUT":  -1,
+                           "PNUT":  0,
                            "AIXBT":  1,
                            "ETH":  1,
-                           "LINK":  2,
+                           "LINK":  1,
                            "PUMP":  0,
-                           "TRUMP":  -1,
+                           "TRUMP":  0,
                            "BTC":  2
                        },
-    "aiSummary":  "DXY je oslabio na 97.6 zbog mirovnih pregovora na Bliskom istoku, što je pozitivno za kriptovalute i rizičnu imovinu. Fear & Greed iznosi 47 (neutralno) uz BTC dominaciju od 60.3%, što indicira Bitcoin sezonu bez altcoin rotacije. ETF priljevi od $1.63 milijarde u prvom tjednu svibnja podupiru BTC oko $80k dok tokenizacija i AI agentic finance ostaju ključni narrativi ciklusa.",
+    "aiSummary":  "DXY se stabilizira oko 97.6, blizu najnize razine od veljace 2026, sto je pozitivno za kriptoimovinu i rizicnu imovinu. Fear & Greed ostaje neutralan na 47 uz BTC dominaciju od 60.3%, sto indicira Bitcoin sezonu bez altcoin rotacije. ETF priljevi od 1.63 milijarde u prvom tjednu svibnja i proboj BTC-a na $81k podupiru bullish sentiment, no konsolidacija je vjerojatna dok FG ne prode iznad 55.",
     "warActive":  false,
     "btcDom":  60.3,
-    "stableDom":  11.8,
-    "oil":  93.5
+    "stableDom":  7.0,
+    "oil":  92.5
 }

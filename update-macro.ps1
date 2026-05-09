@@ -214,6 +214,10 @@ function Test-MacroJson {
         return @("INVALID_JSON: $_")
     }
     if (-not $j.lastUpdated) { $errors += "Nedostaje lastUpdated" }
+    # ANTI-PLACEHOLDER: lastUpdated ne smije biti skeleton template default
+    if ($j.lastUpdated -eq "PLACEHOLDER_ISO" -or $j.lastUpdated -match "^PLACEHOLDER") {
+        $errors += "lastUpdated je placeholder (Claude nije popunio)"
+    }
     if ($null -eq $j.fearGreed) { $errors += "Nedostaje fearGreed" }
     if ($j.fearGreed -lt 0 -or $j.fearGreed -gt 100) { $errors += "fearGreed izvan raspona 0-100" }
     if (-not $j.regime) { $errors += "Nedostaje regime" }
@@ -222,6 +226,19 @@ function Test-MacroJson {
     if ($null -eq $j.sentimentScore) { $errors += "Nedostaje sentimentScore" }
     if ($null -eq $j.macroPenalty) { $errors += "Nedostaje macroPenalty" }
     if ($j.macroPenalty -lt 0 -or $j.macroPenalty -gt 6) { $errors += "macroPenalty izvan 0-6" }
+
+    # ANTI-PLACEHOLDER: Numericki fields ne smiju biti default 0 (placeholder)
+    # DXY uvijek 80-120, Oil 30-150, BTC dominacija 30-80, stableDom 3-15
+    if ($null -eq $j.dxy -or $j.dxy -lt 50) { $errors += "dxy je placeholder ili nevalidan ($($j.dxy)) - mora biti 80-120" }
+    if ($null -eq $j.oil -or $j.oil -lt 20) { $errors += "oil je placeholder ili nevalidan ($($j.oil)) - mora biti 30-150" }
+    if ($null -eq $j.btcDom -or $j.btcDom -lt 20) { $errors += "btcDom je placeholder ili nevalidan ($($j.btcDom)) - mora biti 30-80" }
+    if ($null -eq $j.stableDom -or $j.stableDom -lt 1) { $errors += "stableDom je placeholder ili nevalidan ($($j.stableDom)) - mora biti 3-20" }
+
+    # ANTI-PLACEHOLDER: aiSummary mora biti smisleni HR tekst (>50 chars)
+    if (-not $j.aiSummary -or $j.aiSummary.Length -lt 50 -or $j.aiSummary -match "^PLACEHOLDER") {
+        $errors += "aiSummary je placeholder ili prekratak"
+    }
+
     # Sentiment score range check
     if ($j.sentimentScore) {
         $j.sentimentScore.PSObject.Properties | ForEach-Object {

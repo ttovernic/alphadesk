@@ -1,52 +1,138 @@
 {
     "dxy":  97.9,
-    "changeSummary":  "FG blago porastao s 47 na 49, DXY pao s 98.16 na 97.9, BTC konsolidira u $79k-$82k uz nastavak ETF priljeva i signale prema $85k.",
-    "lastUpdated":  "2026-05-09T10:00:00.000Z",
+    "changeSummary":  "Makro uvjeti ostali gotovo identični (DXY 97.9, F&G 49, CRAB, oil raste na $95), a SUI prednjači breakoutom dok XRP zaostaje ispod ključne otpornosti.",
+    "lastUpdated":  "2026-05-09T22:00:00.000Z",
     "warnings":  {
-                     "ACT":  [],
-                     "MEME":  [],
-                     "ANIME":  [],
-                     "XRP":  [],
-                     "BNB":  [],
-                     "SUI":  [],
-                     "AVAX":  [],
-                     "PENGU":  [],
-                     "BOME":  [],
-                     "DOGS":  [],
-                     "NOT":  [],
-                     "PEOPLE":  [],
-                     "SOL":  [],
-                     "ADA":  [],
-                     "PNUT":  [],
-                     "AIXBT":  [],
-                     "ETH":  [],
-                     "LINK":  [],
-                     "PUMP":  [],
-                     "TRUMP":  ["Meme coin - visoka volatilnost, nizak sentiment"],
-                     "BTC":  ["Geopolitika: US-Iran rat blokira tjesnac Hormuz"]
+                     "ACT":  [
+
+                             ],
+                     "MEME":  [
+
+                              ],
+                     "ANIME":  [
+
+                               ],
+                     "XRP":  [
+                                 "XRP zaglavio ispod ključne otpornosti oko $1.40"
+                             ],
+                     "BNB":  [
+
+                             ],
+                     "SUI":  [
+
+                             ],
+                     "AVAX":  [
+
+                              ],
+                     "PENGU":  [
+
+                               ],
+                     "BOME":  [
+
+                              ],
+                     "DOGS":  [
+
+                              ],
+                     "NOT":  [
+
+                             ],
+                     "PEOPLE":  [
+
+                                ],
+                     "SOL":  [
+
+                             ],
+                     "ADA":  [
+
+                             ],
+                     "PNUT":  [
+
+                              ],
+                     "AIXBT":  [
+
+                               ],
+                     "ETH":  [
+
+                             ],
+                     "LINK":  [
+
+                              ],
+                     "PUMP":  [
+
+                              ],
+                     "TRUMP":  [
+
+                               ],
+                     "BTC":  [
+                                 "Revolut price glitch izazvao kratku retail paniku"
+                             ]
                  },
     "catalysts":  {
-                      "ACT":  [],
-                      "MEME":  [],
-                      "ANIME":  [],
-                      "XRP":  ["Digital Asset Market Clarity Act markup 11.5.2026."],
-                      "BNB":  [],
-                      "SUI":  [],
-                      "AVAX":  [],
-                      "PENGU":  [],
-                      "BOME":  [],
-                      "DOGS":  [],
-                      "NOT":  [],
-                      "PEOPLE":  [],
-                      "SOL":  [],
-                      "ADA":  [],
-                      "PNUT":  [],
-                      "AIXBT":  [],
-                      "ETH":  ["ETF priljevi i tokenizacija protokola podizu ETH"],
-                      "LINK":  ["Coinbase tokenizacija - podize LINK narrativ"],
-                      "PUMP":  [],
-                      "TRUMP":  [],
-                      "BTC":  ["ETF priljevi $500M+ BlackRock/Fidelity", "Ciljevi prema $85k - 3 tehnicka signala"]
+                      "ACT":  [
+
+                              ],
+                      "MEME":  [
+
+                               ],
+                      "ANIME":  [
+
+                                ],
+                      "XRP":  [
+
+                              ],
+                      "BNB":  [
+
+                              ],
+                      "SUI":  [
+                                  "SUI drugi dan zaredom bilježi snažan breakout"
+                              ],
+                      "AVAX":  [
+
+                               ],
+                      "PENGU":  [
+
+                                ],
+                      "BOME":  [
+
+                               ],
+                      "DOGS":  [
+
+                               ],
+                      "NOT":  [
+
+                              ],
+                      "PEOPLE":  [
+
+                                 ],
+                      "SOL":  [
+
+                              ],
+                      "ADA":  [
+
+                              ],
+                      "PNUT":  [
+
+                               ],
+                      "AIXBT":  [
+
+                                ],
+                      "ETH":  [
+                                  "Consensus Miami 2026: regulacija ubrzava stablecoin adopciju"
+                              ],
+                      "LINK":  [
+
+                               ],
+                      "PUMP":  [
+
+                               ],
+                      "TRUMP":  [
+
+                                ],
+                      "BTC":  [
+                                  "Senat glasa o Digital Asset Market Clarity Act 11.5.",
+                                  "CME planira BTC volatility futures 1. lipnja",
+                                  "ETF priljevi nastavljaju: BlackRock i Fidelity kupuju"
+                              ]
                   },
     "fearGreed":  49,
     "macroPenalty":  1,
@@ -55,28 +141,28 @@
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  1,
-                           "BNB":  0,
-                           "SUI":  0,
+                           "XRP":  -1,
+                           "BNB":  1,
+                           "SUI":  2,
                            "AVAX":  0,
                            "PENGU":  0,
                            "BOME":  0,
                            "DOGS":  0,
                            "NOT":  0,
                            "PEOPLE":  0,
-                           "SOL":  0,
+                           "SOL":  1,
                            "ADA":  0,
                            "PNUT":  0,
                            "AIXBT":  0,
                            "ETH":  1,
                            "LINK":  1,
                            "PUMP":  0,
-                           "TRUMP":  -1,
+                           "TRUMP":  0,
                            "BTC":  2
                        },
-    "aiSummary":  "DXY je pao ispod 98 na razinu 97.9, sto pruza makro potporu kriptotristu, dok US-Iran rat u tjesnaci Hormuz drzi naftu iznad $94 i geopoliticki pritisak ostaje aktivan. BTC konsolidira u rasponu $79k-$82k uz Fear & Greed od 49 i ETF priljeve od $500M+ (BlackRock, Fidelity), a tri tehnicka signala upucuju na mogudi proboj prema $85k. Ocekuje se nastavak CRAB faze uz kljucni katalizator - glasanje Senata o Digital Asset Market Clarity Act zakazano za 11. svibnja.",
+    "aiSummary":  "DXY ostaje stabilno oko 97.9 pružajući makro potporu kriptotržištu, dok zatvoreni Hormuzov tjesnac drži WTI naftu na $95.4 uz aktivan geopolitički rizik. BTC konsolidira iznad $80K uz Fear & Greed od 49 i nastavak ETF priljeva, a ključni katalizator je glasanje Senata o Digital Asset Market Clarity Act zakazano za 11. svibnja. SUI prednjači snažnim breakoutom drugi dan zaredom, dok XRP zaostaje ispod ključne otpornosti.",
     "warActive":  true,
     "btcDom":  59,
-    "stableDom":  6,
-    "oil":  94.7
+    "stableDom":  9,
+    "oil":  95.4
 }

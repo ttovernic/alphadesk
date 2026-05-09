@@ -1,140 +1,54 @@
 {
-    "dxy":  98.16,
-    "changeSummary":  "Prva realna analiza: BTC drži $80k, DXY 98.2, FG 47 (Strah), CRAB režim uz aktivan US-Iran konflikt.",
-    "lastUpdated":  "2026-05-09T08:00:00.000Z",
+    "dxy":  97.9,
+    "changeSummary":  "FG blago porastao s 47 na 49, DXY pao s 98.16 na 97.9, BTC konsolidira u $79k-$82k uz nastavak ETF priljeva i signale prema $85k.",
+    "lastUpdated":  "2026-05-09T10:00:00.000Z",
     "warnings":  {
-                     "ACT":  [
-
-                             ],
-                     "MEME":  [
-
-                              ],
-                     "ANIME":  [
-
-                               ],
-                     "XRP":  [
-
-                             ],
-                     "BNB":  [
-
-                             ],
-                     "SUI":  [
-
-                             ],
-                     "AVAX":  [
-
-                              ],
-                     "PENGU":  [
-
-                               ],
-                     "BOME":  [
-
-                              ],
-                     "DOGS":  [
-
-                              ],
-                     "NOT":  [
-
-                             ],
-                     "PEOPLE":  [
-
-                                ],
-                     "SOL":  [
-
-                             ],
-                     "ADA":  [
-
-                             ],
-                     "PNUT":  [
-
-                              ],
-                     "AIXBT":  [
-
-                               ],
-                     "ETH":  [
-
-                             ],
-                     "LINK":  [
-
-                              ],
-                     "PUMP":  [
-
-                              ],
-                     "TRUMP":  [
-                                   "US-Iran pregovori nestabilni, rast nafte"
-                               ],
-                     "BTC":  [
-                                 "US-Iran rat, Hormuz zatvoren od veljače",
-                                 "Coinbase Q1 gubitak $394M"
-                             ]
+                     "ACT":  [],
+                     "MEME":  [],
+                     "ANIME":  [],
+                     "XRP":  [],
+                     "BNB":  [],
+                     "SUI":  [],
+                     "AVAX":  [],
+                     "PENGU":  [],
+                     "BOME":  [],
+                     "DOGS":  [],
+                     "NOT":  [],
+                     "PEOPLE":  [],
+                     "SOL":  [],
+                     "ADA":  [],
+                     "PNUT":  [],
+                     "AIXBT":  [],
+                     "ETH":  [],
+                     "LINK":  [],
+                     "PUMP":  [],
+                     "TRUMP":  ["Meme coin - visoka volatilnost, nizak sentiment"],
+                     "BTC":  ["Geopolitika: US-Iran rat blokira tjesnac Hormuz"]
                  },
     "catalysts":  {
-                      "ACT":  [
-
-                              ],
-                      "MEME":  [
-
-                               ],
-                      "ANIME":  [
-
-                                ],
-                      "XRP":  [
-                                  "GENIUS Act stablecoin zakon prolazi Senat"
-                              ],
-                      "BNB":  [
-
-                              ],
-                      "SUI":  [
-
-                              ],
-                      "AVAX":  [
-
-                               ],
-                      "PENGU":  [
-
-                                ],
-                      "BOME":  [
-
-                               ],
-                      "DOGS":  [
-
-                               ],
-                      "NOT":  [
-
-                              ],
-                      "PEOPLE":  [
-
-                                 ],
-                      "SOL":  [
-
-                              ],
-                      "ADA":  [
-
-                              ],
-                      "PNUT":  [
-
-                               ],
-                      "AIXBT":  [
-
-                                ],
-                      "ETH":  [
-
-                              ],
-                      "LINK":  [
-
-                               ],
-                      "PUMP":  [
-
-                               ],
-                      "TRUMP":  [
-
-                                ],
-                      "BTC":  [
-                                  "ETF priljevi 9 dana zaredom, ukupno $2.7B",
-                                  "Federalni zakon o kripto tržištu u Senatu"
-                              ]
+                      "ACT":  [],
+                      "MEME":  [],
+                      "ANIME":  [],
+                      "XRP":  ["Digital Asset Market Clarity Act markup 11.5.2026."],
+                      "BNB":  [],
+                      "SUI":  [],
+                      "AVAX":  [],
+                      "PENGU":  [],
+                      "BOME":  [],
+                      "DOGS":  [],
+                      "NOT":  [],
+                      "PEOPLE":  [],
+                      "SOL":  [],
+                      "ADA":  [],
+                      "PNUT":  [],
+                      "AIXBT":  [],
+                      "ETH":  ["ETF priljevi i tokenizacija protokola podizu ETH"],
+                      "LINK":  ["Coinbase tokenizacija - podize LINK narrativ"],
+                      "PUMP":  [],
+                      "TRUMP":  [],
+                      "BTC":  ["ETF priljevi $500M+ BlackRock/Fidelity", "Ciljevi prema $85k - 3 tehnicka signala"]
                   },
-    "fearGreed":  47,
+    "fearGreed":  49,
     "macroPenalty":  1,
     "regime":  "CRAB",
     "sentimentScore":  {
@@ -154,15 +68,15 @@
                            "ADA":  0,
                            "PNUT":  0,
                            "AIXBT":  0,
-                           "ETH":  0,
-                           "LINK":  0,
+                           "ETH":  1,
+                           "LINK":  1,
                            "PUMP":  0,
                            "TRUMP":  -1,
-                           "BTC":  1
+                           "BTC":  2
                        },
-    "aiSummary":  "DXY je pao na 98.2, ispod razine 100, što makro-povoljno djeluje na kripto imovinu, ali aktivan US-Iran rat i zatvoreni Hormuzski tjesnac od veljače drže oil na $94 i unose geopolitički rizik. BTC konsolidira iznad $80.000 uz devet uzastopnih dana ETF priljeva ($2.7B), no Fear & Greed od 47 signalizira strah investitora. Očekuje se nastavak CRAB faze sve dok geopolitičke napetosti ne popuste ili BTC ne probije zonu $85k.",
+    "aiSummary":  "DXY je pao ispod 98 na razinu 97.9, sto pruza makro potporu kriptotristu, dok US-Iran rat u tjesnaci Hormuz drzi naftu iznad $94 i geopoliticki pritisak ostaje aktivan. BTC konsolidira u rasponu $79k-$82k uz Fear & Greed od 49 i ETF priljeve od $500M+ (BlackRock, Fidelity), a tri tehnicka signala upucuju na mogudi proboj prema $85k. Ocekuje se nastavak CRAB faze uz kljucni katalizator - glasanje Senata o Digital Asset Market Clarity Act zakazano za 11. svibnja.",
     "warActive":  true,
     "btcDom":  59,
-    "stableDom":  10,
-    "oil":  94.12
+    "stableDom":  6,
+    "oil":  94.7
 }

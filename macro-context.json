@@ -1,7 +1,7 @@
-﻿{
-    "dxy":  0,
-    "changeSummary":  "PLACEHOLDER",
-    "lastUpdated":  "PLACEHOLDER_ISO",
+{
+    "dxy":  98.16,
+    "changeSummary":  "Prva realna analiza: BTC drži $80k, DXY 98.2, FG 47 (Strah), CRAB režim uz aktivan US-Iran konflikt.",
+    "lastUpdated":  "2026-05-09T08:00:00.000Z",
     "warnings":  {
                      "ACT":  [
 
@@ -61,10 +61,11 @@
 
                               ],
                      "TRUMP":  [
-
+                                   "US-Iran pregovori nestabilni, rast nafte"
                                ],
                      "BTC":  [
-
+                                 "US-Iran rat, Hormuz zatvoren od veljače",
+                                 "Coinbase Q1 gubitak $394M"
                              ]
                  },
     "catalysts":  {
@@ -78,7 +79,7 @@
 
                                 ],
                       "XRP":  [
-
+                                  "GENIUS Act stablecoin zakon prolazi Senat"
                               ],
                       "BNB":  [
 
@@ -129,17 +130,18 @@
 
                                 ],
                       "BTC":  [
-
+                                  "ETF priljevi 9 dana zaredom, ukupno $2.7B",
+                                  "Federalni zakon o kripto tržištu u Senatu"
                               ]
                   },
-    "fearGreed":  50,
-    "macroPenalty":  0,
-    "regime":  "NEUTRAL",
+    "fearGreed":  47,
+    "macroPenalty":  1,
+    "regime":  "CRAB",
     "sentimentScore":  {
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  0,
+                           "XRP":  1,
                            "BNB":  0,
                            "SUI":  0,
                            "AVAX":  0,
@@ -155,12 +157,12 @@
                            "ETH":  0,
                            "LINK":  0,
                            "PUMP":  0,
-                           "TRUMP":  0,
-                           "BTC":  0
+                           "TRUMP":  -1,
+                           "BTC":  1
                        },
-    "aiSummary":  "PLACEHOLDER",
-    "warActive":  false,
-    "btcDom":  0,
-    "stableDom":  0,
-    "oil":  0
+    "aiSummary":  "DXY je pao na 98.2, ispod razine 100, što makro-povoljno djeluje na kripto imovinu, ali aktivan US-Iran rat i zatvoreni Hormuzski tjesnac od veljače drže oil na $94 i unose geopolitički rizik. BTC konsolidira iznad $80.000 uz devet uzastopnih dana ETF priljeva ($2.7B), no Fear & Greed od 47 signalizira strah investitora. Očekuje se nastavak CRAB faze sve dok geopolitičke napetosti ne popuste ili BTC ne probije zonu $85k.",
+    "warActive":  true,
+    "btcDom":  59,
+    "stableDom":  10,
+    "oil":  94.12
 }

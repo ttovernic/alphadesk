@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.66</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.67</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -4910,6 +4910,46 @@ function closeSearch(){
   document.getElementById("search-modal").classList.remove("open");
 }
 
+// Pretrazuje token na Binanceu — vraca {price,c24,klines,source} ili null
+function searchOnBinance(sym){
+  return Promise.all([
+    safeFetch("https://api.binance.com/api/v3/ticker/24hr?symbol="+sym+"USDT"),
+    safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1h&limit=200")
+  ]).then(function(r){
+    var ticker=r[0], klines=r[1];
+    if(!ticker||!ticker.lastPrice||!klines||!klines.length)return null;
+    return{
+      source:"Binance",
+      price:parseFloat(ticker.lastPrice),
+      c24:parseFloat(ticker.priceChangePercent),
+      klines:klines // Binance: [openTime, open, high, low, close, volume, ...]
+    };
+  });
+}
+
+// Pretrazuje token na KuCoinu — vraca {price,c24,klines,source} ili null
+// KuCoin koristi "BTC-USDT" format i drugaciji kline raspored
+function searchOnKuCoin(sym){
+  var pair=sym+"-USDT";
+  return Promise.all([
+    safeFetch("https://api.kucoin.com/api/v1/market/stats?symbol="+pair),
+    safeFetch("https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol="+pair)
+  ]).then(function(r){
+    var stats=r[0], klines=r[1];
+    if(!stats||stats.code!=="200000"||!stats.data||!stats.data.last)return null;
+    if(!klines||klines.code!=="200000"||!klines.data||!klines.data.length)return null;
+    var d=stats.data;
+    var price=parseFloat(d.last);
+    var c24=parseFloat(d.changeRate||0)*100; // KuCoin vraca 0.0394 (=3.94%)
+    // KuCoin kline: [time(s), open, close, high, low, volume, turnover] (newest first!)
+    // Binance kline: [openTime(ms), open, high, low, close, volume]
+    var binKlines=klines.data.slice().reverse().map(function(k){
+      return [parseInt(k[0])*1000, k[1], k[3], k[4], k[2], k[5]];
+    });
+    return{source:"KuCoin",price:price,c24:c24,klines:binKlines};
+  });
+}
+
 function doSearch(){
   var inp=document.getElementById("search-input");
   var resultEl=document.getElementById("search-result");
@@ -4917,25 +4957,20 @@ function doSearch(){
   var sym=(inp.value||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
   if(!sym){resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--bear);font-size:12px">Upiši ticker tokena</div>';return;}
 
-  resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--t3);font-size:13px;padding:18px"><div style="font-size:22px;margin-bottom:6px">⏳</div>Pretražujem '+sym+' na Binanceu...<br><span style="font-size:10px;color:var(--t4)">Učitavam cijenu, klines, TA, MACD, ATR (5-10s)</span></div>';
+  resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--t3);font-size:13px;padding:18px"><div style="font-size:22px;margin-bottom:6px">⏳</div>Pretražujem '+sym+' (Binance + KuCoin)...<br><span style="font-size:10px;color:var(--t4)">Učitavam cijenu, klines, TA, MACD, ATR (5-10s)</span></div>';
 
-  // Provjeri postoji li USDT par
-  Promise.all([
-    safeFetch("https://api.binance.com/api/v3/ticker/24hr?symbol="+sym+"USDT"),
-    safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1h&limit=200")
-  ]).then(function(results){
-    var ticker=results[0], klines=results[1];
-    if(!ticker||!ticker.lastPrice){
-      resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--bear);font-size:13px;padding:18px"><div style="font-size:32px;margin-bottom:8px">❌</div>Token <strong>'+sym+'USDT</strong> ne postoji na Binanceu.<br><span style="font-size:11px;color:var(--t4);margin-top:6px;display:block">Provjeri ticker (npr. RENDER je RNDR, FETCH je FET).</span></div>';
+  // Pokušaj Binance prvi, pa KuCoin fallback
+  searchOnBinance(sym).then(function(binResult){
+    if(binResult)return binResult;
+    return searchOnKuCoin(sym);
+  }).then(function(found){
+    if(!found){
+      resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--bear);font-size:13px;padding:18px"><div style="font-size:32px;margin-bottom:8px">❌</div>Token <strong>'+sym+'</strong> nije pronađen.<br><span style="font-size:11px;color:var(--t4);margin-top:6px;display:block">Tražio na Binanceu (XXXUSDT) i KuCoinu (XXX-USDT).<br>Provjeri ticker (RENDER je RNDR, FETCH je FET).</span></div>';
       return;
     }
-    if(!klines||!klines.length){
-      resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--warn);font-size:13px">'+sym+'USDT postoji ali nema dovoljno klines podataka.</div>';
-      return;
-    }
-    // Inicijaliziraj px[sym] i izračunaj sve indikatore
-    var price=parseFloat(ticker.lastPrice);
-    var c24=parseFloat(ticker.priceChangePercent);
+    var klines=found.klines;
+    var price=found.price;
+    var c24=found.c24;
     px[sym]={p:price,c24:c24,ws:false};
     if(!hist[sym])hist[sym]=[];
     var closes=klines.map(function(k){return parseFloat(k[4]);});
@@ -4951,8 +4986,8 @@ function doSearch(){
       var ratio=avgVol>0?curVol/avgVol:1;
       volSpike[sym]={ratio:ratio,bullish:ratio>1.4,weak:ratio<0.6};
     }
-    getCfg(sym); // osigurat CFG zapis
-    if(ticker.symbol)CFG[sym].cn=sym;
+    getCfg(sym);
+    CFG[sym].cn=sym;
     // Pokreni analyse3D
     var result=analyze3D(sym);
     if(!result){
@@ -4971,7 +5006,7 @@ function doSearch(){
     h+='<div class="sec">';
     h+='<div class="row" style="gap:10px;margin-bottom:10px">';
     h+='<div class="tok-ico" style="background:'+CFG[sym].c+'15;color:'+CFG[sym].c+'">'+CFG[sym].i+'</div>';
-    h+='<div style="flex:1"><div style="font-size:18px;font-weight:var(--fw-x)">'+sym+'</div>';
+    h+='<div style="flex:1"><div style="font-size:18px;font-weight:var(--fw-x)">'+sym+' <span class="chip" style="font-size:9px;padding:1px 6px;margin-left:4px;background:rgba(255,255,255,.06);color:var(--t3);border-color:var(--sep)">📡 '+found.source+'</span></div>';
     h+='<div class="txt-t3" style="font-size:11px;margin-top:2px">'+fp(price)+' <span style="color:'+(c24>=0?"var(--bull)":"var(--bear)")+';font-weight:var(--fw-b);margin-left:6px">'+(c24>=0?"+":"")+c24.toFixed(2)+'%</span></div></div>';
     h+='</div>';
     if(result.verdictWhy)h+='<div style="font-size:11px;color:var(--t3);line-height:1.5;margin-bottom:8px">'+result.verdictWhy+'</div>';

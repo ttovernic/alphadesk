@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.64</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.65</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -298,6 +298,7 @@ svg.sp{overflow:visible;display:block}
         <div class="live-dot" id="tgd"></div>
         <span class="live-txt" id="tgt" style="color:#2979ff">TG</span>
       </div>
+      <button class="hd-gear" onclick="openSearch()" title="Pretraži token">🔍</button>
       <button class="hd-gear" onclick="openSettings()">⚙️</button>
     </div>
   </div>
@@ -322,6 +323,26 @@ svg.sp{overflow:visible;display:block}
     </div>
   </div>
   <div class="sc" id="sc"></div>
+</div>
+
+<!-- Search modal -->
+<div class="modal-bg" id="search-modal" onclick="if(event.target===this)closeSearch()">
+<div class="modal" style="max-width:480px;margin:0 auto">
+  <div class="modal-handle"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <span style="font-size:16px;font-weight:var(--fw-x);color:var(--t1)">🔍 Pretraži token</span>
+    <button onclick="closeSearch()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer">✕</button>
+  </div>
+  <div style="margin-bottom:12px">
+    <label class="inp-lbl">Ticker tokena (npr. RNDR, FET, INJ, JUP)</label>
+    <div style="display:flex;gap:8px">
+      <input id="search-input" class="inp" type="text" placeholder="BTC, ETH, RNDR..." style="text-transform:uppercase;flex:1" onkeydown="if(event.key==='Enter')doSearch()" autocomplete="off">
+      <button class="btn-p" onclick="doSearch()" style="width:auto;padding:13px 20px">Analiziraj</button>
+    </div>
+    <div style="font-size:10px;color:var(--t4);margin-top:5px">Bilo koji token s USDT parom na Binanceu</div>
+  </div>
+  <div id="search-result" style="margin-top:14px"></div>
+</div>
 </div>
 
 <!-- Settings modal -->
@@ -4878,6 +4899,110 @@ function toggleAISummary(){
   body.style.display=open?"none":"block";
   if(arr)arr.textContent=open?"▼":"▲";
   if(btn)btn.style.background=open?"rgba(0,230,118,.07)":"rgba(0,230,118,.14)";
+}
+
+// ── SEARCH — analiza bilo kojeg tokena s Binance USDT parom ─────
+function openSearch(){
+  document.getElementById("search-modal").classList.add("open");
+  setTimeout(function(){var el=document.getElementById("search-input");if(el)el.focus();},100);
+}
+function closeSearch(){
+  document.getElementById("search-modal").classList.remove("open");
+}
+
+function doSearch(){
+  var inp=document.getElementById("search-input");
+  var resultEl=document.getElementById("search-result");
+  if(!inp||!resultEl)return;
+  var sym=(inp.value||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(!sym){resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--bear);font-size:12px">Upiši ticker tokena</div>';return;}
+
+  resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--t3);font-size:13px;padding:18px"><div style="font-size:22px;margin-bottom:6px">⏳</div>Pretražujem '+sym+' na Binanceu...<br><span style="font-size:10px;color:var(--t4)">Učitavam cijenu, klines, TA, MACD, ATR (5-10s)</span></div>';
+
+  // Provjeri postoji li USDT par
+  Promise.all([
+    safeFetch("https://api.binance.com/api/v3/ticker/24hr?symbol="+sym+"USDT"),
+    safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1h&limit=200")
+  ]).then(function(results){
+    var ticker=results[0], klines=results[1];
+    if(!ticker||!ticker.lastPrice){
+      resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--bear);font-size:13px;padding:18px"><div style="font-size:32px;margin-bottom:8px">❌</div>Token <strong>'+sym+'USDT</strong> ne postoji na Binanceu.<br><span style="font-size:11px;color:var(--t4);margin-top:6px;display:block">Provjeri ticker (npr. RENDER je RNDR, FETCH je FET).</span></div>';
+      return;
+    }
+    if(!klines||!klines.length){
+      resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--warn);font-size:13px">'+sym+'USDT postoji ali nema dovoljno klines podataka.</div>';
+      return;
+    }
+    // Inicijaliziraj px[sym] i izračunaj sve indikatore
+    var price=parseFloat(ticker.lastPrice);
+    var c24=parseFloat(ticker.priceChangePercent);
+    px[sym]={p:price,c24:c24,ws:false};
+    if(!hist[sym])hist[sym]=[];
+    var closes=klines.map(function(k){return parseFloat(k[4]);});
+    var vols=klines.map(function(k){return parseFloat(k[5]);});
+    // TA, MACD, ATR
+    var taR=compTA(closes); if(taR)ta[sym]=taR;
+    var macdR=compMACD(closes); if(macdR)macd[sym]=macdR;
+    var atrR=compATR(klines); if(atrR)atr[sym]=atrR;
+    // Volume spike
+    if(vols.length>=20){
+      var avgVol=vols.slice(-20,-1).reduce(function(s,v){return s+v;},0)/19;
+      var curVol=vols[vols.length-1];
+      var ratio=avgVol>0?curVol/avgVol:1;
+      volSpike[sym]={ratio:ratio,bullish:ratio>1.4,weak:ratio<0.6};
+    }
+    getCfg(sym); // osigurat CFG zapis
+    if(ticker.symbol)CFG[sym].cn=sym;
+    // Pokreni analyse3D
+    var result=analyze3D(sym);
+    if(!result){
+      resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--warn);font-size:13px">Analiza nije uspjela. Token postoji ali nema TA podatke.</div>';
+      return;
+    }
+    // Render rezultat (custom card)
+    var v=result.verdict||"🔴 Preskoči";
+    var vCls=v.indexOf("✅")===0?"chip-bull":v.indexOf("🟡")===0?"chip-warn":v.indexOf("🔵")===0?"chip-info":"chip-bear";
+    var confCol=result.conf>=70?"var(--bull)":result.conf>=60?"var(--info)":result.conf>=48?"var(--warn)":"var(--bear)";
+    var h='<div class="panel" style="padding:0;overflow:hidden">';
+    h+='<div class="row-between sec-tight" style="background:rgba(255,255,255,.03);border-bottom:.5px solid var(--sep)">';
+    h+='<span class="chip '+vCls+'" style="font-size:13px">'+v+'</span>';
+    h+='<span style="font-size:24px;font-weight:var(--fw-x);color:'+confCol+';letter-spacing:-1.5px;line-height:1">'+result.conf+'%</span>';
+    h+='</div>';
+    h+='<div class="sec">';
+    h+='<div class="row" style="gap:10px;margin-bottom:10px">';
+    h+='<div class="tok-ico" style="background:'+CFG[sym].c+'15;color:'+CFG[sym].c+'">'+CFG[sym].i+'</div>';
+    h+='<div style="flex:1"><div style="font-size:18px;font-weight:var(--fw-x)">'+sym+'</div>';
+    h+='<div class="txt-t3" style="font-size:11px;margin-top:2px">'+fp(price)+' <span style="color:'+(c24>=0?"var(--bull)":"var(--bear)")+';font-weight:var(--fw-b);margin-left:6px">'+(c24>=0?"+":"")+c24.toFixed(2)+'%</span></div></div>';
+    h+='</div>';
+    if(result.verdictWhy)h+='<div style="font-size:11px;color:var(--t3);line-height:1.5;margin-bottom:8px">'+result.verdictWhy+'</div>';
+    h+='<div class="grid-3" style="gap:6px;margin-bottom:10px">';
+    h+='<div class="stat-box"><div class="txt-t4" style="font-size:9px">ULAZ</div><div class="stat-num-sm">'+fp(price)+'</div></div>';
+    h+='<div class="stat-box"><div class="txt-bear" style="font-size:9px">STOP</div><div class="stat-num-sm txt-bear">'+fp(result.stopPrice)+'</div></div>';
+    h+='<div class="stat-box"><div class="txt-bull" style="font-size:9px">TARGET +'+result.targetPct+'%</div><div class="stat-num-sm txt-bull">'+fp(result.targetPrice)+'</div></div>';
+    h+='</div>';
+    h+='<div class="row-wrap" style="gap:10px;margin-bottom:8px">';
+    h+='<span class="metric">R/R <strong>'+result.rr+':1</strong></span>';
+    h+='<span class="metric">ATR <strong>'+result.atrPct+'%/d · '+result.riskLevel+'</strong></span>';
+    h+='<span class="metric">Confluence <strong>'+result.confluenceCount+'/5</strong></span>';
+    h+='</div>';
+    // Top 5 signala
+    if(result.signals&&result.signals.length){
+      h+='<div class="sec-lbl-sm" style="margin-top:8px;margin-bottom:5px">📊 Top signali</div>';
+      result.signals.slice(0,5).forEach(function(s){
+        h+='<div style="font-size:10px;color:var(--bull);margin-bottom:3px">↑ '+s.txt+'</div>';
+      });
+    }
+    if(result.warnings&&result.warnings.length){
+      h+='<div class="sec-lbl-sm" style="margin-top:8px;margin-bottom:5px">⚠ Upozorenja</div>';
+      result.warnings.slice(0,3).forEach(function(w){
+        h+='<div style="font-size:10px;color:var(--bear);margin-bottom:3px">↓ '+w.txt+'</div>';
+      });
+    }
+    h+='</div></div>';
+    resultEl.innerHTML=h;
+  }).catch(function(e){
+    resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--bear);font-size:12px">Greška: '+(e.message||"nepoznato")+'</div>';
+  });
 }
 
 // ── SETTINGS ────────────────────────────────────────────────────

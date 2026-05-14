@@ -1,7 +1,7 @@
 {
-    "dxy":  97.9,
-    "changeSummary":  "Makro uvjeti ostali gotovo identični (DXY 97.9, F&G 49, CRAB, oil raste na $95), a SUI prednjači breakoutom dok XRP zaostaje ispod ključne otpornosti.",
-    "lastUpdated":  "2026-05-09T22:00:00.000Z",
+    "dxy":  98.5,
+    "changeSummary":  "Prijelaz s neutralnih placeholdera na stvarne podatke: FG pao na 34 (strah), DXY 98.5 daje -1, ali rat u Iranu +2, ukupno macroPenalty iznosi 1.",
+    "lastUpdated":  "2026-05-14T12:00:00Z",
     "warnings":  {
                      "ACT":  [
 
@@ -13,7 +13,7 @@
 
                                ],
                      "XRP":  [
-                                 "XRP zaglavio ispod ključne otpornosti oko $1.40"
+
                              ],
                      "BNB":  [
 
@@ -61,10 +61,10 @@
 
                               ],
                      "TRUMP":  [
-
+                         "Politički token - povećana volatilnost u ratu"
                                ],
                      "BTC":  [
-                                 "Revolut price glitch izazvao kratku retail paniku"
+                         "PPI inflacija iznad očekivanja, BTC pao ispod 80k"
                              ]
                  },
     "catalysts":  {
@@ -78,13 +78,13 @@
 
                                 ],
                       "XRP":  [
-
+                          "CLARITY Act pozitivan za XRP regulatorni status"
                               ],
                       "BNB":  [
 
                               ],
                       "SUI":  [
-                                  "SUI drugi dan zaredom bilježi snažan breakout"
+
                               ],
                       "AVAX":  [
 
@@ -117,7 +117,7 @@
 
                                 ],
                       "ETH":  [
-                                  "Consensus Miami 2026: regulacija ubrzava stablecoin adopciju"
+                          "Bitmine akumulira ETH - 5.21M tokena (~$13.4B)"
                               ],
                       "LINK":  [
 
@@ -129,40 +129,39 @@
 
                                 ],
                       "BTC":  [
-                                  "Senat glasa o Digital Asset Market Clarity Act 11.5.",
-                                  "CME planira BTC volatility futures 1. lipnja",
-                                  "ETF priljevi nastavljaju: BlackRock i Fidelity kupuju"
+                          "CLARITY Act glasanje Senata 14.5. - kljucan za kripto",
+                          "Institucionalni ETF priljevi nastavljaju rasti"
                               ]
                   },
-    "fearGreed":  49,
+    "fearGreed":  34,
     "macroPenalty":  1,
-    "regime":  "CRAB",
+    "regime":  "VOLATILE",
     "sentimentScore":  {
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  -1,
-                           "BNB":  1,
-                           "SUI":  2,
+                           "XRP":  1,
+                           "BNB":  0,
+                           "SUI":  0,
                            "AVAX":  0,
                            "PENGU":  0,
                            "BOME":  0,
                            "DOGS":  0,
                            "NOT":  0,
                            "PEOPLE":  0,
-                           "SOL":  1,
+                           "SOL":  0,
                            "ADA":  0,
                            "PNUT":  0,
                            "AIXBT":  0,
                            "ETH":  1,
-                           "LINK":  1,
+                           "LINK":  0,
                            "PUMP":  0,
-                           "TRUMP":  0,
+                           "TRUMP":  -1,
                            "BTC":  2
                        },
-    "aiSummary":  "DXY ostaje stabilno oko 97.9 pružajući makro potporu kriptotržištu, dok zatvoreni Hormuzov tjesnac drži WTI naftu na $95.4 uz aktivan geopolitički rizik. BTC konsolidira iznad $80K uz Fear & Greed od 49 i nastavak ETF priljeva, a ključni katalizator je glasanje Senata o Digital Asset Market Clarity Act zakazano za 11. svibnja. SUI prednjači snažnim breakoutom drugi dan zaredom, dok XRP zaostaje ispod ključne otpornosti.",
+    "aiSummary":  "DXY se drzi na razini 98.5, ispod 100, sto pruza blag poticaj kripto trzistu, no inflacijski pritisci (PPI raste najbrze od 2022.) odgadaju rezanje Fed kamatnih stopa. Fear & Greed indeks pao je na 34 (strah) dok BTC oscilira oko 80.000 USD pod pritiskom rata u Iranu koji tjera naftu na 101 USD i povecava makro neizvjesnost. Kljucan katalizator koji moze preokrenuti sentiment je glasanje Senata o CLARITY Act-u 14. svibnja - prolaz bi bio znacajan pozitivan signal za BTC, ETH i XRP.",
     "warActive":  true,
-    "btcDom":  59,
-    "stableDom":  9,
-    "oil":  95.4
+    "btcDom":  58.4,
+    "stableDom":  11.8,
+    "oil":  101
 }

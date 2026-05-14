@@ -1,19 +1,19 @@
 {
     "dxy":  98.5,
-    "changeSummary":  "Sentiment se oporavio — Fear & Greed porastao s 34 na 50, DXY ostaje na 98.5, a glasanje o CLARITY Act-u danas donosi prvi pozitivni katalizator od prethodne analize.",
+    "changeSummary":  "Fear & Greed indeks pao je s 50 na 42, signalizirajući porast straha na tržištu, dok DXY, nafta i BTC dominacija ostaju stabilni.",
     "lastUpdated":  "2026-05-14T16:00:00Z",
     "warnings":  {
                      "ACT":  [
 
                              ],
                      "MEME":  [
-                                  "Meme sektor pod pritiskom makro neizvjesnosti"
+
                               ],
                      "ANIME":  [
 
                                ],
                      "XRP":  [
-
+                                 "Neuspjeh CLARITY Act negativan signal za XRP"
                              ],
                      "BNB":  [
 
@@ -52,7 +52,7 @@
 
                                ],
                      "ETH":  [
-                                 "Makro pritisak - PPI +6% YoY odgada Fed rezanje"
+
                              ],
                      "LINK":  [
 
@@ -61,11 +61,11 @@
 
                               ],
                      "TRUMP":  [
-                                   "Politicka neizvjesnost + makro volatilnost"
+                                   "Trumpov posjet Kini donosi neizvjesnost",
+                                   "Powell odlazi 15.5., hawkish Warsh rizik"
                                ],
                      "BTC":  [
-                                 "Iran rat drzi naftu iznad $101",
-                                 "PPI +6% YoY - Fed odgada rezanje kamate"
+                                 "Rat u Iranu drzi naftu >$100, rizik za trziste"
                              ]
                  },
     "catalysts":  {
@@ -79,7 +79,7 @@
 
                                 ],
                       "XRP":  [
-                                  "CLARITY Act - regulatorna jasnoća za XRP"
+                                  "CLARITY Act pozitivan impuls za XRP regulativu"
                               ],
                       "BNB":  [
 
@@ -106,7 +106,7 @@
 
                                  ],
                       "SOL":  [
-                                  "CLARITY Act - pozitivan signal za cijeli ekosustav"
+
                               ],
                       "ADA":  [
 
@@ -118,8 +118,8 @@
 
                                 ],
                       "ETH":  [
-                                  "Charles Schwab spot ETH trading - retail pristup",
-                                  "CLARITY Act - regulatorna jasnoća za ETH"
+                                  "CLARITY Act glasanje u Senatu 14.5.",
+                                  "SEC tokeniziranih vrijednosnica na snazi"
                               ],
                       "LINK":  [
 
@@ -131,18 +131,18 @@
 
                                 ],
                       "BTC":  [
-                                  "Senatsko glasanje CLARITY Act - 14. svibnja 2026",
-                                  "Charles Schwab otvorio spot BTC/ETH trading"
+                                  "Institucionalni kapital nastavlja ulaz u BTC",
+                                  "Schwab pokrice spot kripto trading za retail"
                               ]
                   },
-    "fearGreed":  50,
+    "fearGreed":  42,
     "macroPenalty":  1,
     "regime":  "CRAB",
     "sentimentScore":  {
                            "ACT":  0,
-                           "MEME":  -1,
+                           "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  2,
+                           "XRP":  1,
                            "BNB":  0,
                            "SUI":  0,
                            "AVAX":  0,
@@ -151,19 +151,19 @@
                            "DOGS":  0,
                            "NOT":  0,
                            "PEOPLE":  0,
-                           "SOL":  1,
+                           "SOL":  0,
                            "ADA":  0,
                            "PNUT":  0,
                            "AIXBT":  0,
-                           "ETH":  2,
+                           "ETH":  1,
                            "LINK":  0,
                            "PUMP":  0,
                            "TRUMP":  -1,
-                           "BTC":  2
+                           "BTC":  1
                        },
-    "aiSummary":  "DXY ostaje ispod 100 na razini 98.5, što pruža blagu potporu kripto tržištu, no iranski rat drži naftu iznad $101 i povećava globalnu neizvjesnost. Fear & Greed indeks porastao je s 34 na 50 (neutralno) dok BTC konsolidira oko $80.000 USD u CRAB fazi tržišta. Ključan katalizator danas je glasanje Senata o CLARITY Act-u — prolaz bi donio snažan pozitivan impuls za BTC, ETH i XRP.",
+    "aiSummary":  "DXY ostaje ispod 100 na razini 98.5, pruzajuci blagu potporu kripto trzistu, no aktivni iranski rat drzi naftu iznad $101 i odrzava globalnu neizvjesnost. Fear & Greed indeks pao je s 50 na 42 (strah), a BTC konsolidira ispod $80.000 u CRAB fazi trzista. Kljucan katalizator danas je glasanje Senata o CLARITY Act-u — prolaz bi donio snazan pozitivan impuls za BTC, ETH i XRP, dok Powellov odlazak 15.5. i Trumpov posjet Kini donose dodatnu nesigurnost.",
     "warActive":  true,
     "btcDom":  58.4,
     "stableDom":  11.8,
-    "oil":  101.5
+    "oil":  101.54
 }

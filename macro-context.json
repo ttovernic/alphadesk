@@ -1,7 +1,7 @@
 {
     "dxy":  98.5,
-    "changeSummary":  "Fear & Greed pao s 42 na 34 dok BTC ostaje u CRAB fazi oko $79.800, a glasanje Senata o CLARITY Act-u danas donosi kljucan potencijalni katalizator.",
-    "lastUpdated":  "2026-05-14T16:00:00Z",
+    "changeSummary":  "Uvjeti nepromijenjeni vs prethodnog snapshota - DXY stabilan na 98.5, Fear & Greed zadržan na 34, oil na $101.54, BTC konsolidira ispod $80K pred glasanjem Senata o CLARITY Actu.",
+    "lastUpdated":  "2026-05-14T17:00:00Z",
     "warnings":  {
                      "ACT":  [
 
@@ -52,7 +52,7 @@
 
                                ],
                      "ETH":  [
-                                 "ETH podbacuje BTC, konsolidira oko $2.265"
+
                              ],
                      "LINK":  [
 
@@ -61,11 +61,11 @@
 
                               ],
                      "TRUMP":  [
-                                   "Neizvjesnost oko Trumpove politike i Kine"
+
                                ],
                      "BTC":  [
-                                 "Konsolidacija ispod $80K, inflacija SAD 3.8%",
-                                 "Iran rat drzi naftu iznad $101"
+                                 "BTC ispod $80K, PPI inflacija 6% YoY udara na sentiment",
+                                 "Iran rat drzi naftu iznad $101, globalna neizvjesnost"
                              ]
                  },
     "catalysts":  {
@@ -79,13 +79,13 @@
 
                                 ],
                       "XRP":  [
-                                  "XRP ETF pritok $25.8M - rekord od 5.1."
+                                  "CLARITY Act glasanje - klarifikacija regulacije XRP-a"
                               ],
                       "BNB":  [
 
                               ],
                       "SUI":  [
-                                  "SUI skocio 24% - snazna tjedna performansa"
+
                               ],
                       "AVAX":  [
 
@@ -106,7 +106,7 @@
 
                                  ],
                       "SOL":  [
-                                  "SOL ETF pritok $26.6M na 11.5."
+
                               ],
                       "ADA":  [
 
@@ -118,7 +118,8 @@
 
                                 ],
                       "ETH":  [
-                                  "Charles Schwab spot ETH trading za retail"
+                                  "Bitmine drzi 5.21M ETH tokena, ukupno $13.4B",
+                                  "CLARITY Act ureduje ETH kao robu"
                               ],
                       "LINK":  [
 
@@ -130,8 +131,8 @@
 
                                 ],
                       "BTC":  [
-                                  "CLARITY Act glasanje u Senatu - 14.5.",
-                                  "Charles Schwab pokrenuo spot BTC/ETH trading"
+                                  "Senat glasa o CLARITY Actu - kljucni regulatorni korak",
+                                  "Kevin Warsh novi Fed predsjednik od danas"
                               ]
                   },
     "fearGreed":  34,
@@ -141,28 +142,28 @@
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  2,
+                           "XRP":  1,
                            "BNB":  0,
-                           "SUI":  2,
+                           "SUI":  0,
                            "AVAX":  0,
                            "PENGU":  0,
                            "BOME":  0,
                            "DOGS":  0,
                            "NOT":  0,
                            "PEOPLE":  0,
-                           "SOL":  1,
+                           "SOL":  0,
                            "ADA":  0,
                            "PNUT":  0,
                            "AIXBT":  0,
                            "ETH":  1,
                            "LINK":  0,
                            "PUMP":  0,
-                           "TRUMP":  -1,
-                           "BTC":  2
+                           "TRUMP":  0,
+                           "BTC":  1
                        },
-    "aiSummary":  "DXY ostaje stabilan na 98.5, ispod 100, pruzajuci blagu potporu kriptu, no Iran rat drzi naftu iznad $101 i odrzava globalnu neizvjesnost. Fear & Greed indeks pao je s 42 na 34 (strah), a BTC konsolidira ispod $80.000 u CRAB fazi trzista. Kljucan katalizator danas je glasanje Senata o CLARITY Act-u, dok Charles Schwab lansira spot BTC/ETH trading za retail klijente.",
+    "aiSummary":  "DXY ostaje stabilan na 98.5, ispod kriticne razine 100, pruzajuci blagu potporu kriptu unatoc hawkish Fedu i PPI inflaciji od 6% YoY koji odgadaju rezanje kamata. Fear & Greed indeks zadrzan na 34 (strah), a BTC konsolidira u rasponu $78.800-$80.000 dok trziste iscekuje ishod glasanja Senata o CLARITY Actu - kljucnog regulatornog koraka za BTC, ETH i XRP. Kevin Warsh preuzima Fed od danas, no njegov prvi FOMC sastanak nije do lipnja, pa se ne ocekuju iznenadenja na kratki rok.",
     "warActive":  true,
-    "btcDom":  58.4,
-    "stableDom":  11.9,
+    "btcDom":  58.5,
+    "stableDom":  12.0,
     "oil":  101.54
 }

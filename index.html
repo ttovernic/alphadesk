@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.74</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.75</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -964,6 +964,11 @@ const CG_IDS={BTC:"bitcoin",ETH:"ethereum",XRP:"ripple",BNB:"binancecoin",ADA:"c
 const STABLES=new Set(["USDT","USDC","DAI","BUSD","TUSD","USDP","USDD","GUSD","FRAX","LUSD","PYUSD","USDS","FDUSD","USDE","EURS","EURT","USD0","USD1","USDY","CRVUSD","GHO","SUSD","MKUSD","ALUSD","DEUSD","LISUSD","FRXUSD","CUSD","OUSD","USDM","USDX","HUSD","DUSD"]);
 const WRAPPED=new Set(["WBTC","WSTETH","STETH","CBETH","RETH","WBETH","WEETH","WETH","WBNB","SOLVBTC","BBTC","HBTC"]);
 var TOP100=SYMS.slice();     // dynamically populated from CoinGecko, starts with existing 9
+// Učitaj watchlist iz localStorage i ubaci u TOP100 (custom tokeni)
+(function(){try{
+  var wl=JSON.parse(localStorage.getItem("ad3d_watchlist")||"[]");
+  wl.forEach(function(s){if(TOP100.indexOf(s)<0)TOP100.push(s);});
+}catch(e){}})();
 var TOP100_LOADED=false;
 var wsPool=[];               // pool of WS connections (chunks of 50)
 var wsReconnectTimer=null;
@@ -4901,28 +4906,99 @@ function toggleAISummary(){
   if(btn)btn.style.background=open?"rgba(0,230,118,.07)":"rgba(0,230,118,.14)";
 }
 
-// ── SEARCH — analiza bilo kojeg tokena s Binance USDT parom ─────
+// ── SEARCH — analiza bilo kojeg tokena s Binance/KuCoin USDT parom ─
+
+// Search history (zadnjih 10 pretraga u localStorage)
+function getSearchHistory(){
+  try{return JSON.parse(localStorage.getItem("ad3d_search_history")||"[]");}catch(e){return[];}
+}
+function pushSearchHistory(sym){
+  if(!sym)return;
+  var h=getSearchHistory().filter(function(s){return s!==sym;});
+  h.unshift(sym);
+  if(h.length>10)h=h.slice(0,10);
+  try{localStorage.setItem("ad3d_search_history",JSON.stringify(h));}catch(e){}
+}
+
+// Watchlist — custom tokeni koje korisnik dodao za stalno praćenje
+function getWatchlist(){
+  try{return JSON.parse(localStorage.getItem("ad3d_watchlist")||"[]");}catch(e){return[];}
+}
+function addToWatchlist(sym){
+  if(!sym)return;
+  var w=getWatchlist();
+  if(w.indexOf(sym)>-1)return false;
+  w.push(sym);
+  try{localStorage.setItem("ad3d_watchlist",JSON.stringify(w));}catch(e){}
+  // Odmah ubaci u TOP100 da se počne skenirati
+  if(TOP100.indexOf(sym)<0)TOP100.push(sym);
+  // I poveži WS za live cijene
+  if(typeof connectWSPool==="function")connectWSPool(TOP100.concat(MEME_SYMS));
+  return true;
+}
+function removeFromWatchlist(sym){
+  var w=getWatchlist().filter(function(s){return s!==sym;});
+  try{localStorage.setItem("ad3d_watchlist",JSON.stringify(w));}catch(e){}
+}
+function isInWatchlist(sym){return getWatchlist().indexOf(sym)>-1;}
+
 function openSearch(){
   document.getElementById("search-modal").classList.add("open");
   setTimeout(function(){var el=document.getElementById("search-input");if(el)el.focus();},100);
+  renderSearchHistory();
 }
 function closeSearch(){
   document.getElementById("search-modal").classList.remove("open");
+}
+function searchFromHistory(sym){
+  var inp=document.getElementById("search-input");
+  if(inp){inp.value=sym;doSearch();}
+}
+function renderSearchHistory(){
+  var el=document.getElementById("search-result");
+  if(!el)return;
+  var h=getSearchHistory();
+  var w=getWatchlist();
+  var html="";
+  // Watchlist sekcija
+  if(w.length){
+    html+='<div style="margin-bottom:12px"><div class="sec-lbl-sm" style="margin-bottom:6px">📌 Tvoja lista praćenja ('+w.length+')</div>';
+    html+='<div class="row-wrap" style="gap:5px">';
+    w.forEach(function(s){
+      html+='<button onclick="searchFromHistory(\''+s+'\')" class="chip" style="cursor:pointer;border-color:rgba(0,230,118,.3);color:var(--bull);background:rgba(0,230,118,.08)">'+s+'</button>';
+    });
+    html+='</div></div>';
+  }
+  // Recent search history
+  if(h.length){
+    html+='<div><div class="sec-lbl-sm" style="margin-bottom:6px">🕒 Zadnje pretrage</div>';
+    html+='<div class="row-wrap" style="gap:5px">';
+    h.forEach(function(s){
+      html+='<button onclick="searchFromHistory(\''+s+'\')" class="chip" style="cursor:pointer">'+s+'</button>';
+    });
+    html+='</div></div>';
+  }
+  if(!html){html='<div class="panel" style="text-align:center;color:var(--t4);font-size:12px;padding:18px">Upiši ticker tokena za analizu (npr. BTC, RNDR, FET)</div>';}
+  el.innerHTML=html;
 }
 
 // Pretrazuje token na Binanceu — vraca {price,c24,klines,source} ili null
 function searchOnBinance(sym){
   return Promise.all([
     safeFetch("https://api.binance.com/api/v3/ticker/24hr?symbol="+sym+"USDT"),
-    safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1h&limit=200")
+    safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1h&limit=200"),
+    safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=4h&limit=80"),
+    safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1d&limit=60")
   ]).then(function(r){
-    var ticker=r[0], klines=r[1];
+    var ticker=r[0], klines=r[1], klines4h=r[2], klinesDaily=r[3];
     if(!ticker||!ticker.lastPrice||!klines||!klines.length)return null;
     return{
       source:"Binance",
       price:parseFloat(ticker.lastPrice),
       c24:parseFloat(ticker.priceChangePercent),
-      klines:klines // Binance: [openTime, open, high, low, close, volume, ...]
+      klines:klines, // 1h
+      klines4h:klines4h&&klines4h.length?klines4h:null,
+      klinesDaily:klinesDaily&&klinesDaily.length?klinesDaily:null
     };
   });
 }
@@ -4956,6 +5032,7 @@ function doSearch(){
   if(!inp||!resultEl)return;
   var sym=(inp.value||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
   if(!sym){resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--bear);font-size:12px">Upiši ticker tokena</div>';return;}
+  pushSearchHistory(sym); // pohrani u history
 
   resultEl.innerHTML='<div class="panel" style="text-align:center;color:var(--t3);font-size:13px;padding:18px"><div style="font-size:22px;margin-bottom:6px">⏳</div>Pretražujem '+sym+' (Binance + KuCoin)...<br><span style="font-size:10px;color:var(--t4)">Učitavam cijenu, klines, TA, MACD, ATR + arbitrage check</span></div>';
 
@@ -4989,10 +5066,19 @@ function doSearch(){
     if(!hist[sym])hist[sym]=[];
     var closes=klines.map(function(k){return parseFloat(k[4]);});
     var vols=klines.map(function(k){return parseFloat(k[5]);});
-    // TA, MACD, ATR
+    // 1h TA, MACD, ATR
     var taR=compTA(closes); if(taR)ta[sym]=taR;
     var macdR=compMACD(closes); if(macdR)macd[sym]=macdR;
     var atrR=compATR(klines); if(atrR)atr[sym]=atrR;
+    // MTF: 4h + Daily TA — samo ako su klines dostupni (Binance source)
+    if(found.klines4h){
+      var closes4h=found.klines4h.map(function(k){return parseFloat(k[4]);});
+      var ta4hR=compTA(closes4h); if(ta4hR)ta4h[sym]=ta4hR;
+    }
+    if(found.klinesDaily){
+      var closesDaily=found.klinesDaily.map(function(k){return parseFloat(k[4]);});
+      var taDailyR=compTA(closesDaily); if(taDailyR)taDaily[sym]=taDailyR;
+    }
     // Volume spike
     if(vols.length>=20){
       var avgVol=vols.slice(-20,-1).reduce(function(s,v){return s+v;},0)/19;
@@ -5064,6 +5150,15 @@ function doSearch(){
       h+='</div>';
     }
 
+    // 📌 Save/Remove watchlist button
+    var inWl=isInWatchlist(sym);
+    h+='<div style="margin:10px 0 8px">';
+    if(inWl){
+      h+='<button onclick="removeFromWatchlist(\''+sym+'\');renderSearchHistory();showToast(\'🗑 Uklonjeno iz praćenja: '+sym+'\');doSearch()" style="width:100%;padding:9px;background:rgba(255,23,68,.08);border:.5px solid rgba(255,23,68,.3);border-radius:10px;color:var(--bear);font-size:12px;font-weight:var(--fw-x);cursor:pointer;font-family:inherit">🗑 Ukloni iz praćenja</button>';
+    } else {
+      h+='<button onclick="if(addToWatchlist(\''+sym+'\')){showToast(\'📌 '+sym+' dodano u praćenje — sad se skenira sa svakim ciklusom\');doSearch();}" style="width:100%;padding:9px;background:rgba(0,230,118,.08);border:.5px solid rgba(0,230,118,.3);border-radius:10px;color:var(--bull);font-size:12px;font-weight:var(--fw-x);cursor:pointer;font-family:inherit">📌 Spremi u listu praćenja</button>';
+    }
+    h+='</div>';
     // Top 5 signala
     if(result.signals&&result.signals.length){
       h+='<div class="sec-lbl-sm" style="margin-top:8px;margin-bottom:5px">📊 Top signali</div>';
@@ -5900,6 +5995,11 @@ function loadTop100(){
       });
       if(syms.length<5)return; // sanity check
       TOP100=syms;
+      // Zadrži custom watchlist tokene (korisnik je odlucio pratiti)
+      try{
+        var wl=JSON.parse(localStorage.getItem("ad3d_watchlist")||"[]");
+        wl.forEach(function(s){if(TOP100.indexOf(s)<0)TOP100.push(s);});
+      }catch(e){}
       TOP100_LOADED=true;
       computeRelStrength(); // izračunaj relativnu snagu čim imamo CG podatke
       // Poveži WS za sve tokene

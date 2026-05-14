@@ -1,149 +1,62 @@
 {
     "dxy":  98.5,
-    "changeSummary":  "Uvjeti nepromijenjeni vs prethodnog snapshota - DXY stabilan na 98.5, Fear & Greed zadržan na 34, oil na $101.54, BTC konsolidira ispod $80K pred glasanjem Senata o CLARITY Actu.",
-    "lastUpdated":  "2026-05-14T17:00:00Z",
+    "changeSummary":  "Iran primirje snizilo macroPenalty s 1 na 0, BTC ostaje u rasponu oko $79.640 uz nepromijenjen F&G 34 i DXY 98.5, dok Schwab lansira kripto trading a CLARITY Act ide na glasanje u Senatu.",
+    "lastUpdated":  "2026-05-14T18:00:00Z",
     "warnings":  {
-                     "ACT":  [
-
-                             ],
-                     "MEME":  [
-
-                              ],
-                     "ANIME":  [
-
-                               ],
-                     "XRP":  [
-
-                             ],
-                     "BNB":  [
-
-                             ],
-                     "SUI":  [
-
-                             ],
-                     "AVAX":  [
-
-                              ],
-                     "PENGU":  [
-
-                               ],
-                     "BOME":  [
-
-                              ],
-                     "DOGS":  [
-
-                              ],
-                     "NOT":  [
-
-                             ],
-                     "PEOPLE":  [
-
-                                ],
-                     "SOL":  [
-
-                             ],
-                     "ADA":  [
-
-                             ],
-                     "PNUT":  [
-
-                              ],
-                     "AIXBT":  [
-
-                               ],
-                     "ETH":  [
-
-                             ],
-                     "LINK":  [
-
-                              ],
-                     "PUMP":  [
-
-                              ],
-                     "TRUMP":  [
-
-                               ],
-                     "BTC":  [
-                                 "BTC ispod $80K, PPI inflacija 6% YoY udara na sentiment",
-                                 "Iran rat drzi naftu iznad $101, globalna neizvjesnost"
-                             ]
+                     "ACT":  [],
+                     "MEME":  [],
+                     "ANIME":  [],
+                     "XRP":  [],
+                     "BNB":  [],
+                     "SUI":  [],
+                     "AVAX":  [],
+                     "PENGU":  [],
+                     "BOME":  [],
+                     "DOGS":  [],
+                     "NOT":  [],
+                     "PEOPLE":  [],
+                     "SOL":  [],
+                     "ADA":  [],
+                     "PNUT":  [],
+                     "AIXBT":  [],
+                     "ETH":  [],
+                     "LINK":  [],
+                     "PUMP":  [],
+                     "TRUMP":  [],
+                     "BTC":  ["PPI inflacija 6% YoY odgada rezanje kamata"]
                  },
     "catalysts":  {
-                      "ACT":  [
-
-                              ],
-                      "MEME":  [
-
-                               ],
-                      "ANIME":  [
-
-                                ],
-                      "XRP":  [
-                                  "CLARITY Act glasanje - klarifikacija regulacije XRP-a"
-                              ],
-                      "BNB":  [
-
-                              ],
-                      "SUI":  [
-
-                              ],
-                      "AVAX":  [
-
-                               ],
-                      "PENGU":  [
-
-                                ],
-                      "BOME":  [
-
-                               ],
-                      "DOGS":  [
-
-                               ],
-                      "NOT":  [
-
-                              ],
-                      "PEOPLE":  [
-
-                                 ],
-                      "SOL":  [
-
-                              ],
-                      "ADA":  [
-
-                              ],
-                      "PNUT":  [
-
-                               ],
-                      "AIXBT":  [
-
-                                ],
-                      "ETH":  [
-                                  "Bitmine drzi 5.21M ETH tokena, ukupno $13.4B",
-                                  "CLARITY Act ureduje ETH kao robu"
-                              ],
-                      "LINK":  [
-
-                               ],
-                      "PUMP":  [
-
-                               ],
-                      "TRUMP":  [
-
-                                ],
-                      "BTC":  [
-                                  "Senat glasa o CLARITY Actu - kljucni regulatorni korak",
-                                  "Kevin Warsh novi Fed predsjednik od danas"
-                              ]
+                      "ACT":  [],
+                      "MEME":  [],
+                      "ANIME":  [],
+                      "XRP":  ["CLARITY Act Senate glasanje danas - XRP regulatorni okvir"],
+                      "BNB":  ["MOEX lansirao BNB kripto indeks za trading"],
+                      "SUI":  [],
+                      "AVAX":  [],
+                      "PENGU":  [],
+                      "BOME":  [],
+                      "DOGS":  [],
+                      "NOT":  [],
+                      "PEOPLE":  [],
+                      "SOL":  ["MOEX lansirao SOL kripto indeks za trading"],
+                      "ADA":  [],
+                      "PNUT":  [],
+                      "AIXBT":  [],
+                      "ETH":  ["Charles Schwab pokrenuo direktno ETH trading ($12T AUM)"],
+                      "LINK":  [],
+                      "PUMP":  [],
+                      "TRUMP":  [],
+                      "BTC":  ["Charles Schwab pokrenuo direktno BTC trading", "CLARITY Act napreduje prema glasanju u Senatu"]
                   },
     "fearGreed":  34,
-    "macroPenalty":  1,
+    "macroPenalty":  0,
     "regime":  "CRAB",
     "sentimentScore":  {
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
                            "XRP":  1,
-                           "BNB":  0,
+                           "BNB":  1,
                            "SUI":  0,
                            "AVAX":  0,
                            "PENGU":  0,
@@ -151,7 +64,7 @@
                            "DOGS":  0,
                            "NOT":  0,
                            "PEOPLE":  0,
-                           "SOL":  0,
+                           "SOL":  1,
                            "ADA":  0,
                            "PNUT":  0,
                            "AIXBT":  0,
@@ -161,9 +74,9 @@
                            "TRUMP":  0,
                            "BTC":  1
                        },
-    "aiSummary":  "DXY ostaje stabilan na 98.5, ispod kriticne razine 100, pruzajuci blagu potporu kriptu unatoc hawkish Fedu i PPI inflaciji od 6% YoY koji odgadaju rezanje kamata. Fear & Greed indeks zadrzan na 34 (strah), a BTC konsolidira u rasponu $78.800-$80.000 dok trziste iscekuje ishod glasanja Senata o CLARITY Actu - kljucnog regulatornog koraka za BTC, ETH i XRP. Kevin Warsh preuzima Fed od danas, no njegov prvi FOMC sastanak nije do lipnja, pa se ne ocekuju iznenadenja na kratki rok.",
-    "warActive":  true,
-    "btcDom":  58.5,
-    "stableDom":  12.0,
-    "oil":  101.54
+    "aiSummary":  "DXY ostaje stabilan na 98.5, ispod kritične razine 100, pružajući blagu potporu kriptu usprkos PPI inflaciji od 6% YoY koja odgađa rezanje kamata. Iran primirje drži i stabilizira naftu (WTI $100.57), smanjujući macroPenalty na 0, dok BTC konsolidira blizu $79.640 uz Fear & Greed indeks na 34 (strah). Tržište iščekuje ishod Senate glasanja o CLARITY Actu danas i preuzimanje Fed-a od strane Kevina Warsha 15. svibnja.",
+    "warActive":  false,
+    "btcDom":  58.2,
+    "stableDom":  11.7,
+    "oil":  100.57
 }

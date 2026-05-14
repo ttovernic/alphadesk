@@ -1,52 +1,136 @@
 {
     "dxy":  98.5,
-    "changeSummary":  "Iran primirje snizilo macroPenalty s 1 na 0, BTC ostaje u rasponu oko $79.640 uz nepromijenjen F&G 34 i DXY 98.5, dok Schwab lansira kripto trading a CLARITY Act ide na glasanje u Senatu.",
-    "lastUpdated":  "2026-05-14T18:00:00Z",
+    "changeSummary":  "CLARITY Act prošao Senate Banking Committee glasanjem 15-9, BTC oporavlja se na ~$81.500 nakon privremenog pada ispod $80.000 uz nepromijenjene DXY i Fear & Greed.",
+    "lastUpdated":  "2026-05-14T20:00:00Z",
     "warnings":  {
-                     "ACT":  [],
-                     "MEME":  [],
-                     "ANIME":  [],
-                     "XRP":  [],
-                     "BNB":  [],
-                     "SUI":  [],
-                     "AVAX":  [],
-                     "PENGU":  [],
-                     "BOME":  [],
-                     "DOGS":  [],
-                     "NOT":  [],
-                     "PEOPLE":  [],
-                     "SOL":  [],
-                     "ADA":  [],
-                     "PNUT":  [],
-                     "AIXBT":  [],
-                     "ETH":  [],
-                     "LINK":  [],
-                     "PUMP":  [],
-                     "TRUMP":  [],
-                     "BTC":  ["PPI inflacija 6% YoY odgada rezanje kamata"]
+                     "ACT":  [
+
+                             ],
+                     "MEME":  [
+
+                              ],
+                     "ANIME":  [
+
+                               ],
+                     "XRP":  [
+                             "Otpor razini iznad $1.60, čeka se puni Senat"
+                             ],
+                     "BNB":  [
+
+                             ],
+                     "SUI":  [
+
+                             ],
+                     "AVAX":  [
+
+                              ],
+                     "PENGU":  [
+                               "Tjedni pad -15%, visoka volatilnost meme tokena"
+                               ],
+                     "BOME":  [
+
+                              ],
+                     "DOGS":  [
+
+                              ],
+                     "NOT":  [
+
+                             ],
+                     "PEOPLE":  [
+
+                                ],
+                     "SOL":  [
+
+                             ],
+                     "ADA":  [
+
+                             ],
+                     "PNUT":  [
+                              "98% pad od ATH, nema utilitija ni governance"
+                              ],
+                     "AIXBT":  [
+
+                               ],
+                     "ETH":  [
+
+                             ],
+                     "LINK":  [
+                              "Konsolidira $8.50-$9.50, bez jasnog katalizatora"
+                              ],
+                     "PUMP":  [
+
+                              ],
+                     "TRUMP":  [
+                               "95% pad od ATH, politički rizik, visoka volatilnost"
+                               ],
+                     "BTC":  [
+                             "PPI inflacija 6% YoY odgađa rezanje kamata Fed-a"
+                             ]
                  },
     "catalysts":  {
-                      "ACT":  [],
-                      "MEME":  [],
-                      "ANIME":  [],
-                      "XRP":  ["CLARITY Act Senate glasanje danas - XRP regulatorni okvir"],
-                      "BNB":  ["MOEX lansirao BNB kripto indeks za trading"],
-                      "SUI":  [],
-                      "AVAX":  [],
-                      "PENGU":  [],
-                      "BOME":  [],
-                      "DOGS":  [],
-                      "NOT":  [],
-                      "PEOPLE":  [],
-                      "SOL":  ["MOEX lansirao SOL kripto indeks za trading"],
-                      "ADA":  [],
-                      "PNUT":  [],
-                      "AIXBT":  [],
-                      "ETH":  ["Charles Schwab pokrenuo direktno ETH trading ($12T AUM)"],
-                      "LINK":  [],
-                      "PUMP":  [],
-                      "TRUMP":  [],
-                      "BTC":  ["Charles Schwab pokrenuo direktno BTC trading", "CLARITY Act napreduje prema glasanju u Senatu"]
+                      "ACT":  [
+
+                              ],
+                      "MEME":  [
+
+                               ],
+                      "ANIME":  [
+
+                                ],
+                      "XRP":  [
+                              "CLARITY Act 15-9 napreduje, CME futures lansiran"
+                              ],
+                      "BNB":  [
+
+                              ],
+                      "SUI":  [
+
+                              ],
+                      "AVAX":  [
+                               "Progmat $2B tokeniziranih vrijednosnica na AVAX L1"
+                               ],
+                      "PENGU":  [
+                                "Staking i reward program integriran za holdere"
+                                ],
+                      "BOME":  [
+
+                               ],
+                      "DOGS":  [
+
+                               ],
+                      "NOT":  [
+
+                              ],
+                      "PEOPLE":  [
+
+                                 ],
+                      "SOL":  [
+                              "ETF dnevni priljevi $26.57M, Exodus treasury raste"
+                              ],
+                      "ADA":  [
+                              "CME kripto futures uključuje ADA"
+                              ],
+                      "PNUT":  [
+
+                               ],
+                      "AIXBT":  [
+
+                                ],
+                      "ETH":  [
+                              "CLARITY Act pozitivan za ETH regulatornu klasifikaciju"
+                              ],
+                      "LINK":  [
+
+                               ],
+                      "PUMP":  [
+
+                               ],
+                      "TRUMP":  [
+                                "Mar-a-Lago gala za top holdere TRUMP tokena"
+                                ],
+                      "BTC":  [
+                              "CLARITY Act prošao Senate Banking Committee 15-9"
+                              ]
                   },
     "fearGreed":  34,
     "macroPenalty":  0,
@@ -55,28 +139,28 @@
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  1,
-                           "BNB":  1,
+                           "XRP":  2,
+                           "BNB":  0,
                            "SUI":  0,
-                           "AVAX":  0,
+                           "AVAX":  2,
                            "PENGU":  0,
                            "BOME":  0,
                            "DOGS":  0,
                            "NOT":  0,
                            "PEOPLE":  0,
                            "SOL":  1,
-                           "ADA":  0,
-                           "PNUT":  0,
+                           "ADA":  1,
+                           "PNUT":  -1,
                            "AIXBT":  0,
                            "ETH":  1,
                            "LINK":  0,
                            "PUMP":  0,
-                           "TRUMP":  0,
+                           "TRUMP":  -1,
                            "BTC":  1
                        },
-    "aiSummary":  "DXY ostaje stabilan na 98.5, ispod kritične razine 100, pružajući blagu potporu kriptu usprkos PPI inflaciji od 6% YoY koja odgađa rezanje kamata. Iran primirje drži i stabilizira naftu (WTI $100.57), smanjujući macroPenalty na 0, dok BTC konsolidira blizu $79.640 uz Fear & Greed indeks na 34 (strah). Tržište iščekuje ishod Senate glasanja o CLARITY Actu danas i preuzimanje Fed-a od strane Kevina Warsha 15. svibnja.",
+    "aiSummary":  "DXY ostaje stabilan na 98.5, ispod kritične razine 100, pružajući blagu potporu kriptu unatoč PPI inflaciji od 6% YoY koja odgađa rezanje kamata. CLARITY Act prošao je Senate Banking Committee glasanjem 15-9 uz bipartijsku potporu, što je pozitivan signal za regulatornu jasnoću XRP-a, ETH-a i SOL-a, no akt još mora proći puni Senat. BTC konsolidira oko $81.500 uz Fear & Greed na 34, a oil (WTI) drži se iznad $101 bez eskalacije geopolitičkih rizika.",
     "warActive":  false,
-    "btcDom":  58.2,
-    "stableDom":  11.7,
-    "oil":  100.57
+    "btcDom":  58.4,
+    "stableDom":  11.8,
+    "oil":  101.54
 }

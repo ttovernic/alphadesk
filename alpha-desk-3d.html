@@ -278,7 +278,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.84</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.85</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -883,7 +883,6 @@ MEME_SYMS.forEach(function(s){
 
 var activeFilter="all";
 var activePct=6; // bilo 5 — sada targets na 6% (10% mode uklonjen iz UI-a)
-var trackerFilter="sve"; // "sve" | "aktivan" | "pogodak" | "promasaj"
 var ulazSortMode="conf"; // "conf" | "rr"
 var signalChip="all";    // "all" | "ulaz" | "watch_y" | "watch_b" — chip filter unutar Signali taba
 var expandedSigs={};   // {sym: true} — expanded signal chips
@@ -1019,7 +1018,6 @@ var state = {
     get tab(){return activeFilter;},
     get pct(){return activePct;},
     get sortMode(){return ulazSortMode;},
-    get trackerFilter(){return trackerFilter;},
     get memeMinConf(){return memeMinConf;},
     expandedDetails: expandedDetails,
     expandedSigs: expandedSigs
@@ -2084,7 +2082,7 @@ function computeTargets(price,atrPct,targetPct,maxRisk,sym){
 }
 
 // Score → Confidence calculation s war cap, calibration, token accuracy
-// REKALIBRIRANO (v4.84): baseline 35 (bilo 44), spread 30-95
+// REKALIBRIRANO (v4.85): baseline 35 (bilo 44), spread 30-95
 // Razlog: analiza pokazala POGODAK avg 47.6 vs PROMAŠAJ 45.8 (samo 1.8 razlike)
 // Niži baseline → conf 60+ stvarno predstavlja "iznadprosječan" setup
 function computeConfidence(score,sym,targetPct){
@@ -2269,7 +2267,7 @@ function analyze3D(sym){
   var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
 
-  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.84): 1.3 → 1.15
+  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.85): 1.3 → 1.15
   // 1.3× je previse strogo - blokiralo SVE ✅ ulaze. Trazimo barem +15% iznad prosjeka.
   var volumeOK=vsT1&&vsT1.ratio>=1.15;
 
@@ -2466,13 +2464,11 @@ function analyze3D(sym){
 
 // ── FILTER & SORT ────────────────────────────────────────────────
 function getOpportunities(){
-  var is10pct=activePct===10;
-  var analyzeFn=(activeFilter==="signali")&&is10pct?analyze10pct:analyze3D;
+  var analyzeFn=analyze3D;
   // HARD min conf — RL bandit predlaze optimalni threshold (ako ima dovoljno data ≥5 trade)
-  // Fallback na hardcoded: signali 52, 10% 55
   var bestArm=typeof confBandit!=="undefined"?confBandit.bestArm():null;
   var dynamicFloor=bestArm?bestArm.threshold:52;
-  var minConf=activeFilter==="signali"?(is10pct?Math.max(settings.minConf,55):Math.max(dynamicFloor,settings.minConf)):settings.minConf;
+  var minConf=activeFilter==="signali"?Math.max(dynamicFloor,settings.minConf):settings.minConf;
   var syms=TOP100.filter(function(s){
     if(!px[s]||!px[s].p||px[s].p<=0||KNOWN_MEME.indexOf(s)>-1)return false;
     if(ta4hReady&&!ta4h[s]&&!ta[s])return false;
@@ -3311,11 +3307,11 @@ function autoTrackOpps(opps, source){
   var now=Date.now();
   var added=false;
 
-  // ── NEWS EVENT BLACKOUT (v4.84) — pauziraj 30min prije/nakon FOMC/CPI/NFP
+  // ── NEWS EVENT BLACKOUT (v4.85) — pauziraj 30min prije/nakon FOMC/CPI/NFP
   var blackout=getActiveBlackout();
   if(blackout)return; // skip ENTIRE batch — sav market u nepredvidivom stanju
 
-  // ── MULTI-POSITION CORRELATION GATE (v4.84)
+  // ── MULTI-POSITION CORRELATION GATE (v4.85)
   // Ako vec >=2 alt LONG aktivna, ne otvaraj novi alt LONG (>70% korelirano s BTC)
   // Iznimka: BTC sam, ili counter-trend (SHORT)
   var activeAltLongs=predTracker.filter(function(p){
@@ -3334,7 +3330,7 @@ function autoTrackOpps(opps, source){
   var maxTrack = source==="watch" ? 3 : 5;
   opps = opps.slice().sort(function(a,b){return b.conf-a.conf;}).slice(0, maxTrack);
 
-  // Drawdown circuit breaker — UNAPRJEDJENO (v4.84)
+  // Drawdown circuit breaker — UNAPRJEDJENO (v4.85)
   // 1. Stara logika: 2 uzastopna PROMAŠAJa = 6h cooldown
   // 2. Nova: win rate zadnjih 10 trade-ova <30% = 12h cooldown (širi pogled)
   var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,10);
@@ -3365,7 +3361,7 @@ function autoTrackOpps(opps, source){
     // ── PER-TOKEN GATE — token s <30% win rate (5+ tradova) = block 24h
     if(shouldBlockToken(o.sym))return;
 
-    // ── MULTI-POSITION CORRELATION (v4.84)
+    // ── MULTI-POSITION CORRELATION (v4.85)
     // Ako >=2 alt LONG vec aktivna i ovo je novi alt LONG → blokiraj
     if(o.sym!=="BTC" && activeAltLongs>=2)return;
 
@@ -3415,260 +3411,6 @@ function autoTrackOpps(opps, source){
     try{localStorage.setItem("ad3d_track",JSON.stringify(predTracker));}catch(e){}
     syncToGH();
   }
-}
-
-// ── 10% ANALYSIS ENGINE ──────────────────────────────────────────
-function analyze10pct(sym){
-  var d=px[sym]||{},t=ta[sym],m=macd[sym],a=atr[sym],f=fr[sym];
-  var price=d.p||0;
-  if(!price)return null;
-  var score=0,signals=[],warnings=[];
-  var TARGET=10,RISK=3;
-
-  // F&G — JEDNOM
-  if(MACRO.fg<20){score+=wt("fgExtremeFear",2.5);signals.push({txt:"F&G "+MACRO.fg+" — Extreme Fear = jak bounce potencijal",type:"bull"});}
-  else if(MACRO.fg<35){score+=wt("fgFear",1.5);}
-  else if(MACRO.fg>65){score-=2;warnings.push({txt:"F&G visok — euphoria, loš za 10%",type:"bear"});}
-  if(MACRO.stableDom>7){score+=0.5;signals.push({txt:"Stablecoin dom "+MACRO.stableDom+"% — likvidnost",type:"bull"});}
-
-  if(t){
-    if(t.trend==="DOWN"){score-=3;warnings.push({txt:"Ispod EMA50 — bear trend, 10% rast bez trenda nerealan",type:"bear"});}
-    else if(t.trend==="UP"){score+=wt("trendUp",2);signals.push({txt:"Iznad EMA50 — trend podržava 10% potez",type:"bull"});}
-    if(t.rsi<28){score+=wt("rsiOversold",4);signals.push({txt:"RSI "+t.rsi.toFixed(0)+" — jako oversold",type:"bull"});}
-    else if(t.rsi<38){score+=wt("rsiOversold",2.5);signals.push({txt:"RSI "+t.rsi.toFixed(0)+" — oversold",type:"bull"});}
-    else if(t.rsi<45){score+=1;}
-    else if(t.rsi>72){score-=3;warnings.push({txt:"RSI "+t.rsi.toFixed(0)+" — overbought",type:"bear"});}
-    if(t.bb&&price<t.bb.l){score+=wt("bbBelow",3);signals.push({txt:"Ispod Bollinger dna — jak mean reversion signal",type:"bull"});}
-    else if(t.bb&&price>t.bb.u){score-=2.5;warnings.push({txt:"Iznad Bollinger vrha — opasna zona",type:"bear"});}
-    // RSI divergencija — tipizirana (Regular/Hidden × Bullish/Bearish)
-    var _dd10=t.divDetail||(t.divergence==="BULLISH"?{type:"REG_BULLISH",rsi:t.rsi}:t.divergence==="BEARISH"?{type:"REG_BEARISH",rsi:t.rsi}:null);
-    if(_dd10){
-      if(_dd10.type==="REG_BULLISH"){score+=wt("divBullish",4);signals.push({txt:"📐 Reg bullish div — cijena niži low, RSI viši low"+(_dd10.rsi?" (RSI "+_dd10.rsi+")":"")+" — jak reversal za 10%",type:"bull"});}
-      else if(_dd10.type==="HIDDEN_BULLISH"){score+=wt("divBullish",2);signals.push({txt:"📐 Hidden bullish div — uptrend continuation"+(_dd10.rsi?" (RSI "+_dd10.rsi+")":""),type:"bull"});}
-      else if(_dd10.type==="REG_BEARISH"){score-=3.5;warnings.push({txt:"📐 Reg bearish div — viši high, RSI niži high"+(_dd10.rsi?" (RSI "+_dd10.rsi+")":"")+" — 10% rast nepovoljno",type:"bear"});}
-      else if(_dd10.type==="HIDDEN_BEARISH"){score-=2;warnings.push({txt:"📐 Hidden bearish div — downtrend nastavlja"+(_dd10.rsi?" (RSI "+_dd10.rsi+")":""),type:"warn"});}
-    }
-  }else{if(MACRO.fg<20)score+=1.5;signals.push({txt:"TA dostupan na Netlify (WS live)",type:"warn"});}
-
-  if(m){
-    if(m.cross==="BULLISH"){score+=wt("macdBullCross",4);signals.push({txt:"MACD bullish crossover — momentum se okreće",type:"bull"});}
-    else if(m.cross==="BEARISH"){score-=2.5;warnings.push({txt:"MACD bearish",type:"bear"});}
-    else if(m.bullish){score+=1;}else{score-=0.5;}
-  }
-
-  if(f&&f.rate!=null){
-    var fr2=f.rate*100;
-    if(fr2<-0.03){score+=3.5;signals.push({txt:"FR "+fr2.toFixed(3)+"% — masivni shorts = kontrarian BUY",type:"bull"});}
-    else if(fr2<-0.01){score+=2;signals.push({txt:"FR negativan",type:"bull"});}
-    else if(fr2>0.03){score-=2.5;warnings.push({txt:"FR — longs preplati",type:"bear"});}
-  }
-
-  if(d.c24!=null){
-    if(d.c24<-10&&MACRO.fg<25){score+=3;signals.push({txt:"Pad "+d.c24.toFixed(1)+"% u Extreme Fear = jak bounce setup",type:"bull"});}
-    else if(d.c24<-5){score+=1.5;signals.push({txt:"Pad "+d.c24.toFixed(1)+"% — oversold",type:"bull"});}
-    else if(d.c24>8){score+=1.5;signals.push({txt:"+"+d.c24.toFixed(1)+"% — jak momentum",type:"bull"});}
-    if(d.c24<-15){score-=1;warnings.push({txt:"Jak pad — provjeri razlog",type:"warn"});}
-  }
-
-  var opt=optionsData[sym];
-  if(opt&&opt.putCallRatio){
-    if(opt.putCallRatio>1.3){score+=2;signals.push({txt:"Put/Call "+opt.putCallRatio+" — kontrarian BUY",type:"bull"});}
-    else if(opt.putCallRatio<0.65){score-=1.5;warnings.push({txt:"Put/Call nizak — oprez",type:"bear"});}
-  }
-  if(opt&&opt.skew25d!=null){
-    if(opt.skew25d<-15){score+=3;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — Extreme put premium = jak 10% bounce signal",type:"bull"});}
-    else if(opt.skew25d<-7){score+=2;signals.push({txt:"25Δ Skew "+opt.skew25d.toFixed(1)+"% — put skew, tržište se štiti",type:"bull"});}
-    else if(opt.skew25d>8){score-=2;warnings.push({txt:"25Δ Skew +"+opt.skew25d.toFixed(1)+"% — call euforia, 10% rast manje vjerojatan",type:"bear"});}
-  }
-  if(opt&&opt.maxPain&&price){var mpD=(opt.maxPain-price)/price*100;if(mpD>8&&mpD<30){score+=1;signals.push({txt:"Max Pain "+fp(opt.maxPain)+" — gravitacija gore",type:"bull"});}}
-
-  var vp=volProfile[sym];
-  if(vp&&price){
-    if(price<vp.valueAreaLow){score+=2.5;signals.push({txt:"Ispod Value Area — jak bounce potencijal",type:"bull"});}
-    else if(price>vp.valueAreaHigh){score-=1.5;warnings.push({txt:"Iznad Value Area",type:"warn"});}
-    else{score+=0.5;}
-  }
-
-  if(MACRO.warActive){score-=2;warnings.push({txt:"Iran rat — smanjuje 10% pouzdanost",type:"warn"});}
-  if(MACRO.oil>110){score-=1.5;warnings.push({txt:"Nafta $"+MACRO.oil+" — inflacija",type:"warn"});}
-  if(MACRO.dxy&&MACRO.dxy>106){score-=1.5;warnings.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — jak dolar smanjuje 10% ciljeve",type:"warn"});}
-  else if(MACRO.dxy&&MACRO.dxy<100){score+=0.75;signals.push({txt:"DXY "+MACRO.dxy.toFixed(1)+" — slab dolar, risk-on pogoduje 10% ciljevima",type:"bull"});}
-  // F&G se NE dodaje drugi put (uklonjen duplikat koji je bio ovdje)
-
-  // Market regime — za 10% target posebno važno
-  var regime=getMarketRegime();
-  if(regime==="BEAR_MARKET"){
-    score-=3;
-    var sma200str10=MACRO.btcSma200?"($"+MACRO.btcSma200.toLocaleString()+" SMA200)":"";
-    warnings.push({txt:"Bear market: BTC ispod 200 SMA "+sma200str10+" — 10% target iznimno riskantan",type:"bear"});
-  }
-  if(regime==="BULL_MARKET"&&sym!=="BTC"){score+=1.5;signals.push({txt:"Bull market: BTC čvrsto iznad 200 SMA — idealno za 10% poteze",type:"bull"});}
-  if(regime==="MACRO_RISK_OFF"){score-=1;warnings.push({txt:"Macro Risk-Off — 10% target zahtijeva izniman setup",type:"warn"});}
-  if(regime==="ALT_ACCUMULATION"&&sym!=="BTC"){score+=1;signals.push({txt:"Alt Accumulation — povoljno za 10% potez",type:"bull"});}
-
-  var cats=MACRO.catalysts[sym]||[];
-  score+=cats.length*0.5;cats.slice(0,2).forEach(function(c2){signals.push({txt:c2,type:"bull"});});
-  var warns2=MACRO.warnings[sym]||[];
-  score-=warns2.length*0.3;warns2.slice(0,1).forEach(function(w){warnings.push({txt:w,type:"warn"});});
-
-  score+=scoreMarketSignals(sym,signals,warnings);
-
-  // Trifecta za 10% engine — zahtijeva više potvrda jer je cilj 2x viši
-  var vs10=volSpike[sym],fd10=futuresData[sym];
-  var tri10=0;
-  if(t&&t.rsi<32)tri10++;if(t&&t.divergence==="BULLISH")tri10++;
-  if(m&&m.cross==="BULLISH")tri10++;if(vs10&&vs10.ratio>2.5)tri10++;
-  if(t&&t.bb&&price<t.bb.l)tri10++;if(fd10&&fd10.lsRatio!=null&&fd10.lsRatio<0.7)tri10++;
-  if(fd10&&fd10.takerRatio!=null&&fd10.takerRatio<0.75)tri10++;
-  if(cvdData[sym]&&cvdData[sym].divergence==="BULLISH")tri10++;
-  if(relStrength[sym]&&relStrength[sym].leading)tri10++;
-  if(taDaily[sym]&&taDaily[sym].trend==="UP")tri10++; // dnevni trend — ključan za 5-dnevni horizont
-  if(tri10>=6){score+=4;signals.push({txt:"🎯 TRIFECTA "+tri10+"/10 — izniman setup, 10% potez realan",type:"bull"});}
-  else if(tri10>=4){score+=2;signals.push({txt:"🎯 Multi-signal "+tri10+"/10 — jak, ali treba još potvrda za 10%",type:"bull"});}
-
-  var atrPct=a?parseFloat(a.pct):2.0;
-  var achievable3d=atrPct>=(TARGET/5)*0.6; // treba ≥1.2%/dan ATR za 10% u 5 dana
-
-  // ── VOLUME PRIORITY (10% engine) ─────────────────────────────────
-  // Za 10% target u 5 dana, volume je ključni filter — bez volumena nema poteza
-  if(vs10){
-    if(vs10.ratio>4){score+=2.5;signals.push({txt:"🔥 Volume "+vs10.ratio.toFixed(1)+"× avg — momentum za 10% potez potvrđen",type:"bull"});}
-    else if(vs10.ratio>2.5){score+=1.5;signals.push({txt:"📊 Volume "+vs10.ratio.toFixed(1)+"× avg — raste interes",type:"bull"});}
-    else if(vs10.weak){score-=2;warnings.push({txt:"📉 Volume slab — bez volumena nema 10% poteza",type:"warn"});}
-  }
-
-  // ── GROUP CATCH-UP (10% engine) ──────────────────────────────────
-  var _gPeers10=TOP100.filter(function(s){return s!==sym&&px[s]&&px[s].c24!=null&&KNOWN_MEME.indexOf(s)<0;});
-  if(_gPeers10.length>=8&&d.c24!=null){
-    var _gCh10=_gPeers10.map(function(s){return px[s].c24;}).sort(function(a,b){return a-b;});
-    var _gMed10=_gCh10[Math.floor(_gCh10.length/2)];
-    var _gLag10=d.c24-_gMed10;
-    if(_gLag10<-6&&t&&t.rsi<45){score+=2.5;signals.push({txt:"🔄 Catch-up: "+sym+" "+_gLag10.toFixed(1)+"% vs peer medijan — snažan rotacijski kandidat za 10%",type:"bull"});}
-    else if(_gLag10<-3&&t&&t.rsi<52){score+=1;signals.push({txt:"🔄 Catch-up potencijal ("+_gLag10.toFixed(1)+"% vs peer medijan)",type:"bull"});}
-  }
-
-  // ── SCORE VELOCITY + VIKEND PENALTY (analyze10pct) ──────────────
-  var prevSc10=scoreHistory[sym+"_10"]?scoreHistory[sym+"_10"].score:score;
-  var scoreVel10=score-prevSc10;
-  scoreHistory[sym+"_10"]={score:score,ts:Date.now()};
-  if(scoreVel10>=3){score+=1;signals.push({txt:"📈 Setup velocity +"+scoreVel10.toFixed(1)+" — signali se poboljšavaju",type:"bull"});}
-  else if(scoreVel10<=-3){score-=1;warnings.push({txt:"📉 Setup slabi (velocity "+scoreVel10.toFixed(1)+")",type:"warn"});}
-  var _day10=new Date().getDay();
-  if(_day10===0||_day10===6){score-=0.5;warnings.push({txt:"📅 Vikend — niži volumen, čekaj pon. potvrdu",type:"warn"});}
-
-  // Baza 44 (ne 50) — realnija procjena; nulti score ne zaslužuje 50% conf
-  var maxScore=30;
-  var rawConf=Math.round(44+(score/maxScore)*42);
-  // War cap podignut da ✅ bude moguć za dobre setupe
-  var warCap=score>=5?65:score>=3?57:48;
-  var conf=Math.min(MACRO.warActive?warCap:88,Math.max(20,rawConf));
-  var calCap=getConfCalibrationCap(10);if(calCap!==null)conf=Math.min(conf,calCap);
-  var tokAcc=getTokenAccuracy(sym,10);if(tokAcc!==null)conf=Math.min(conf,Math.max(22,Math.round((tokAcc*100+12)/5)*5));
-
-  // ── ENTRY QUALITY MULTIPLIER (analyze10pct) ──────────────────────
-  var vp10=volProfile[sym];
-  var entryQ10=0;
-  if(t&&t.bb&&price<t.bb.l)entryQ10+=1;
-  if(t&&t.ema50&&price<t.ema50)entryQ10+=0.5;
-  if(t&&t.rsi<35)entryQ10+=0.5;
-  if(vp10&&price<vp10.valueAreaLow)entryQ10+=1;
-  var entryMult10=entryQ10>=2.5?1.10:entryQ10>=1.5?1.06:entryQ10>=0.5?1.03:1.0;
-  conf=Math.min(88,Math.round(conf*entryMult10));
-
-  // ATR-aware milestones — cap svaki dan na realistično prema dnevnom ATR-u
-  var tgt=TARGET/100,risk=RISK/100;
-  var dailyAtr10=atrPct/100;
-  var d1P=+(price*(1+Math.min(tgt*0.20,dailyAtr10*1.0))).toFixed(4); // Dan 1: +2% ili 1×ATR
-  var d2P=+(price*(1+Math.min(tgt*0.40,dailyAtr10*1.8))).toFixed(4); // Dan 2: +4% ili 1.8×ATR
-  var d3P=+(price*(1+Math.min(tgt*0.60,dailyAtr10*2.8))).toFixed(4); // Dan 3: +6% ili 2.8×ATR
-  var d4P=+(price*(1+Math.min(tgt*0.80,dailyAtr10*3.8))).toFixed(4); // Dan 4: +8% ili 3.8×ATR
-  var d5P=+(price*(1+tgt)).toFixed(4);       // Dan 5: +10% — target
-  // ATR-aware stop — ako je ATR visok, fiksni -3% stop je prenizak
-  var atrStopMin10=dailyAtr10*1.5; // minimalni stop = 1.5× dnevni ATR
-  var stopPct10=Math.max(risk,atrStopMin10);
-  var stopP=+(price*(1-stopPct10)).toFixed(4); // Stop: max(-3%, -1.5×ATR)
-  var trailStopP=+(price*(1+tgt*0.30)).toFixed(4); // Trailing stop nakon +5% → +3%
-  var rr=(price*tgt)/(price*stopPct10); // R/R uzima ATR-aware stop u obzir
-  var d1Prob=Math.min(86,Math.round(conf/100*0.70*100));
-  var d2Prob=Math.min(80,Math.round(conf/100*0.58*100));
-  var d3Prob=Math.min(72,Math.round(conf/100*0.46*100));
-  var d4Prob=Math.min(64,Math.round(conf/100*0.35*100));
-  var d5Prob=Math.min(56,Math.round(conf/100*0.26*100));
-
-  var riskLevel=atrPct>8?"EKSTREMNI":atrPct>4?"VISOK":atrPct>2?"UMJEREN":"NIZAK";
-  var riskCol=atrPct>8?"var(--pu)":atrPct>4?"var(--re)":atrPct>2?"var(--ye)":"var(--gr)";
-  var isHot=conf>=65&&achievable3d&&score>=3;
-
-  var verdict="",verdictWhy="";
-  if(conf>=60&&achievable3d&&score>=2){
-    verdict="✅ Ulazi — visok potencijal";
-    verdictWhy="Setup podržava 10% potez u 5 dana (stop -3%, R/R 3.3:1). Trailing stop aktivira se na +5%. Max 30% normale pozicije."+( MACRO.warActive?" Iran rat — još konzervativnije.":"");
-  }else if(conf>=48){
-    verdict="🟡 Spekulativni ulaz";
-    verdictWhy="Potencijal postoji. Čekaj zelenu svjećicu iznad "+fp(price*1.015)+". Stop -3% obavezan (trailing stop aktivira se na +5%).";
-  }else if(conf>=38){
-    verdict="🔵 Visoko-rizičan";
-    verdictWhy="Slabiji signali. Max 10% normale pozicije. 10% target zahtijeva jak momentum.";
-  }else{
-    verdict="🔴 Preskoči";
-    verdictWhy="Signali nisu dovoljni za 10% potez. Čekaj bolji setup.";
-  }
-
-  return{sym:sym,price:price,conf:conf,score:score,signals:signals,warnings:warnings,
-    d1Price:d1P,d2Price:d2P,d3Price:d3P,d4Price:d4P,d5Price:d5P,
-    d1Prob:d1Prob,d2Prob:d2Prob,d3Prob:d3Prob,d4Prob:d4Prob,d5Prob:d5Prob,
-    stopPrice:stopP,trailStopPrice:trailStopP,targetPrice:d5P,
-    rr:+rr.toFixed(1),riskLevel:riskLevel,riskCol:riskCol,
-    atrPct:atrPct,achievable3d:achievable3d,isHot:isHot,isSafe:false,
-    verdict:verdict,verdictWhy:verdictWhy,cats:cats,warns:warns2,
-    opt:opt||null,vp:vp||null,targetPct:TARGET};
-}
-
-function get10pctOpportunities(){
-  // Isti token universe i filteri kao getOpportunities() za konzistentnost
-  var minC=Math.max(settings.minConf,50); // 10% target zahtijeva viši prag (min 50)
-  var syms=TOP100.filter(function(s){
-    if(!px[s]||!px[s].p||px[s].p<=0||KNOWN_MEME.indexOf(s)>-1)return false;
-    if(ta4hReady&&!ta4h[s]&&!ta[s])return false; // isti ta4hReady filter
-    return true;
-  });
-  var all=syms.map(analyze10pct).filter(function(x){return x&&x.conf>=minC&&x.achievable3d;});
-  // Poštuj ulazSortMode (conf ili rr) — konzistentno s Ulaz/Watch tabovima
-  if(ulazSortMode==="rr"){all.sort(function(a,b){return b.rr-a.rr||b.conf-a.conf;});}
-  else{all.sort(function(a,b){return b.conf-a.conf||b.score-a.score;});}
-  return all;
-}
-
-// ── 10% RENDER ────────────────────────────────────────────────────
-function r10pct(){
-  var opps=get10pctOpportunities();
-  var h='<div class="pg">';
-  h+='<div style="background:linear-gradient(135deg,rgba(255,109,0,.1),rgba(213,0,249,.05));border:.5px solid rgba(255,109,0,.3);border-radius:20px;padding:18px;margin-bottom:14px">';
-  h+='<div style="font-size:11px;font-weight:700;color:var(--or);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">🚀 +10% Prilike u 5 Dana</div>';
-  h+='<div style="font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:12px">Visok rizik — visoka nagrada. Tražimo +10% u 5 dana (stop -3%, R/R 3.3:1). Trailing stop štiti dobit na +5%. ATR ≥1.2%/dan. <strong style="color:var(--or)">Max 30% normale pozicije.</strong></div>';
-  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
-  var hot=opps.filter(function(x){return x.isHot;}).length;
-  var highAtr=opps.filter(function(x){return x.atrPct>=3;}).length;
-  var avg=opps.length>0?Math.round(opps.reduce(function(s,x){return s+x.conf;},0)/opps.length):0;
-  [["Prilike",opps.length,"var(--or)"],["🔥 Jak",hot,"#ff1744"],["ATR≥3%",highAtr,"var(--pu)"],["Avg Conf",avg+"%","var(--ye)"]].forEach(function(s){
-    h+='<div style="background:rgba(0,0,0,.3);border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:'+s[2]+'">'+s[1]+'</div><div style="font-size:10px;color:var(--t3);margin-top:3px">'+s[0]+'</div></div>';
-  });
-  h+='</div></div>';
-  h+='<div style="background:var(--s1);border-radius:14px;padding:14px 16px;margin-bottom:14px;border:.5px solid var(--sep)">';
-  h+='<div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Usporedba targeta</div>';
-  h+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">';
-  [["🎯 +5%","Stop -2% · 3 dana","R/R 2.5:1 · War cap 55%","#2979ff","rgba(41,121,255,.07)","rgba(41,121,255,.15)"],
-   ["🚀 +10%","Stop -3% · 5 dana","R/R 3.3:1 · Trailing stop","var(--or)","rgba(255,109,0,.1)","rgba(255,109,0,.3)"]].forEach(function(s){
-    h+='<div style="background:'+s[4]+';border-radius:10px;padding:10px;border:.5px solid '+s[5]+'"><div style="font-size:12px;font-weight:700;color:'+s[3]+';margin-bottom:5px">'+s[0]+'</div><div style="font-size:10px;color:var(--t3);line-height:1.8">'+s[1]+'<br>'+s[2]+'</div></div>';
-  });
-  h+='</div></div>';
-  if(opps.length===0){
-    h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">🚀</div><div style="font-size:17px;font-weight:600;color:var(--t2);margin-bottom:6px">Nema +10% prilike</div><div style="font-size:13px;color:var(--t3)">Tražimo ATR ≥2.7%/dan i jake tehničke signale.<br>Čekaj Extreme Fear + oversold + MACD crossover.</div></div>';
-  }else{
-    opps.forEach(function(o){h+=renderOpp(o);});
-  }
-  h+='<div style="text-align:center;padding:8px 0 20px;font-size:11px;color:var(--t4)">🚀 +10% target · -3% stop-loss · R/R 3.3:1 · Trailing stop na +5% · 5 dana · Nije financijski savjet</div>';
-  h+='</div>';return h;
 }
 
 // ── HISTORY CHART ENGINE ─────────────────────────────────────────
@@ -5317,9 +5059,7 @@ function setSignalChip(c){
   signalChip=c;
   render();
 }
-// setPct: UI toggle UKLONJEN. Default targetPct=6% iz settings.
-// Funkcija ostaje za buduci kompatibilitet (npr. API/script triggers).
-function setPct(pct){activePct=pct;render();}
+// activePct fiksiran na 6% (10% mode uklonjen u v4.85). Settings → targetPct za promjenu.
 
 // ── AI SUMMARY TOGGLE (Pregled tab) ─────────────────────────────
 function toggleAISummary(){
@@ -7264,20 +7004,13 @@ scheduler.add("fundingHistory", 1800, fetchAllFundingRates);    // 30 min — sa
 function backgroundAutoTrack(){
   var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
   if(!syms.length)return;
-  // Pokreni sve tri analyse funkcije paralelno i prikupi Ulaz + Watch signale
-  [
-    {fn:analyze3D,   pct:5},
-    {fn:analyze10pct,pct:10}
-  ].forEach(function(engine){
-    var minConf=settings.minConf||40;
-    var all=syms.map(engine.fn).filter(function(x){return x&&x.conf>=minConf;});
-    // Postavi targetPct ako engine to nije stavio
-    all.forEach(function(x){if(!x.targetPct)x.targetPct=engine.pct;});
-    var ulaz=all.filter(function(x){return x.verdict&&x.verdict.indexOf("✅")===0;});
-    var watch=all.filter(function(x){return x.verdict&&(x.verdict.indexOf("🟡")===0||x.verdict.indexOf("🔵")===0);});
-    autoTrackOpps(ulaz,"ulaz");
-    autoTrackOpps(watch,"watch");
-  });
+  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.85)
+  var minConf=settings.minConf||40;
+  var all=syms.map(analyze3D).filter(function(x){return x&&x.conf>=minConf;});
+  var ulaz=all.filter(function(x){return x.verdict&&x.verdict.indexOf("✅")===0;});
+  var watch=all.filter(function(x){return x.verdict&&(x.verdict.indexOf("🟡")===0||x.verdict.indexOf("🔵")===0);});
+  autoTrackOpps(ulaz,"ulaz");
+  autoTrackOpps(watch,"watch");
 }
 
 // ── AUTO-SETUP iz URL parametra (?ghtoken=ghp_xxx) ─────────────
@@ -7323,4 +7056,3 @@ setTimeout(function(){if(autoClosePreds()){syncToGH();if(activeFilter==="tracker
 </script>
 </body>
 </html>
-

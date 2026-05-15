@@ -278,7 +278,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.85</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.86</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -336,7 +336,7 @@ svg.sp{overflow:visible;display:block}
 <div class="modal">
   <div class="modal-handle"></div>
   <h2 style="font-size:19px;font-weight:800;margin-bottom:4px">Postavke skenera</h2>
-  <p style="font-size:13px;color:var(--t3);margin-bottom:18px">Prilagodi parametre za 5% (3 dana) i 10% (5 dana) profit targete</p>
+  <p style="font-size:13px;color:var(--t3);margin-bottom:18px">Prilagodi parametre za standardni +6% target u 3 dana (i meme tab)</p>
   <div class="g2" style="margin-bottom:12px">
     <div><label class="inp-lbl">Min pouzdanost (%)</label><input id="s-conf" class="inp" type="number" value="50" min="20" max="90"></div>
     <div><label class="inp-lbl">Target profit (%)</label><input id="s-tgt" class="inp" type="number" value="5" min="2" max="20" step="0.5"></div>
@@ -2082,7 +2082,7 @@ function computeTargets(price,atrPct,targetPct,maxRisk,sym){
 }
 
 // Score → Confidence calculation s war cap, calibration, token accuracy
-// REKALIBRIRANO (v4.85): baseline 35 (bilo 44), spread 30-95
+// REKALIBRIRANO (v4.86): baseline 35 (bilo 44), spread 30-95
 // Razlog: analiza pokazala POGODAK avg 47.6 vs PROMAŠAJ 45.8 (samo 1.8 razlike)
 // Niži baseline → conf 60+ stvarno predstavlja "iznadprosječan" setup
 function computeConfidence(score,sym,targetPct){
@@ -2267,7 +2267,7 @@ function analyze3D(sym){
   var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
 
-  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.85): 1.3 → 1.15
+  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.86): 1.3 → 1.15
   // 1.3× je previse strogo - blokiralo SVE ✅ ulaze. Trazimo barem +15% iznad prosjeka.
   var volumeOK=vsT1&&vsT1.ratio>=1.15;
 
@@ -3307,11 +3307,11 @@ function autoTrackOpps(opps, source){
   var now=Date.now();
   var added=false;
 
-  // ── NEWS EVENT BLACKOUT (v4.85) — pauziraj 30min prije/nakon FOMC/CPI/NFP
+  // ── NEWS EVENT BLACKOUT (v4.86) — pauziraj 30min prije/nakon FOMC/CPI/NFP
   var blackout=getActiveBlackout();
   if(blackout)return; // skip ENTIRE batch — sav market u nepredvidivom stanju
 
-  // ── MULTI-POSITION CORRELATION GATE (v4.85)
+  // ── MULTI-POSITION CORRELATION GATE (v4.86)
   // Ako vec >=2 alt LONG aktivna, ne otvaraj novi alt LONG (>70% korelirano s BTC)
   // Iznimka: BTC sam, ili counter-trend (SHORT)
   var activeAltLongs=predTracker.filter(function(p){
@@ -3330,7 +3330,7 @@ function autoTrackOpps(opps, source){
   var maxTrack = source==="watch" ? 3 : 5;
   opps = opps.slice().sort(function(a,b){return b.conf-a.conf;}).slice(0, maxTrack);
 
-  // Drawdown circuit breaker — UNAPRJEDJENO (v4.85)
+  // Drawdown circuit breaker — UNAPRJEDJENO (v4.86)
   // 1. Stara logika: 2 uzastopna PROMAŠAJa = 6h cooldown
   // 2. Nova: win rate zadnjih 10 trade-ova <30% = 12h cooldown (širi pogled)
   var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,10);
@@ -3361,7 +3361,7 @@ function autoTrackOpps(opps, source){
     // ── PER-TOKEN GATE — token s <30% win rate (5+ tradova) = block 24h
     if(shouldBlockToken(o.sym))return;
 
-    // ── MULTI-POSITION CORRELATION (v4.85)
+    // ── MULTI-POSITION CORRELATION (v4.86)
     // Ako >=2 alt LONG vec aktivna i ovo je novi alt LONG → blokiraj
     if(o.sym!=="BTC" && activeAltLongs>=2)return;
 
@@ -3681,8 +3681,8 @@ function hcInsights(sorted){
   var ar=reg.length>0?reg.filter(function(p){return p.status==="POGODAK";}).length/reg.length*100:null;
   var insights=[];
   if(bestT&&bestAcc>acc+5&&bestN>=2)insights.push({i:"🎯",c:"#00e676",t:"Conf ≥"+bestT+"% daje "+bestAcc.toFixed(0)+"% točnost (vs "+acc.toFixed(0)+"% ukupno). Povećaj min conf prag u Postavkama."});
-  if(a5!==null&&a10!==null&&a5>a10+10)insights.push({i:"📊",c:"#ffea00",t:"+5% target ima "+a5.toFixed(0)+"% win rate (vs 10%: "+a10.toFixed(0)+"%). Fokusiraj se na +5% za konzistentnost."});
-  else if(a5!==null&&a10!==null&&a10>a5+10)insights.push({i:"📊",c:"#ffea00",t:"+10% target performira bolje ("+a10.toFixed(0)+"%). Momentum faza — iskoristi +10% prilike."});
+  if(a5!==null&&a10!==null&&a5>a10+10)insights.push({i:"📊",c:"#ffea00",t:"+5% target ima "+a5.toFixed(0)+"% win rate (vs +6% meme: "+a10.toFixed(0)+"%). Fokusiraj se na standardne signale."});
+  else if(a5!==null&&a10!==null&&a10>a5+10)insights.push({i:"📊",c:"#ffea00",t:"Meme +6% target performira bolje ("+a10.toFixed(0)+"%). Meme season uvjeti povoljni."});
   if(am!==null&&ar!==null){var better=am>ar?"Meme":"Regularni",ba=am>ar?am:ar;if(Math.abs(am-ar)>10)insights.push({i:"💡",c:"#2979ff",t:better+" coinovi performiraju bolje ("+ba.toFixed(0)+"%). Fokusiraj se na taj segment."});}
   if(acc<40)insights.push({i:"⚠️",c:"#ff1744",t:"Win rate ispod 40%. Povećaj min conf na 55%+ i čekaj više potvrda (zelena svjećica) prije ulaza."});
   else if(acc>=60)insights.push({i:"✅",c:"#00e676",t:"Win rate "+acc.toFixed(0)+"% — iznad prosjeka! Nastavi s trenutnom strategijom."});
@@ -4077,7 +4077,7 @@ function renderKellyPanel(){
   h+='<div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">📐 Kelly Criterion — optimalna veličina pozicije</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
   h+=kellyCard("+5% Engine","#2979ff",k5);
-  h+=kellyCard("+10% Engine","#00e676",k10);
+  h+=kellyCard("+6% Meme","#d500f9",k10);
   h+='</div>';
   if(kAll){
     h+='<div style="background:var(--s3);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">';
@@ -4493,21 +4493,21 @@ function rTracker(){
 }
 
 // ── MAIN RENDER ──────────────────────────────────────────────────
-// ── MEME COIN ENGINE (10% u 3 dana) ─────────────────────────────
+// ── MEME COIN ENGINE (6% u 3 dana) ──────────────────────────────
 function analyzeMeme(sym){
   var d=px[sym]||{},t=ta[sym],m=macd[sym],a=atr[sym];
   var vs=volSpike[sym];
   var price=d.p||0;
   if(!price)return null;
   var score=0,signals=[],warnings=[];
-  var TARGET=10,RISK=5;
+  var TARGET=6,RISK=2;
   var atrPct=a?parseFloat(a.pct):0;
-  var dailyNeeded=TARGET/3;
+  var dailyNeeded=TARGET/3; // 2%/dan ATR potrebno za 6% u 3 dana
 
   // ATR — kritičan faktor za meme coinove
-  if(atrPct>=dailyNeeded*1.5){score+=5;signals.push({txt:"ATR "+atrPct.toFixed(1)+"%/dan — pokriva 10%",type:"bull"});}
+  if(atrPct>=dailyNeeded*1.5){score+=5;signals.push({txt:"ATR "+atrPct.toFixed(1)+"%/dan — pokriva 6%",type:"bull"});}
   else if(atrPct>=dailyNeeded){score+=3;signals.push({txt:"ATR "+atrPct.toFixed(1)+"%/dan — granično",type:"bull"});}
-  else if(atrPct>0){score-=4;warnings.push({txt:"ATR prenizak za 10% target",type:"bear"});}
+  else if(atrPct>0){score-=4;warnings.push({txt:"ATR prenizak za 6% target",type:"bear"});}
 
   // F&G kontrarian
   if(MACRO.fg<20){score+=wt("fgExtremeFear",2);signals.push({txt:"F&G "+MACRO.fg+" — Extreme Fear = bounce šansa",type:"bull"});}
@@ -4631,7 +4631,7 @@ function analyzeMeme(sym){
   var warCap=score>=5?65:score>=3?58:50;
   var conf=Math.min(MACRO.warActive?warCap:88,Math.max(18,rawConf));
   var calCap=getConfCalibrationCap("meme");if(calCap!==null)conf=Math.min(conf,calCap);
-  var tokAcc=getTokenAccuracy(sym,10);if(tokAcc!==null)conf=Math.min(conf,Math.max(20,Math.round((tokAcc*100+12)/5)*5));
+  var tokAcc=getTokenAccuracy(sym,6);if(tokAcc!==null)conf=Math.min(conf,Math.max(20,Math.round((tokAcc*100+12)/5)*5));
 
   // ── ENTRY QUALITY MULTIPLIER (analyzeMeme) ───────────────────────
   var vpM=volProfile[sym];
@@ -4655,8 +4655,7 @@ function analyzeMeme(sym){
   var stopP=+(price*(1-stopPctM)).toFixed(8);
   var rr=(price*tgt)/(price*stopPctM);
 
-  // Meme 10% target — još teži od regularnog 10% (volatilnost ide na obje strane)
-  // Dodani Math.min() capovi (konzistentno s ostalim engineima)
+  // Meme 6% target u 3 dana — konzistentno s glavnim engineom, meme volatilnost pokriva
   var baseProb=conf/100;
   var d1Prob=Math.min(75,Math.round(baseProb*0.58*100));
   var d2Prob=Math.min(65,Math.round(baseProb*0.47*100));
@@ -4669,16 +4668,16 @@ function analyzeMeme(sym){
   var verdict="",verdictWhy="";
   if(conf>=65&&achievable){
     verdict="🚀 Jak meme setup";
-    verdictWhy="Tehnički signali potvrđuju bounce potencijal."+(MACRO.warActive?" ⚠️ Rat aktivan — max 20% pozicije.":" ATR pokriva 10% u 3 dana. Max 30% pozicije.");
+    verdictWhy="Tehnički signali potvrđuju bounce potencijal."+(MACRO.warActive?" ⚠️ Rat aktivan — max 20% pozicije.":" ATR pokriva 6% u 3 dana. Max 30% pozicije.");
   }else if(conf>=50&&achievable){
     verdict="🟡 Prati — ulaz na potvrdu";
     verdictWhy="Setup postoji, čekaj zelenu svjećicu iznad "+fp(price*1.015)+"."+(MACRO.warActive?" ⚠️ Rat aktivan — max 15% pozicije.":"");
   }else if(conf>=38&&achievable){
     verdict="🔵 Spekulativni meme ulaz";
-    verdictWhy="Slabiji signali. Max 10% pozicije. Stop-loss -5% obavezan.";
+    verdictWhy="Slabiji signali. Max 10% pozicije. Stop-loss -2% obavezan.";
   }else{
     verdict="🔴 Preskoči";
-    verdictWhy="Signali nisu dovoljni za 10% target."+(MACRO.warActive?" Rat dodatno smanjuje šanse.":"");
+    verdictWhy="Signali nisu dovoljni za 6% target."+(MACRO.warActive?" Rat dodatno smanjuje šanse.":"");
   }
 
   return{sym:sym,price:price,conf:conf,score:score,
@@ -4704,8 +4703,8 @@ function rMeme(){
   var opps=getMemeOpportunities();
   var h='<div class="pg">';
   h+='<div style="background:linear-gradient(135deg,rgba(213,0,249,.08),rgba(255,109,0,.04));border:.5px solid rgba(213,0,249,.2);border-radius:20px;padding:16px;margin-bottom:14px">';
-  h+='<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">🎰 Meme Coins · 10% u 3 dana</div>';
-  h+='<div style="font-size:12px;color:rgba(213,0,249,.85);background:rgba(213,0,249,.06);border:.5px solid rgba(213,0,249,.2);border-radius:12px;padding:10px 14px;margin-bottom:12px">🎰 <strong>Kriterij:</strong> meme coini s pouzdanošću ≥40% i ATR-om koji pokriva +10% u 3 dana — max 10% pozicije.</div>';
+  h+='<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">🎰 Meme Coins · 6% u 3 dana</div>';
+  h+='<div style="font-size:12px;color:rgba(213,0,249,.85);background:rgba(213,0,249,.06);border:.5px solid rgba(213,0,249,.2);border-radius:12px;padding:10px 14px;margin-bottom:12px">🎰 <strong>Kriterij:</strong> meme coini s pouzdanošću ≥40% i ATR-om koji pokriva +6% u 3 dana — max 10% pozicije.</div>';
   var activeMeme=getMemeSYMS();
   var allStats=activeMeme.map(analyzeMeme).filter(function(x){return x;});
   var pass=allStats.filter(function(x){return x.conf>=memeMinConf&&x.achievable3d;}).length;
@@ -4770,7 +4769,7 @@ function rMeme(){
     opps.forEach(function(o){h+=renderOpp(o);});
   }
   h+=renderTabSuccessPanel("meme");
-  h+='<div style="text-align:center;padding:8px 0 20px;font-size:11px;color:var(--t4)">⚡ 10% target · 5% stop-loss · Auto-refresh 10s · Nije financijski savjet</div>';
+  h+='<div style="text-align:center;padding:8px 0 20px;font-size:11px;color:var(--t4)">⚡ 6% target · 2% stop-loss · Auto-refresh 10s · Nije financijski savjet</div>';
   h+='</div>';return h;
 }
 
@@ -5059,7 +5058,7 @@ function setSignalChip(c){
   signalChip=c;
   render();
 }
-// activePct fiksiran na 6% (10% mode uklonjen u v4.85). Settings → targetPct za promjenu.
+// activePct fiksiran na 6% (10% mode uklonjen u v4.86). Settings → targetPct za promjenu.
 
 // ── AI SUMMARY TOGGLE (Pregled tab) ─────────────────────────────
 function toggleAISummary(){
@@ -7004,7 +7003,7 @@ scheduler.add("fundingHistory", 1800, fetchAllFundingRates);    // 30 min — sa
 function backgroundAutoTrack(){
   var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
   if(!syms.length)return;
-  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.85)
+  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.86)
   var minConf=settings.minConf||40;
   var all=syms.map(analyze3D).filter(function(x){return x&&x.conf>=minConf;});
   var ulaz=all.filter(function(x){return x.verdict&&x.verdict.indexOf("✅")===0;});

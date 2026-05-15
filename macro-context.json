@@ -1,7 +1,7 @@
 {
-    "dxy":  98.5,
-    "changeSummary":  "CLARITY Act prošao Senate Banking Committee glasanjem 15-9, BTC oporavlja se na ~$81.500 nakon privremenog pada ispod $80.000 uz nepromijenjene DXY i Fear & Greed.",
-    "lastUpdated":  "2026-05-14T20:00:00Z",
+    "dxy":  99.05,
+    "changeSummary":  "F&G ostao na 34 uz pad DXY-a ispod 100 na 99.05, nafta porasla na $101 zbog Hormuz napetosti, BTC drži $80k uz Clarity Act pozitiv.",
+    "lastUpdated":  "2026-05-15T12:00:00.000Z",
     "warnings":  {
                      "ACT":  [
 
@@ -13,7 +13,7 @@
 
                                ],
                      "XRP":  [
-                             "Otpor razini iznad $1.60, čeka se puni Senat"
+
                              ],
                      "BNB":  [
 
@@ -25,7 +25,7 @@
 
                               ],
                      "PENGU":  [
-                               "Tjedni pad -15%, visoka volatilnost meme tokena"
+
                                ],
                      "BOME":  [
 
@@ -46,7 +46,7 @@
 
                              ],
                      "PNUT":  [
-                              "98% pad od ATH, nema utilitija ni governance"
+
                               ],
                      "AIXBT":  [
 
@@ -55,16 +55,17 @@
 
                              ],
                      "LINK":  [
-                              "Konsolidira $8.50-$9.50, bez jasnog katalizatora"
+
                               ],
                      "PUMP":  [
 
                               ],
                      "TRUMP":  [
-                               "95% pad od ATH, politički rizik, visoka volatilnost"
+                         "Politicka nesigurnost, TRUMP coin volatilan"
                                ],
                      "BTC":  [
-                             "PPI inflacija 6% YoY odgađa rezanje kamata Fed-a"
+                         "Inflacija 3.8%, Fed bez rezanja kamata 2026",
+                         "Nafta $101 - napetosti oko Hormuzkog tjesnaca"
                              ]
                  },
     "catalysts":  {
@@ -78,7 +79,7 @@
 
                                 ],
                       "XRP":  [
-                              "CLARITY Act 15-9 napreduje, CME futures lansiran"
+                          "Clarity Act - Ripple podrzao, regulatorni pozitiv"
                               ],
                       "BNB":  [
 
@@ -87,10 +88,10 @@
 
                               ],
                       "AVAX":  [
-                               "Progmat $2B tokeniziranih vrijednosnica na AVAX L1"
+
                                ],
                       "PENGU":  [
-                                "Staking i reward program integriran za holdere"
+
                                 ],
                       "BOME":  [
 
@@ -105,10 +106,10 @@
 
                                  ],
                       "SOL":  [
-                              "ETF dnevni priljevi $26.57M, Exodus treasury raste"
+
                               ],
                       "ADA":  [
-                              "CME kripto futures uključuje ADA"
+
                               ],
                       "PNUT":  [
 
@@ -117,19 +118,19 @@
 
                                 ],
                       "ETH":  [
-                              "CLARITY Act pozitivan za ETH regulatornu klasifikaciju"
+
                               ],
                       "LINK":  [
-
+                          "Kraken migrira $3B TVL na Chainlink mostove"
                                ],
                       "PUMP":  [
 
                                ],
                       "TRUMP":  [
-                                "Mar-a-Lago gala za top holdere TRUMP tokena"
+
                                 ],
                       "BTC":  [
-                              "CLARITY Act prošao Senate Banking Committee 15-9"
+                          "Clarity Act prosao u Senatu, regulatorni optimizam"
                               ]
                   },
     "fearGreed":  34,
@@ -139,28 +140,28 @@
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  2,
+                           "XRP":  1,
                            "BNB":  0,
                            "SUI":  0,
-                           "AVAX":  2,
+                           "AVAX":  0,
                            "PENGU":  0,
                            "BOME":  0,
                            "DOGS":  0,
                            "NOT":  0,
                            "PEOPLE":  0,
-                           "SOL":  1,
-                           "ADA":  1,
-                           "PNUT":  -1,
+                           "SOL":  0,
+                           "ADA":  0,
+                           "PNUT":  0,
                            "AIXBT":  0,
-                           "ETH":  1,
-                           "LINK":  0,
+                           "ETH":  0,
+                           "LINK":  2,
                            "PUMP":  0,
                            "TRUMP":  -1,
-                           "BTC":  1
+                           "BTC":  2
                        },
-    "aiSummary":  "DXY ostaje stabilan na 98.5, ispod kritične razine 100, pružajući blagu potporu kriptu unatoč PPI inflaciji od 6% YoY koja odgađa rezanje kamata. CLARITY Act prošao je Senate Banking Committee glasanjem 15-9 uz bipartijsku potporu, što je pozitivan signal za regulatornu jasnoću XRP-a, ETH-a i SOL-a, no akt još mora proći puni Senat. BTC konsolidira oko $81.500 uz Fear & Greed na 34, a oil (WTI) drži se iznad $101 bez eskalacije geopolitičkih rizika.",
+    "aiSummary":  "DXY je pao ispod 100 na 99.05 sto je blago pozitivno za kriptovalute i smanjuje pritisak dolara na rizicnu imovinu. Fear & Greed ostaje na 34 (Strah) uz BTC koji oscilira oko $80,000 u CRAB fazi - Clarity Act koji prolazi Senat donosi dugorocni regulatorni optimizam. Nafta skoci na $101 zbog napetosti oko Hormuzkog tjesnaca sto je makro rizik koji treba pratiti.",
     "warActive":  false,
     "btcDom":  58.4,
-    "stableDom":  11.8,
-    "oil":  101.54
+    "stableDom":  6.2,
+    "oil":  101.0
 }

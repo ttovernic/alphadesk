@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.78</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.79</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -2039,21 +2039,57 @@ function scoreTrifecta(t,m,vs,fd,price,sym,signals){
 }
 
 // Compute price targets (D1, D2, D3) i stop — ATR-aware milestones
-// Vraca: {d1Price, d2Price, d3Price, stopPrice, stopPct, rr}
-function computeTargets(price,atrPct,targetPct,maxRisk){
+// SMART STOP: koristi swing low ili VAL ako su dostupni i unutar 5%
+// (institucionalni kupci tu kupuju → manje lažnih stop-out-a)
+// Vraca: {d1Price, d2Price, d3Price, stopPrice, stopPct, rr, stopType}
+function computeTargets(price,atrPct,targetPct,maxRisk,sym){
   var tgt=targetPct/100;
   var risk=maxRisk/100;
   var dailyAtr=atrPct/100;
   var d1Step=dailyAtr>0?Math.min(tgt*0.35,dailyAtr*1.1):tgt*0.35;
   var d2Step=dailyAtr>0?Math.min(tgt*0.70,dailyAtr*2.0):tgt*0.70;
-  var atrStopMin=dailyAtr*1.5; // minimalni stop = 1.5× dnevni ATR
-  var stopPct=Math.max(risk,atrStopMin);
+  // Default ATR stop
+  var atrStopMin=dailyAtr*1.5;
+  var defaultStopPct=Math.max(risk,atrStopMin);
+  var stopPrice=+(price*(1-defaultStopPct)).toFixed(4);
+  var stopType="ATR";
+
+  // SMART STOP — sym moze biti undefined (npr. iz starog pozivanja)
+  if(sym){
+    var sw=swingLevels[sym], vp=volProfile[sym];
+    var candidates=[];
+    // Default ATR kao kandidat
+    candidates.push({price:stopPrice, type:"ATR"});
+    // Swing low ispod cijene — najjača strukturalna razina
+    if(sw&&sw.supports&&sw.supports.length){
+      var swLow=sw.supports[sw.supports.length-1] * 0.998; // mali buffer ispod
+      var swPct=(price-swLow)/price;
+      if(swPct>=risk*0.7 && swPct<=0.05){ // izmedu 70% riska i 5% (max)
+        candidates.push({price:+swLow.toFixed(4), type:"Swing Low"});
+      }
+    }
+    // VAL (Value Area Low) — institucionalna podrška
+    if(vp&&vp.valueAreaLow){
+      var valStop=vp.valueAreaLow * 0.998;
+      var valPct=(price-valStop)/price;
+      if(valPct>=risk*0.7 && valPct<=0.05){
+        candidates.push({price:+valStop.toFixed(4), type:"VAL"});
+      }
+    }
+    // Pick FURTHEST stop (najsigurniji) iz svih candidates
+    candidates.sort(function(a,b){return a.price-b.price;});
+    var best=candidates[0]; // najniža cijena = najveći stop = najsigurnije
+    stopPrice=best.price;
+    stopType=best.type;
+  }
+  var stopPct=(price-stopPrice)/price;
   return{
     d1Price:+(price*(1+d1Step)).toFixed(4),
     d2Price:+(price*(1+d2Step)).toFixed(4),
     d3Price:+(price*(1+tgt)).toFixed(4),
-    stopPrice:+(price*(1-stopPct)).toFixed(4),
+    stopPrice:stopPrice,
     stopPct:stopPct,
+    stopType:stopType,
     rr:(price*tgt)/(price*stopPct)
   };
 }
@@ -2179,6 +2215,27 @@ function analyze3D(sym){
   score+=scoreGroupCatchUp(sym,d,t,signals,warnings);
   score+=scoreVelocity(sym,score,signals,warnings);
 
+  // ── AI SCORE — neural network (logisticka regresija) predikcija ──
+  // Trenirana na predTracker historiji. Signal samo ako model treniran (≥20 trade-ova).
+  var aiProb=null;
+  if(aiModel.trained){
+    var snap=buildSnap(sym);
+    aiProb=aiModel.predict(snap);
+    if(aiProb>=0.75){
+      score+=2.5;
+      signals.push({txt:"🧠 AI Score "+(aiProb*100).toFixed(0)+"% — model: visoka vjerojatnost POGODAK",type:"bull"});
+    } else if(aiProb>=0.6){
+      score+=1;
+      signals.push({txt:"🧠 AI Score "+(aiProb*100).toFixed(0)+"% — model: pozitivan setup",type:"bull"});
+    } else if(aiProb<=0.25){
+      score-=2;
+      warnings.push({txt:"🧠 AI Score "+(aiProb*100).toFixed(0)+"% — model: visoka vjerojatnost PROMAŠAJ",type:"bear"});
+    } else if(aiProb<=0.4){
+      score-=0.8;
+      warnings.push({txt:"🧠 AI Score "+(aiProb*100).toFixed(0)+"% — model: slab setup",type:"warn"});
+    }
+  }
+
   // VIKEND + TIME-OF-DAY (extracted helper)
   score+=scoreTimeOfDay(signals,warnings);
 
@@ -2189,7 +2246,7 @@ function analyze3D(sym){
   conf=eqRes.conf;
 
   // TARGETS + STOP (extracted computeTargets helper)
-  var _tg=computeTargets(price,atrPct,settings.targetPct,settings.maxRisk);
+  var _tg=computeTargets(price,atrPct,settings.targetPct,settings.maxRisk,sym);
   var d1Price=_tg.d1Price,d2Price=_tg.d2Price,d3Price=_tg.d3Price;
   var stopPrice=_tg.stopPrice,stopPct3=_tg.stopPct;
   var rr=_tg.rr;
@@ -2775,6 +2832,108 @@ function refreshWeights(){
   if(w){signalWeights=w;try{localStorage.setItem("ad3d_weights",JSON.stringify(w));}catch(e){}}
 }
 
+// ── NEURAL NETWORK MODEL — logistička regresija nad signal snap-ovima
+// Uči iz predTracker history. Output: vjerojatnost POGODAK (0-1).
+// Uvjet: min 20 zatvorenih predikcija sa snap podatkom.
+// Self-training svaki sat (kroz scheduler).
+var aiModel = {
+  weights: {},
+  bias: 0,
+  trained: false,
+  trainCount: 0,
+  trainAcc: 0, // accuracy na trening podacima
+  ts: 0,
+
+  // Učitaj iz localStorage (preživljava reload)
+  load: function(){
+    try{
+      var saved=JSON.parse(localStorage.getItem("ad3d_aimodel")||"null");
+      if(saved&&saved.weights){
+        this.weights=saved.weights;
+        this.bias=saved.bias||0;
+        this.trained=true;
+        this.trainCount=saved.trainCount||0;
+        this.trainAcc=saved.trainAcc||0;
+        this.ts=saved.ts||0;
+      }
+    }catch(e){}
+  },
+  save: function(){
+    try{localStorage.setItem("ad3d_aimodel",JSON.stringify({
+      weights:this.weights,bias:this.bias,trainCount:this.trainCount,trainAcc:this.trainAcc,ts:this.ts
+    }));}catch(e){}
+  },
+
+  // Sigmoid (logistic function)
+  _sigmoid: function(z){return 1/(1+Math.exp(-Math.max(-50,Math.min(50,z))));},
+
+  // Predict: snap → probability POGODAK [0..1]
+  predict: function(snap){
+    if(!snap)return 0.5;
+    var z=this.bias;
+    var self=this;
+    Object.keys(this.weights).forEach(function(f){
+      z += self.weights[f] * (snap[f]?1:0);
+    });
+    return this._sigmoid(z);
+  },
+
+  // SGD training nad svim closed predikcijama
+  // 50 epoha s shuffle, lr=0.05
+  train: function(){
+    var closed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.snap;});
+    if(closed.length<20){this.trained=false;return false;}
+    // Inicijaliziraj weights za sve features
+    var features={};
+    closed.forEach(function(p){Object.keys(p.snap).forEach(function(f){features[f]=true;});});
+    var FEATS=Object.keys(features);
+    var self=this;
+    FEATS.forEach(function(f){if(!(f in self.weights))self.weights[f]=0;});
+    // SGD
+    var lr=0.05, epochs=50;
+    for(var e=0;e<epochs;e++){
+      var shuffled=closed.slice().sort(function(){return Math.random()-0.5;});
+      shuffled.forEach(function(p){
+        var label=p.status==="POGODAK"?1:0;
+        var pred=self.predict(p.snap);
+        var err=label-pred;
+        FEATS.forEach(function(f){
+          var x=p.snap[f]?1:0;
+          self.weights[f] += lr * err * x;
+        });
+        self.bias += lr * err;
+      });
+      lr *= 0.97; // decay
+    }
+    // Mjeri accuracy na trening podacima
+    var correct=0;
+    closed.forEach(function(p){
+      var pred=self.predict(p.snap)>=0.5?1:0;
+      var label=p.status==="POGODAK"?1:0;
+      if(pred===label)correct++;
+    });
+    this.trained=true;
+    this.trainCount=closed.length;
+    this.trainAcc=correct/closed.length;
+    this.ts=Date.now();
+    this.save();
+    return true;
+  },
+
+  // Top utjecajne features (za debug)
+  topFeatures: function(n){
+    var self=this;
+    return Object.keys(this.weights)
+      .map(function(f){return{f:f,w:self.weights[f]};})
+      .sort(function(a,b){return Math.abs(b.w)-Math.abs(a.w);})
+      .slice(0,n||10);
+  }
+};
+// Učitaj saved model pri startu
+aiModel.load();
+// Expose za debug u konzoli
+if(typeof window!=='undefined')window.aiModel=aiModel;
+
 // Pozovi jednom pri startu
 refreshWeights();
 
@@ -2893,6 +3052,20 @@ function getTokenAccuracy(sym,tPct){
   }
   var hits=tokenPreds.filter(function(p){return p.status==="POGODAK";});
   return hits.length/tokenPreds.length;
+}
+
+// ── PER-TOKEN BLOCK GATE ─────────────────────────────────────────
+// Token sa <30% win rate u zadnjih 5+ trade-ova = blokiraj 24h
+// Spriječava gomilanje promašaja na "zlim" tokenima
+function shouldBlockToken(sym){
+  var hist=predTracker.filter(function(p){return p.sym===sym&&p.status!=="AKTIVAN";}).slice(0,8);
+  if(hist.length<5)return false; // premalo podataka za odluku
+  var hits=hist.filter(function(p){return p.status==="POGODAK";}).length;
+  var winRate=hits/hist.length;
+  if(winRate>=0.3)return false; // OK rate, ne blokiraj
+  // Block samo ako zadnji trade nije bio prije 24h (daj tokenu šansu da se "ohladi")
+  var lastClose=hist[0].timestamp||parseInt(hist[0].id||"0");
+  return (Date.now()-lastClose)<24*3600*1000;
 }
 
 function autoClosePreds(){
@@ -3065,6 +3238,9 @@ function autoTrackOpps(opps, source){
       return p.sym===o.sym&&p.status!=="AKTIVAN"&&(now-(p.timestamp||parseInt(p.id||"0")))<12*3600*1000;
     });
     if(recentlyClosed)return;
+
+    // ── PER-TOKEN GATE — token s <30% win rate (5+ tradova) = block 24h
+    if(shouldBlockToken(o.sym))return;
 
     // Quality gate 3: Tier 1 gates za WATCH takodjer (ne samo Ulaz)
     // Volume hard filter (>=1.3x) + BTC danger gate
@@ -6682,6 +6858,9 @@ scheduler.add("syncFromGH", 300, function(){
 });
 scheduler.add("autoTrack",  120, backgroundAutoTrack);
 scheduler.add("weights",   1800, refreshWeights);
+scheduler.add("aiTrain",   3600, function(){aiModel.train();}); // svako 60min retrain
+// Pokreni inicijalni train nakon 30s (kad podaci stignu)
+setTimeout(function(){aiModel.train();}, 30000);
 scheduler.add("autoClose",   60, function(){
   if(autoClosePreds()&&activeFilter==="tracker")render();
 });

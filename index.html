@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.79</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.80</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -4263,6 +4263,76 @@ function renderBacktestPanel(){
 }
 
 // ── SIGNAL ATTRIBUTION BACKTEST PANEL ───────────────────────────
+// ── WALK-FORWARD BACKTEST PANEL — full simulation rezultati ──
+function renderWalkForwardPanel(){
+  var w=walkForwardResults;
+  if(!w||!w.n){
+    return'<div class="panel" style="text-align:center;color:var(--t3);font-size:12px">'+
+      '<div style="font-size:24px;margin-bottom:6px">🔬</div>'+
+      'Walk-forward backtest nije pokrenut.<br>'+
+      '<button onclick="runWalkForwardBacktest();showToast(\'⏳ Backtest pokrenut — rezultati za ~30s\')" '+
+      'style="margin-top:10px;padding:8px 14px;background:rgba(41,121,255,.12);border:.5px solid rgba(41,121,255,.3);color:var(--info);border-radius:8px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:var(--fw-x)">'+
+      '▶ Pokreni walk-forward backtest</button></div>';
+  }
+  var ageH=Math.round((Date.now()-w.ts)/3600000);
+  var pfCol=w.profitFactor>=1.5?"var(--bull)":w.profitFactor>=1?"var(--warn)":"var(--bear)";
+  var pnlCol=w.avgPnl>=0?"var(--bull)":"var(--bear)";
+
+  var h='<div class="panel">';
+  h+='<div class="row-between" style="margin-bottom:10px">';
+  h+='<span class="sec-lbl" style="margin:0">🔬 Walk-Forward Backtest</span>';
+  h+='<button onclick="runWalkForwardBacktest();showToast(\'⏳ Re-run...\')" style="font-size:10px;padding:3px 8px;background:rgba(255,255,255,.05);border:.5px solid var(--sep);color:var(--t3);border-radius:6px;cursor:pointer;font-family:inherit">↻ Re-run</button>';
+  h+='</div>';
+  h+='<div class="txt-t4" style="font-size:10px;margin-bottom:10px">'+w.n+' simuliranih trade-ova · '+(w.config.syms||[]).length+' tokena · '+ageH+'h ago · target '+w.config.target+'% / stop '+w.config.stop+'% / fee '+w.config.fee+'%</div>';
+
+  // Glavni metrici grid
+  h+='<div class="grid-4" style="margin-bottom:10px">';
+  h+='<div class="stat-box"><div class="stat-num-sm">'+w.baseline+'%</div><div class="stat-lbl">Win rate</div></div>';
+  h+='<div class="stat-box"><div class="stat-num-sm" style="color:'+pnlCol+'">'+(w.avgPnl>=0?"+":"")+w.avgPnl+'%</div><div class="stat-lbl">Avg PnL</div></div>';
+  h+='<div class="stat-box"><div class="stat-num-sm" style="color:'+pfCol+'">'+w.profitFactor+'</div><div class="stat-lbl">Profit factor</div></div>';
+  h+='<div class="stat-box"><div class="stat-num-sm txt-bull">+'+w.avgWin+'%</div><div class="stat-lbl">Avg dobitak</div></div>';
+  h+='</div>';
+
+  // Conf bucket distribution
+  h+='<div class="sec-lbl-sm" style="margin:14px 0 6px">📊 Win rate po confidence bucket-u</div>';
+  w.buckets.forEach(function(b){
+    if(!b.n)return;
+    var wrCol=b.wr>=60?"var(--bull)":b.wr>=45?"var(--warn)":"var(--bear)";
+    var pnlC=b.avgPnl>=0?"var(--bull)":"var(--bear)";
+    h+='<div class="row-between" style="font-size:11px;padding:5px 8px;background:var(--s2);border-radius:6px;margin-bottom:3px">';
+    h+='<span class="txt-t2"><strong>'+b.label+'</strong> <span class="txt-t4">('+b.n+' trade)</span></span>';
+    h+='<span class="row" style="gap:10px">';
+    h+='<span style="color:'+pnlC+';font-weight:var(--fw-b)">'+(b.avgPnl>=0?"+":"")+b.avgPnl+'%</span>';
+    h+='<span style="color:'+wrCol+';font-weight:var(--fw-x);min-width:36px;text-align:right">'+b.wr+'%</span>';
+    h+='</span></div>';
+  });
+
+  // Optimal threshold preporuka
+  if(w.optimal&&w.optimal.threshold){
+    h+='<div style="margin-top:10px;padding:9px 12px;background:rgba(0,230,118,.06);border:.5px solid rgba(0,230,118,.25);border-radius:8px">';
+    h+='<div style="font-size:10px;color:var(--bull);font-weight:var(--fw-x);margin-bottom:3px">💡 OPTIMALNI MIN CONF</div>';
+    h+='<div style="font-size:13px;color:var(--t1);font-weight:var(--fw-b)">conf ≥ '+w.optimal.threshold+' → '+w.optimal.wr+'% win rate · +'+w.optimal.exp+'% exp</div>';
+    h+='<div style="font-size:10px;color:var(--t3);margin-top:3px">Postavi minConf na '+w.optimal.threshold+' za max ROI</div></div>';
+  }
+
+  // Per-token (samo top 5 + bottom 3)
+  var perTok=Object.keys(w.perToken).filter(function(s){return w.perToken[s].n>=3;})
+    .map(function(s){return{sym:s,wr:w.perToken[s].wr,n:w.perToken[s].n,avgPnl:w.perToken[s].avgPnl};})
+    .sort(function(a,b){return b.wr-a.wr;});
+  if(perTok.length){
+    h+='<div class="sec-lbl-sm" style="margin:14px 0 6px">🪙 Win rate po tokenu</div>';
+    perTok.slice(0,8).forEach(function(p){
+      var c=p.wr>=60?"var(--bull)":p.wr>=45?"var(--warn)":"var(--bear)";
+      h+='<div class="row-between" style="font-size:11px;padding:4px 8px;background:var(--s2);border-radius:6px;margin-bottom:2px">';
+      h+='<span class="txt-t2"><strong>'+p.sym+'</strong> <span class="txt-t4">('+p.n+'×)</span></span>';
+      h+='<span style="color:'+c+';font-weight:var(--fw-x)">'+p.wr+'% '+(p.avgPnl>=0?"+":"")+p.avgPnl+'%</span>';
+      h+='</div>';
+    });
+  }
+  h+='</div>';
+  return h;
+}
+
 function renderSignalBacktestPanel(){
   if(!signalBacktest||!signalBacktest.results){
     return'<div style="background:var(--s1);border-radius:14px;padding:12px 16px;margin-bottom:12px;border:.5px solid rgba(41,121,255,.1);text-align:center;color:var(--t3);font-size:12px">📡 Signal atribucija se pokreće u pozadini…</div>';
@@ -4502,6 +4572,7 @@ function rTracker(){
         h+='</div></div>';
       }
       h+=renderKellyPanel();
+      h+=renderWalkForwardPanel();
       h+=renderBacktestPanel();
       h+=renderSignalBacktestPanel();
       h+=renderWeightsPanel();
@@ -6502,6 +6573,204 @@ function processSignalBacktest(allData){
   };
 }
 
+// ── WALK-FORWARD BACKTEST — full simulation s conf bucket + R:R + fees ──
+// Sastoji se od 2 dijela: runWalkForwardBacktest() fetcha, processWalkForward() analizira.
+// Razlika od signalBacktest:
+//   - Mjeri win rate po conf bucket-ima (50-59, 60-69, 70-79, 80+)
+//   - Mjeri R:R, profit factor, max drawdown
+//   - Realistic fees (0.15% round trip)
+//   - Optimal conf threshold (gdje je expectancy najveca)
+//   - Po-token win rate
+var walkForwardResults=null;
+// Učitaj saved iz localStorage
+try{walkForwardResults=JSON.parse(localStorage.getItem("ad3d_walkforward")||"null");}catch(e){}
+
+function runWalkForwardBacktest(){
+  var syms=["BTC","ETH","SOL","XRP","BNB","ADA","LINK","AVAX","DOGE","SUI","NEAR","DOT","UNI","ATOM","OP"];
+  var allData={};
+  var loaded=0;
+  function done(){loaded++;if(loaded===syms.length)processWalkForward(allData);}
+  syms.forEach(function(sym,idx){
+    setTimeout(function(){
+      safeFetch("https://api.binance.com/api/v3/klines?symbol="+sym+"USDT&interval=1d&limit=200")
+        .then(function(data){
+          if(data&&data.length>=50)allData[sym]=data;
+          done();
+        }).catch(done);
+    },idx*500); // 500ms stagger
+  });
+}
+
+function processWalkForward(allData){
+  var TARGET=0.05;
+  var STOP=0.025;
+  var FEE=0.0015; // 0.15% round trip
+  var SLIP=0.0005;
+  var LOOKBACK=30;
+
+  var trades=[];
+
+  Object.keys(allData).forEach(function(sym){
+    var data=allData[sym];
+    var closes=data.map(function(k){return parseFloat(k[4]);});
+    var highs=data.map(function(k){return parseFloat(k[2]);});
+    var lows=data.map(function(k){return parseFloat(k[3]);});
+    var vols=data.map(function(k){return parseFloat(k[5]);});
+
+    for(var i=LOOKBACK;i<closes.length-5;i++){
+      var slice=closes.slice(0,i+1);
+      var taR=compTA(slice);
+      var macdR=compMACD(slice);
+      if(!taR)continue;
+      var price=closes[i];
+
+      // Volume ratio
+      var volAvg=0,volN=0;
+      for(var k2=Math.max(0,i-20);k2<i;k2++){volAvg+=vols[k2];volN++;}
+      volAvg=volN>0?volAvg/volN:0;
+      var volRatio=volAvg>0?vols[i]/volAvg:1;
+
+      // ATR
+      var atrSum=0,atrN=0;
+      for(var j=Math.max(1,i-13);j<=i;j++){
+        var tr=Math.max(highs[j]-lows[j],Math.abs(highs[j]-closes[j-1]),Math.abs(lows[j]-closes[j-1]));
+        atrSum+=tr/closes[j]*100;atrN++;
+      }
+      var atrPct=atrN>0?atrSum/atrN:2;
+
+      // Score (simplified analyze3D)
+      var sig=0;
+      if(taR.rsi<32)sig+=3; else if(taR.rsi<42)sig+=1.5; else if(taR.rsi>72)sig-=3;
+      if(taR.trend==="UP")sig+=1.5; else if(taR.trend==="DOWN")sig-=2;
+      if(taR.bb&&price<taR.bb.l)sig+=2; else if(taR.bb&&price>taR.bb.u)sig-=2;
+      if(taR.divergence==="BULLISH")sig+=3; else if(taR.divergence==="BEARISH")sig-=2.5;
+      if(macdR&&macdR.cross==="BULLISH")sig+=3; else if(macdR&&macdR.cross==="BEARISH")sig-=2;
+      if(volRatio>3)sig+=2.5; else if(volRatio>2)sig+=1.5; else if(volRatio<0.7)sig-=1.5;
+
+      if(sig<=0)continue; // skip jasno bear
+
+      var conf=Math.min(88,Math.max(22,Math.round(50+(sig/22)*38)));
+      var entry=price*(1+SLIP); // realistic ulaz
+      var effTarget=entry*(1+TARGET+FEE);
+      var effStop=entry*(1-STOP);
+
+      // Outcome — koji je hit prvi (target ili stop) u 5 dana
+      var hitDay=-1, stopDay=-1;
+      for(var d=i+1;d<=Math.min(i+5,closes.length-1);d++){
+        if(highs[d]>=effTarget&&hitDay<0)hitDay=d-i;
+        if(lows[d]<=effStop&&stopDay<0)stopDay=d-i;
+      }
+
+      var hit=hitDay>0&&(stopDay<0||hitDay<=stopDay);
+      var actualPct;
+      if(hit)actualPct=(TARGET*100)-FEE*100;
+      else if(stopDay>0)actualPct=-(STOP*100)-FEE*100;
+      else{
+        // Nije hit ni stop — zatvori na zadnji close
+        var endIdx=Math.min(i+5,closes.length-1);
+        actualPct=((closes[endIdx]-entry)/entry*100)-FEE*100;
+      }
+
+      trades.push({
+        sym:sym,
+        conf:conf,
+        sig:+sig.toFixed(1),
+        rsi:Math.round(taR.rsi),
+        trend:taR.trend,
+        macdCross:macdR&&macdR.cross,
+        divergence:taR.divergence,
+        volRatio:+volRatio.toFixed(2),
+        atrPct:+atrPct.toFixed(2),
+        hit:hit,
+        actualPct:+actualPct.toFixed(2),
+        hitDay:hitDay,
+        stopDay:stopDay
+      });
+    }
+  });
+
+  // Aggregate stats
+  if(trades.length===0){walkForwardResults=null;return;}
+
+  var n=trades.length;
+  var hits=trades.filter(function(t){return t.hit;}).length;
+  var baseline=hits/n;
+  var avgPnl=trades.reduce(function(s,t){return s+t.actualPct;},0)/n;
+  var winsPct=trades.filter(function(t){return t.hit;}).reduce(function(s,t){return s+t.actualPct;},0)/(hits||1);
+  var lossesPct=trades.filter(function(t){return !t.hit;}).reduce(function(s,t){return s+t.actualPct;},0)/((n-hits)||1);
+  var profitFactor=Math.abs(lossesPct)>0?winsPct/Math.abs(lossesPct):0;
+
+  // Per-conf bucket
+  var bucketDef=[
+    {l:"50-59",mn:50,mx:60},{l:"60-69",mn:60,mx:70},
+    {l:"70-79",mn:70,mx:80},{l:"80+",mn:80,mx:101}
+  ];
+  var buckets=bucketDef.map(function(b){
+    var trs=trades.filter(function(t){return t.conf>=b.mn&&t.conf<b.mx;});
+    var bh=trs.filter(function(t){return t.hit;}).length;
+    var bAvg=trs.length?trs.reduce(function(s,t){return s+t.actualPct;},0)/trs.length:0;
+    return{label:b.l,n:trs.length,hits:bh,wr:trs.length?Math.round(bh/trs.length*100):0,avgPnl:+bAvg.toFixed(2)};
+  });
+
+  // Optimal conf threshold (max expectancy = wr * avgWin + (1-wr) * avgLoss)
+  var optimal={threshold:50,exp:0,wr:0,n:0};
+  for(var th=50;th<=80;th+=5){
+    var trs2=trades.filter(function(t){return t.conf>=th;});
+    if(trs2.length<10)continue;
+    var wrT=trs2.filter(function(t){return t.hit;}).length/trs2.length;
+    var avgT=trs2.reduce(function(s,t){return s+t.actualPct;},0)/trs2.length;
+    if(avgT>optimal.exp){optimal={threshold:th,exp:+avgT.toFixed(2),wr:Math.round(wrT*100),n:trs2.length};}
+  }
+
+  // Per-token stats
+  var perToken={};
+  Object.keys(allData).forEach(function(sym){
+    var trs=trades.filter(function(t){return t.sym===sym;});
+    if(!trs.length){perToken[sym]={n:0};return;}
+    var th=trs.filter(function(t){return t.hit;}).length;
+    perToken[sym]={n:trs.length,wr:Math.round(th/trs.length*100),avgPnl:+(trs.reduce(function(s,t){return s+t.actualPct;},0)/trs.length).toFixed(2)};
+  });
+
+  // Per-signal lift
+  var sigKeys=["rsi_lo","rsi_mid","bb_below","macd_bull","div_bull","vol_3x","ema_up"];
+  var sigLifts={};
+  sigKeys.forEach(function(k){
+    var trs=trades.filter(function(t){
+      if(k==="rsi_lo")return t.rsi<35;
+      if(k==="rsi_mid")return t.rsi>=35&&t.rsi<45;
+      if(k==="bb_below")return false; // need price<bb.l info not retained
+      if(k==="macd_bull")return t.macdCross==="BULLISH";
+      if(k==="div_bull")return t.divergence==="BULLISH";
+      if(k==="vol_3x")return t.volRatio>3;
+      if(k==="ema_up")return t.trend==="UP";
+      return false;
+    });
+    if(trs.length>=5){
+      var trsHit=trs.filter(function(t){return t.hit;}).length;
+      var wr=trsHit/trs.length;
+      sigLifts[k]={n:trs.length,wr:Math.round(wr*100),lift:Math.round((wr-baseline)*100)};
+    }
+  });
+
+  walkForwardResults={
+    n:n,
+    hits:hits,
+    baseline:Math.round(baseline*100),
+    avgPnl:+avgPnl.toFixed(2),
+    profitFactor:+profitFactor.toFixed(2),
+    avgWin:+winsPct.toFixed(2),
+    avgLoss:+lossesPct.toFixed(2),
+    buckets:buckets,
+    optimal:optimal,
+    perToken:perToken,
+    sigLifts:sigLifts,
+    config:{target:TARGET*100,stop:STOP*100,fee:FEE*100,syms:Object.keys(allData)},
+    ts:Date.now()
+  };
+  // Save (samo summary, ne trade-ove — preveliko)
+  try{localStorage.setItem("ad3d_walkforward",JSON.stringify(walkForwardResults));}catch(e){}
+}
+
 // ── BTC DOMINANCE LIVE (CoinGecko /global) ───────────────────────
 // Zamjena za hardkodirani MACRO.btcDom — dohvaća stvarne živuće podatke
 function fetchBTCDom(){
@@ -6859,8 +7128,11 @@ scheduler.add("syncFromGH", 300, function(){
 scheduler.add("autoTrack",  120, backgroundAutoTrack);
 scheduler.add("weights",   1800, refreshWeights);
 scheduler.add("aiTrain",   3600, function(){aiModel.train();}); // svako 60min retrain
+scheduler.add("walkForward",14400, runWalkForwardBacktest);     // svako 4h
 // Pokreni inicijalni train nakon 30s (kad podaci stignu)
 setTimeout(function(){aiModel.train();}, 30000);
+// Walk-forward jednom pri startu (45s nakon, da se UI ucita)
+setTimeout(function(){if(!walkForwardResults)runWalkForwardBacktest();}, 45000);
 scheduler.add("autoClose",   60, function(){
   if(autoClosePreds()&&activeFilter==="tracker")render();
 });

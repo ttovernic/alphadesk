@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.81</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.82</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -2095,7 +2095,7 @@ function computeTargets(price,atrPct,targetPct,maxRisk,sym){
 }
 
 // Score → Confidence calculation s war cap, calibration, token accuracy
-// REKALIBRIRANO (v4.81): baseline 35 (bilo 44), spread 30-95
+// REKALIBRIRANO (v4.82): baseline 35 (bilo 44), spread 30-95
 // Razlog: analiza pokazala POGODAK avg 47.6 vs PROMAŠAJ 45.8 (samo 1.8 razlike)
 // Niži baseline → conf 60+ stvarno predstavlja "iznadprosječan" setup
 function computeConfidence(score,sym,targetPct){
@@ -2280,7 +2280,7 @@ function analyze3D(sym){
   var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
 
-  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.81): 1.3 → 1.15
+  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.82): 1.3 → 1.15
   // 1.3× je previse strogo - blokiralo SVE ✅ ulaze. Trazimo barem +15% iznad prosjeka.
   var volumeOK=vsT1&&vsT1.ratio>=1.15;
 
@@ -2844,6 +2844,105 @@ function refreshWeights(){
 // Uči iz predTracker history. Output: vjerojatnost POGODAK (0-1).
 // Uvjet: min 20 zatvorenih predikcija sa snap podatkom.
 // Self-training svaki sat (kroz scheduler).
+
+// ── ECONOMIC EVENT BLACKOUT — 30 min prije/nakon major event = pauza autoTrack
+var economicEvents=[
+  {ts:"2026-05-15T18:00:00Z",name:"FOMC Minutes",impact:"high"},
+  {ts:"2026-05-21T12:30:00Z",name:"CLARITY Act vote (deadline)",impact:"high"},
+  {ts:"2026-06-11T12:30:00Z",name:"US CPI (May)",impact:"high"},
+  {ts:"2026-06-13T18:00:00Z",name:"FOMC Statement + dot plot",impact:"high"},
+  {ts:"2026-06-14T12:30:00Z",name:"Powell post-FOMC press conf",impact:"high"},
+  {ts:"2026-07-02T12:30:00Z",name:"US NFP (June)",impact:"high"},
+  {ts:"2026-07-15T12:30:00Z",name:"US CPI (June)",impact:"high"},
+  {ts:"2026-07-25T18:00:00Z",name:"FOMC Statement",impact:"high"},
+  {ts:"2026-08-13T12:30:00Z",name:"US CPI (July)",impact:"high"},
+  {ts:"2026-08-30T14:00:00Z",name:"Jackson Hole symposium",impact:"medium"},
+  {ts:"2026-09-12T12:30:00Z",name:"US CPI (August)",impact:"high"},
+  {ts:"2026-09-19T18:00:00Z",name:"FOMC Statement",impact:"high"}
+];
+function getActiveBlackout(){
+  var now=Date.now();
+  for(var i=0;i<economicEvents.length;i++){
+    var e=economicEvents[i];
+    var eTs=new Date(e.ts).getTime();
+    var diff=Math.abs(now-eTs);
+    if(diff<=30*60*1000)return{event:e.name,diff:diff,direction:now>eTs?"after":"before"};
+  }
+  return null;
+}
+function isInEventBlackout(){return getActiveBlackout()!==null;}
+
+// Sljedeci event (za UI prikaz "FOMC za 4h 23min")
+function getNextEvent(){
+  var now=Date.now();
+  var upcoming=economicEvents.filter(function(e){return new Date(e.ts).getTime()>now;});
+  if(!upcoming.length)return null;
+  upcoming.sort(function(a,b){return new Date(a.ts).getTime()-new Date(b.ts).getTime();});
+  var e=upcoming[0];
+  return{event:e.name,ts:e.ts,inMs:new Date(e.ts).getTime()-now,impact:e.impact};
+}
+
+// ── CONFIDENCE BANDIT — UCB1 algoritam za optimalni conf threshold
+var confBandit={
+  arms:[52,55,60,65,70,75],
+  rewards:{},
+  load:function(){
+    try{var s=JSON.parse(localStorage.getItem("ad3d_confbandit")||"{}");if(s&&s.rewards)this.rewards=s.rewards;}catch(e){}
+    var self=this;
+    this.arms.forEach(function(a){if(!self.rewards[a])self.rewards[a]=[];});
+  },
+  save:function(){try{localStorage.setItem("ad3d_confbandit",JSON.stringify({rewards:this.rewards}));}catch(e){}},
+  updateFromTrade:function(p){
+    if(!p||!p.conf||p.closePct==null)return;
+    var conf=p.conf, pnl=parseFloat(p.closePct);
+    if(isNaN(pnl))return;
+    var matchedArm=this.arms[0];
+    for(var i=0;i<this.arms.length;i++){if(conf>=this.arms[i])matchedArm=this.arms[i]; else break;}
+    if(!this.rewards[matchedArm])this.rewards[matchedArm]=[];
+    this.rewards[matchedArm].push(+pnl.toFixed(2));
+    if(this.rewards[matchedArm].length>50)this.rewards[matchedArm].shift();
+    this.save();
+  },
+  selectArm:function(){
+    var totalN=0; var self=this;
+    this.arms.forEach(function(a){totalN+=self.rewards[a].length;});
+    for(var i=0;i<this.arms.length;i++){if(this.rewards[this.arms[i]].length<3)return this.arms[i];}
+    var best=this.arms[0],bestScore=-Infinity;
+    this.arms.forEach(function(a){
+      var rs=self.rewards[a]; var avg=rs.reduce(function(s,r){return s+r;},0)/rs.length;
+      var ucb=avg+Math.sqrt(2*Math.log(totalN)/rs.length);
+      if(ucb>bestScore){bestScore=ucb;best=a;}
+    });
+    return best;
+  },
+  bestArm:function(){
+    var best=null,bestAvg=-Infinity; var self=this;
+    this.arms.forEach(function(a){
+      var rs=self.rewards[a]; if(rs.length<5)return;
+      var avg=rs.reduce(function(s,r){return s+r;},0)/rs.length;
+      if(avg>bestAvg){bestAvg=avg;best=a;}
+    });
+    return best?{threshold:best,expPnl:+bestAvg.toFixed(2),n:this.rewards[best].length}:null;
+  },
+  stats:function(){
+    var self=this;
+    return this.arms.map(function(a){
+      var rs=self.rewards[a];
+      var avg=rs.length?rs.reduce(function(s,r){return s+r;},0)/rs.length:0;
+      var winRate=rs.length?rs.filter(function(r){return r>0;}).length/rs.length*100:0;
+      return{threshold:a,n:rs.length,avgPnl:+avg.toFixed(2),winRate:Math.round(winRate)};
+    });
+  }
+};
+confBandit.load();
+setTimeout(function(){
+  if(predTracker&&predTracker.length){
+    predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.conf;}).forEach(function(p){
+      confBandit.updateFromTrade(p);
+    });
+  }
+},1500);
+
 var aiModel = {
   weights: {},
   bias: 0,
@@ -3194,7 +3293,10 @@ function autoClosePreds(){
     }
     if(reason){
       changed=true;
-      return Object.assign({},u,{status:hit?"POGODAK":"PROMAŠAJ",closePrice:cur,closePct:pct,autoClose:true,closeReason:reason});
+      var closedTrade=Object.assign({},u,{status:hit?"POGODAK":"PROMAŠAJ",closePrice:cur,closePct:pct,autoClose:true,closeReason:reason});
+      // Update RL bandit s ovim trade rezultatom
+      if(typeof confBandit!=="undefined")confBandit.updateFromTrade(closedTrade);
+      return closedTrade;
     }
     return u;
   });
@@ -3218,6 +3320,17 @@ function autoTrackOpps(opps, source){
   var now=Date.now();
   var added=false;
 
+  // ── NEWS EVENT BLACKOUT (v4.82) — pauziraj 30min prije/nakon FOMC/CPI/NFP
+  var blackout=getActiveBlackout();
+  if(blackout)return; // skip ENTIRE batch — sav market u nepredvidivom stanju
+
+  // ── MULTI-POSITION CORRELATION GATE (v4.82)
+  // Ako vec >=2 alt LONG aktivna, ne otvaraj novi alt LONG (>70% korelirano s BTC)
+  // Iznimka: BTC sam, ili counter-trend (SHORT)
+  var activeAltLongs=predTracker.filter(function(p){
+    return p.status==="AKTIVAN" && p.direction!=="SHORT" && p.sym!=="BTC";
+  }).length;
+
   // Quality gate 1: minConf threshold po source
   // Pre-filter: bilo je dovoljno conf>=45 za watch, sad 52 (analiza pokazala
   // POGODAK avg=48.7, dakle granica je oko 50)
@@ -3230,7 +3343,7 @@ function autoTrackOpps(opps, source){
   var maxTrack = source==="watch" ? 3 : 5;
   opps = opps.slice().sort(function(a,b){return b.conf-a.conf;}).slice(0, maxTrack);
 
-  // Drawdown circuit breaker — UNAPRJEDJENO (v4.81)
+  // Drawdown circuit breaker — UNAPRJEDJENO (v4.82)
   // 1. Stara logika: 2 uzastopna PROMAŠAJa = 6h cooldown
   // 2. Nova: win rate zadnjih 10 trade-ova <30% = 12h cooldown (širi pogled)
   var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,10);
@@ -3260,6 +3373,10 @@ function autoTrackOpps(opps, source){
 
     // ── PER-TOKEN GATE — token s <30% win rate (5+ tradova) = block 24h
     if(shouldBlockToken(o.sym))return;
+
+    // ── MULTI-POSITION CORRELATION (v4.82)
+    // Ako >=2 alt LONG vec aktivna i ovo je novi alt LONG → blokiraj
+    if(o.sym!=="BTC" && activeAltLongs>=2)return;
 
     // Quality gate 3: Tier 1 gates za WATCH takodjer (ne samo Ulaz)
     // Volume hard filter (>=1.3x) + BTC danger gate

@@ -282,7 +282,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.80</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.81</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -2095,11 +2095,16 @@ function computeTargets(price,atrPct,targetPct,maxRisk,sym){
 }
 
 // Score → Confidence calculation s war cap, calibration, token accuracy
+// REKALIBRIRANO (v4.81): baseline 35 (bilo 44), spread 30-95
+// Razlog: analiza pokazala POGODAK avg 47.6 vs PROMAŠAJ 45.8 (samo 1.8 razlike)
+// Niži baseline → conf 60+ stvarno predstavlja "iznadprosječan" setup
 function computeConfidence(score,sym,targetPct){
   var maxScore=28;
-  var rawConf=Math.round(44+(score/maxScore)*42);
-  var warCap=score>=4?55:score>=2?50:44;
-  var conf=Math.min(MACRO.warActive?warCap:88,Math.max(22,rawConf));
+  // NOVO: baseline 35, full spread 53 (35-88), sa razlikom 53/28=1.89 boda po score unit
+  var rawConf=Math.round(35+(score/maxScore)*53);
+  // War cap takodjer rekalibriran (bilo 55/50/44)
+  var warCap=score>=4?52:score>=2?45:38;
+  var conf=Math.min(MACRO.warActive?warCap:90,Math.max(20,rawConf));
   var calCap=getConfCalibrationCap(targetPct||5);
   if(calCap!==null)conf=Math.min(conf,calCap);
   var tokAcc=getTokenAccuracy(sym,targetPct||5);
@@ -2275,8 +2280,9 @@ function analyze3D(sym){
   var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
 
-  // 2. VOLUME HARD FILTER
-  var volumeOK=vsT1&&vsT1.ratio>=1.3;
+  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.81): 1.3 → 1.15
+  // 1.3× je previse strogo - blokiralo SVE ✅ ulaze. Trazimo barem +15% iznad prosjeka.
+  var volumeOK=vsT1&&vsT1.ratio>=1.15;
 
   // 3. BTC CORRELATION GATE (samo za alte LONG)
   var btcCtx=sym!=="BTC"?getBtcContext():{danger:false,c24:0,trend1h:"FLAT"};
@@ -2387,8 +2393,9 @@ function analyze3D(sym){
   var topWarnSignal=warnings.length>0?warnings[0].txt:"";
   var riskSuffix=MACRO.warActive?" ⚠️ Koristiti 50-70% normale pozicije (rat aktivan).":"";
 
-  // ✅ zahtijeva: high conf, score, confluence ≥3, volume OK, BTC nije u danger zoni, Wyckoff nije distribucija
-  var passesAllGates=conf>=60&&score>=2&&confluenceCount>=3&&volumeOK&&!btcCtx.danger&&!wyBlocker;
+  // ✅ zahtijeva: high conf, score, confluence ≥2 (bilo 3), volume OK, BTC nije u danger zoni, Wyckoff nije distribucija
+  // RELAKSIRANO confluence ≥3 → ≥2 — analiza pokazala 98% trade-ova bilo Watch (0% Ulaz)
+  var passesAllGates=conf>=60&&score>=2&&confluenceCount>=2&&volumeOK&&!btcCtx.danger&&!wyBlocker;
   if(passesAllGates){
     // Kratak verdict — bez šuma. Detalji u expand.
     verdict="✅ Ulazi";
@@ -2398,8 +2405,8 @@ function analyze3D(sym){
     // Bio bi ✅ ali nedostaje neki gate → downgrade na 🟡 s eksplicitnim razlogom
     verdict="🟡 Oprez";
     var blockers=[];
-    if(confluenceCount<3)blockers.push(confluenceCount+"/5 kategorija");
-    if(!volumeOK)blockers.push("vol "+(vsT1?vsT1.ratio.toFixed(1)+"×":"nedost.")+" <1.3×");
+    if(confluenceCount<2)blockers.push(confluenceCount+"/5 kategorija");
+    if(!volumeOK)blockers.push("vol "+(vsT1?vsT1.ratio.toFixed(1)+"×":"nedost.")+" <1.15×");
     if(btcCtx.danger)blockers.push("BTC "+btcCtx.c24.toFixed(1)+"%/24h");
     if(wyBlocker)blockers.push(wyBlocker);
     verdictWhy="Blokirano: "+blockers.join(" · ")+riskSuffix;
@@ -2472,8 +2479,9 @@ function analyze3D(sym){
 function getOpportunities(){
   var is10pct=activePct===10;
   var analyzeFn=(activeFilter==="signali")&&is10pct?analyze10pct:analyze3D;
-  // Signali tab koristi siroki min (45) jer chip filter dalje filtrira
-  var minConf=activeFilter==="signali"?(is10pct?Math.max(settings.minConf,55):Math.min(settings.minConf,45)):settings.minConf;
+  // HARD min conf 52 — eliminira 81% trade-ova s <50 conf (15% win rate iz analize)
+  // 10% target: ≥55, signali: ≥52 (povecano s 45)
+  var minConf=activeFilter==="signali"?(is10pct?Math.max(settings.minConf,55):Math.max(52,settings.minConf)):settings.minConf;
   var syms=TOP100.filter(function(s){
     if(!px[s]||!px[s].p||px[s].p<=0||KNOWN_MEME.indexOf(s)>-1)return false;
     if(ta4hReady&&!ta4h[s]&&!ta[s])return false;
@@ -3222,11 +3230,22 @@ function autoTrackOpps(opps, source){
   var maxTrack = source==="watch" ? 3 : 5;
   opps = opps.slice().sort(function(a,b){return b.conf-a.conf;}).slice(0, maxTrack);
 
-  // Drawdown circuit breaker: pauziraj nakon 2 uzastopna PROMAŠAJa
-  var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,2);
+  // Drawdown circuit breaker — UNAPRJEDJENO (v4.81)
+  // 1. Stara logika: 2 uzastopna PROMAŠAJa = 6h cooldown
+  // 2. Nova: win rate zadnjih 10 trade-ova <30% = 12h cooldown (širi pogled)
+  var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,10);
   if(recentClosed.length===2&&recentClosed.every(function(p){return p.status==="PROMAŠAJ";})){
     var lastClose=recentClosed[0].timestamp||parseInt(recentClosed[0].id||"0");
     if(now-lastClose<6*3600*1000){return;} // 6h cooldown nakon 2 uzastopna miss-a
+  }
+  // Wider check: ako wr <30% u zadnjih 10 = 12h pauza (sprijecava cascading promasaja)
+  if(recentClosed.length>=10){
+    var recentHits=recentClosed.filter(function(p){return p.status==="POGODAK";}).length;
+    var recentWR=recentHits/recentClosed.length;
+    if(recentWR<0.3){
+      var lastTs=recentClosed[0].timestamp||parseInt(recentClosed[0].id||"0");
+      if(now-lastTs<12*3600*1000){return;} // 12h pauza dok se setupi ne popravu
+    }
   }
   opps.forEach(function(o){
     if(!o||!o.sym||!o.price)return;

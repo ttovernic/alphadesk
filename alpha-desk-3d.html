@@ -57,16 +57,12 @@ html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,'SF P
 .filter-top{display:flex;align-items:center;justify-content:space-between;padding:0 16px}
 .tab-row{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex:1;min-width:0}
 .tab-row::-webkit-scrollbar{display:none}
-.pct-row{display:flex;justify-content:center;padding:6px 16px 8px;border-top:.5px solid var(--sep2)}
-#pct-desktop{display:none}
-@media(min-width:600px){.filter-wrap{flex-direction:row;align-items:center;padding:0 16px}.filter-top{flex:1;min-width:0}.pct-row{display:none}#pct-desktop{display:flex}}
+@media(min-width:600px){.filter-wrap{flex-direction:row;align-items:center;padding:0 16px}.filter-top{flex:1;min-width:0}}
 .tab{padding:13px 16px;font-size:13px;font-weight:600;border:none;background:none;color:var(--t3);cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
 .tab.on{color:var(--t1);border-bottom-color:var(--ye)}
 .hd-gear{background:none;border:.5px solid var(--sep);border-radius:10px;padding:5px 9px;font-size:15px;cursor:pointer;color:var(--t3);transition:all .2s;flex-shrink:0}
 .hd-gear:hover{color:var(--t1);border-color:rgba(255,255,255,.2)}
-.pct-toggle{display:flex;background:var(--s3);border-radius:20px;padding:2px;border:.5px solid var(--sep);flex-shrink:0}
-.pct-btn{padding:5px 9px;border-radius:18px;font-size:11px;font-weight:800;border:none;background:none;color:var(--t3);cursor:pointer;font-family:inherit;transition:all .2s;letter-spacing:-.3px}
-.pct-btn.on{background:var(--ye);color:#000}
+/* PCT toggle UKLONJEN — 10% mode više nije u UI-u, samo Settings */
 
 /* OPPORTUNITY CARD — minimalistic, semantic borders */
 .opp{background:var(--s1);border-radius:var(--r-xl);margin-bottom:var(--sp-md);overflow:hidden;border:.5px solid var(--sep);transition:border-color .2s,transform .12s,box-shadow .2s}
@@ -282,7 +278,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.83</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.84</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -309,16 +305,6 @@ svg.sp{overflow:visible;display:block}
         <button class="tab" id="tab-signali" onclick="setTab('signali')">🎯 Signali</button>
         <button class="tab" id="tab-meme" onclick="setTab('meme')">🎰 Meme</button>
         <button class="tab" id="tab-rezultati" onclick="setTab('rezultati')">📈 Rezultati</button>
-      </div>
-      <div class="pct-toggle" id="pct-desktop">
-        <button class="pct-btn on" id="btn5d" onclick="setPct(5)">5%</button>
-        <button class="pct-btn" id="btn10d" onclick="setPct(10)">10%</button>
-      </div>
-    </div>
-    <div class="pct-row">
-      <div class="pct-toggle">
-        <button class="pct-btn on" id="btn5" onclick="setPct(5)">5%</button>
-        <button class="pct-btn" id="btn10" onclick="setPct(10)">10%</button>
       </div>
     </div>
   </div>
@@ -543,8 +529,11 @@ function getMemeSYMS(){
 }
 
 // Settings
-var settings={minConf:50,targetPct:5,maxRisk:2,minRR:1.2};
+var settings={minConf:50,targetPct:6,maxRisk:2,minRR:1.2};
 try{var ss=JSON.parse(lsGet("ad3d_s")||"{}");if(ss.minConf)settings=ss;}catch(e){}
+// Migracija: stari settings sa targetPct=5 se updateaju na 6 (default)
+// (10% mode UKLONJEN, ako je korisnik bio na 10% prebaci na 6)
+if(settings.targetPct===5||settings.targetPct===10){settings.targetPct=6;lsSet("ad3d_s",JSON.stringify(settings));}
 
 // Macro context
 var MACRO={
@@ -893,7 +882,7 @@ MEME_SYMS.forEach(function(s){
 });
 
 var activeFilter="all";
-var activePct=5;
+var activePct=6; // bilo 5 — sada targets na 6% (10% mode uklonjen iz UI-a)
 var trackerFilter="sve"; // "sve" | "aktivan" | "pogodak" | "promasaj"
 var ulazSortMode="conf"; // "conf" | "rr"
 var signalChip="all";    // "all" | "ulaz" | "watch_y" | "watch_b" — chip filter unutar Signali taba
@@ -2095,7 +2084,7 @@ function computeTargets(price,atrPct,targetPct,maxRisk,sym){
 }
 
 // Score → Confidence calculation s war cap, calibration, token accuracy
-// REKALIBRIRANO (v4.83): baseline 35 (bilo 44), spread 30-95
+// REKALIBRIRANO (v4.84): baseline 35 (bilo 44), spread 30-95
 // Razlog: analiza pokazala POGODAK avg 47.6 vs PROMAŠAJ 45.8 (samo 1.8 razlike)
 // Niži baseline → conf 60+ stvarno predstavlja "iznadprosječan" setup
 function computeConfidence(score,sym,targetPct){
@@ -2280,7 +2269,7 @@ function analyze3D(sym){
   var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
 
-  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.83): 1.3 → 1.15
+  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.84): 1.3 → 1.15
   // 1.3× je previse strogo - blokiralo SVE ✅ ulaze. Trazimo barem +15% iznad prosjeka.
   var volumeOK=vsT1&&vsT1.ratio>=1.15;
 
@@ -3322,11 +3311,11 @@ function autoTrackOpps(opps, source){
   var now=Date.now();
   var added=false;
 
-  // ── NEWS EVENT BLACKOUT (v4.83) — pauziraj 30min prije/nakon FOMC/CPI/NFP
+  // ── NEWS EVENT BLACKOUT (v4.84) — pauziraj 30min prije/nakon FOMC/CPI/NFP
   var blackout=getActiveBlackout();
   if(blackout)return; // skip ENTIRE batch — sav market u nepredvidivom stanju
 
-  // ── MULTI-POSITION CORRELATION GATE (v4.83)
+  // ── MULTI-POSITION CORRELATION GATE (v4.84)
   // Ako vec >=2 alt LONG aktivna, ne otvaraj novi alt LONG (>70% korelirano s BTC)
   // Iznimka: BTC sam, ili counter-trend (SHORT)
   var activeAltLongs=predTracker.filter(function(p){
@@ -3345,7 +3334,7 @@ function autoTrackOpps(opps, source){
   var maxTrack = source==="watch" ? 3 : 5;
   opps = opps.slice().sort(function(a,b){return b.conf-a.conf;}).slice(0, maxTrack);
 
-  // Drawdown circuit breaker — UNAPRJEDJENO (v4.83)
+  // Drawdown circuit breaker — UNAPRJEDJENO (v4.84)
   // 1. Stara logika: 2 uzastopna PROMAŠAJa = 6h cooldown
   // 2. Nova: win rate zadnjih 10 trade-ova <30% = 12h cooldown (širi pogled)
   var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,10);
@@ -3376,7 +3365,7 @@ function autoTrackOpps(opps, source){
     // ── PER-TOKEN GATE — token s <30% win rate (5+ tradova) = block 24h
     if(shouldBlockToken(o.sym))return;
 
-    // ── MULTI-POSITION CORRELATION (v4.83)
+    // ── MULTI-POSITION CORRELATION (v4.84)
     // Ako >=2 alt LONG vec aktivna i ovo je novi alt LONG → blokiraj
     if(o.sym!=="BTC" && activeAltLongs>=2)return;
 
@@ -5328,15 +5317,9 @@ function setSignalChip(c){
   signalChip=c;
   render();
 }
-function setPct(pct){
-  activePct=pct;
-  ["btn5","btn10"].forEach(function(id){
-    var el=document.getElementById(id); if(el) el.classList.toggle("on",id==="btn"+pct);
-    var eld=document.getElementById(id+"d"); if(eld) eld.classList.toggle("on",id==="btn"+pct);
-  });
-  // pct10 skriveni view UKLONJEN — toggle samo mijenja activePct, render ostaje na trenutnom tabu
-  render();
-}
+// setPct: UI toggle UKLONJEN. Default targetPct=6% iz settings.
+// Funkcija ostaje za buduci kompatibilitet (npr. API/script triggers).
+function setPct(pct){activePct=pct;render();}
 
 // ── AI SUMMARY TOGGLE (Pregled tab) ─────────────────────────────
 function toggleAISummary(){
@@ -5662,9 +5645,11 @@ function renderDebugLogs(){
 function closeModal(){document.getElementById("modal").classList.remove("open");}
 function applySettings(){
   settings.minConf=parseInt(document.getElementById("s-conf").value)||40;
-  settings.targetPct=parseFloat(document.getElementById("s-tgt").value)||5;
+  settings.targetPct=parseFloat(document.getElementById("s-tgt").value)||6;
   settings.maxRisk=parseFloat(document.getElementById("s-risk").value)||3;
   settings.minRR=parseFloat(document.getElementById("s-rr").value)||1.5;
+  // Sync activePct sa novim target-om iz settings (UI toggle UKLONJEN)
+  activePct=settings.targetPct;
   lsSet("ad3d_s",JSON.stringify(settings));
   var cq=document.getElementById("s-cq");var lc=document.getElementById("s-lc");var gh=document.getElementById("s-gh");var cp=document.getElementById("s-cp");
   if(cq&&cq.value.trim())apiKeys.cryptoquant=cq.value.trim();

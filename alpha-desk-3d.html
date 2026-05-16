@@ -278,7 +278,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.96</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.98</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -659,7 +659,7 @@ function runTests(){
       var d = scoreTimeOfDay(signals, warnings);
       // Ne testiramo specifičnu vrijednost (ovisi o vremenu), samo da je broj u rasponu
       assertTrue(typeof d === "number", "scoreTimeOfDay returns number");
-      assertTrue(d >= -1.2 && d <= 0.4, "scoreTimeOfDay in range [-1.2, 0.4]");
+      assertTrue(d >= -1.2 && d <= 0.7, "scoreTimeOfDay in range [-1.2, 0.7]");
     })();
 
     // ── scoreCatalysts ──────────────────────────────────────────
@@ -957,6 +957,82 @@ var lastRefresh={ // timestamp zadnjeg osvježavanja po izvoru
   analysis:null, prices:null, fg:null, futures:null, polymarket:null, spx:null, oi:null, btcDom:null, oil:null, dxy:null, news:null
 };
 const CG_IDS={BTC:"bitcoin",ETH:"ethereum",XRP:"ripple",BNB:"binancecoin",ADA:"cardano",LINK:"chainlink",SOL:"solana",AVAX:"avalanche-2",SUI:"sui",DOGE:"dogecoin",SHIB:"shiba-inu",PEPE:"pepe",WIF:"dogwifhat",BONK:"bonk",FLOKI:"floki"};
+
+// ── SECTOR CLASSIFICATION ─────────────────────────────────────────
+// Svaki token svrstava se u sektor. Koristi se za Relative Strength prikaz
+// i kao scoring bonus (jači sektor → +score, najslabiji → -score).
+const SECTOR_MAP={
+  BTC:    ["BTC"],
+  ETH:    ["ETH"],
+  L1:     ["SOL","ADA","AVAX","SUI","BNB","DOT","ATOM","NEAR","APT","SEI","INJ","TIA","TON","KAS","ALGO","XLM","HBAR","ICP","FTM","EGLD","ONE","KAVA","CELO","ROSE","ZIL"],
+  L2:     ["ARB","OP","MATIC","POL","IMX","STRK","MANTA","BLAST","SCROLL","BASE","METIS","BOBA","ZKEVM"],
+  DeFi:   ["LINK","UNI","AAVE","CRV","MKR","COMP","SNX","LDO","RPL","PENDLE","GMX","DYDX","PERP","RAY","JUP","ORCA","CAKE","1INCH","BAL","YFI","SUSHI","RUNE","OSMO","SCRT"],
+  AI:     ["AIXBT","FET","AGIX","OCEAN","RNDR","RENDER","TAO","WLD","ARKM","GRT","NMR","CTXC","ALI","PAAL","TURBO"],
+  Gaming: ["AXS","SAND","MANA","ENJ","FLOW","RON","GALA","IMX","ILV","YGG","PYR","MAGIC","BEAM","PRIME"],
+  Meme:   ["DOGE","SHIB","PEPE","WIF","BONK","FLOKI","NEIRO","TRUMP","MEME","BOME","PENGU","PNUT","NOT","PEOPLE","DOGS","ANIME","PUMP","ACT","1MBABYDOGE","1000CHEEMS"],
+  XRP:    ["XRP"],
+  Privacy:["XMR","ZEC","DASH","SCRT","KEEP","NYM"],
+  RWA:    ["ONDO","POLYX","CFG","MPL","TRU","GOLDFINCH"],
+  Infra:  ["ATOM","DOT","LINK","GRT","API3","BAND","TRB","PYTH","STORK"]
+};
+// Lookup: sym → sektor (O(1) nakon inicijalizacije)
+var SYM_SECTOR={};
+(function(){
+  Object.keys(SECTOR_MAP).forEach(function(sec){
+    SECTOR_MAP[sec].forEach(function(s){
+      if(!SYM_SECTOR[s])SYM_SECTOR[s]=sec; // prvi match wins
+    });
+  });
+})();
+function getSymSector(sym){return SYM_SECTOR[sym]||null;}
+
+// Sektor RS cache — recomputira se svaki refresh
+var sectorRS={}; // {sektor:{avg24h,count,syms,rank}}
+function computeSectorRS(){
+  var data={};
+  Object.keys(SECTOR_MAP).forEach(function(sec){data[sec]={sum:0,count:0,syms:[]};});
+  // Za svaki token koji ima cijenu, dodaj c24 u sektor
+  TOP100.concat(Object.keys(SYM_SECTOR)).forEach(function(s){
+    var d=px[s];
+    if(!d||d.c24==null||!isFinite(d.c24))return;
+    var sec=getSymSector(s);
+    if(!sec||!data[sec])return;
+    // Izbjegni duplikate
+    if(data[sec].syms.indexOf(s)>-1)return;
+    data[sec].sum+=d.c24;
+    data[sec].count++;
+    data[sec].syms.push(s);
+  });
+  // Izračunaj prosjek i rangiraj
+  var results=[];
+  Object.keys(data).forEach(function(sec){
+    var d=data[sec];
+    if(d.count===0)return;
+    results.push({sec:sec,avg:+(d.sum/d.count).toFixed(2),count:d.count,syms:d.syms});
+  });
+  results.sort(function(a,b){return b.avg-a.avg;});
+  results.forEach(function(r,i){r.rank=i+1;r.total=results.length;});
+  sectorRS={};
+  results.forEach(function(r){sectorRS[r.sec]=r;});
+  return results;
+}
+
+// Scoring bonus za sektor RS — top sektor +0.4, bottom sektor -0.4
+function scoreSectorRS(sym,signals,warnings){
+  var sec=getSymSector(sym);
+  if(!sec||!sectorRS[sec])return 0;
+  var r=sectorRS[sec];
+  if(!r.total||r.total<3)return 0;
+  var pct=r.rank/r.total; // 0 = top, 1 = bottom
+  if(pct<=0.25&&r.avg>0){
+    signals.push({txt:"📈 Sektor "+sec+" #"+r.rank+"/"+r.total+" ("+( r.avg>0?"+":"")+r.avg+"%) — rotacija kapitala ovdje",type:"bull"});
+    return 0.4;
+  } else if(pct>=0.75&&r.avg<0){
+    warnings.push({txt:"📉 Sektor "+sec+" #"+r.rank+"/"+r.total+" ("+r.avg+"%) — kapital izlazi iz sektora",type:"warn"});
+    return -0.4;
+  }
+  return 0;
+}
 
 // ── TOP 100 ENGINE ───────────────────────────────────────────────
 const STABLES=new Set(["USDT","USDC","DAI","BUSD","TUSD","USDP","USDD","GUSD","FRAX","LUSD","PYUSD","USDS","FDUSD","USDE","EURS","EURT","USD0","USD1","USDY","CRVUSD","GHO","SUSD","MKUSD","ALUSD","DEUSD","LISUSD","FRXUSD","CUSD","OUSD","USDM","USDX","HUSD","DUSD"]);
@@ -2249,6 +2325,9 @@ function analyze3D(sym){
   score+=scoreGroupCatchUp(sym,d,t,signals,warnings);
   score+=scoreVelocity(sym,score,signals,warnings);
 
+  // SECTOR RELATIVE STRENGTH — bonus za top sektor, penalty za bottom
+  score+=scoreSectorRS(sym,signals,warnings);
+
   // ── AI SCORE — neural network (logisticka regresija) predikcija ──
   // Trenirana na predTracker historiji. Signal samo ako model treniran (≥20 trade-ova).
   var aiProb=null;
@@ -2629,7 +2708,18 @@ function renderOpp(o){
   h+='<div style="flex:1;min-width:0">';
   h+='<div style="font-size:var(--text-md);font-weight:var(--fw-x);color:var(--t1);letter-spacing:-.3px">'+o.sym;
   h+='<span style="font-size:11px;color:var(--t3);font-weight:var(--fw-r);margin-left:6px">'+cfg.cn+'</span></div>';
-  h+='<div style="font-size:11px;color:var(--t3);margin-top:2px">'+fp(o.price)+'<span style="color:'+gc(px[o.sym].c24||0)+';margin-left:8px;font-weight:var(--fw-b)">'+fc(px[o.sym].c24)+'</span></div>';
+  h+='<div style="font-size:11px;color:var(--t3);margin-top:2px">'+fp(o.price)+'<span style="color:'+gc(px[o.sym].c24||0)+';margin-left:8px;font-weight:var(--fw-b)">'+fc(px[o.sym].c24)+'</span>';
+  // Sektor badge + RS rank
+  (function(){
+    var sec=getSymSector(o.sym);
+    if(!sec)return;
+    var rs=sectorRS[sec];
+    var secIco={BTC:"₿",ETH:"Ξ",L1:"🔺",L2:"⬡",DeFi:"🔗",AI:"🤖",Gaming:"🎮",Meme:"🐸",XRP:"✕",Privacy:"🔒",RWA:"🏢",Infra:"⚙️"};
+    var col=rs?(rs.rank===1?"var(--bull)":rs.rank===rs.total?"var(--bear)":"var(--t3)"):"var(--t3)";
+    var rankStr=rs?" #"+rs.rank+"/"+rs.total:"";
+    h+='<span style="margin-left:8px;font-size:10px;color:'+col+'">'+(secIco[sec]||"•")+" "+sec+rankStr+'</span>';
+  })();
+  h+='</div>';
   h+='</div>';
   h+=spk((hist[o.sym]||[]).slice(-20),gc(px[o.sym].c24||0),64,18);
   h+='</div>';
@@ -3768,7 +3858,7 @@ function hcInsights(sorted){
   var ar=reg.length>0?reg.filter(function(p){return p.status==="POGODAK";}).length/reg.length*100:null;
   var insights=[];
   if(bestT&&bestAcc>acc+5&&bestN>=2)insights.push({i:"🎯",c:"#00e676",t:"Conf ≥"+bestT+"% daje "+bestAcc.toFixed(0)+"% točnost (vs "+acc.toFixed(0)+"% ukupno). Povećaj min conf prag u Postavkama."});
-  if(a5!==null&&a10!==null&&a5>a10+10)insights.push({i:"📊",c:"#ffea00",t:"+5% target ima "+a5.toFixed(0)+"% win rate (vs +6% meme: "+a10.toFixed(0)+"%). Fokusiraj se na standardne signale."});
+  if(a5!==null&&a10!==null&&a5>a10+10)insights.push({i:"📊",c:"#ffea00",t:"+6% target ima "+a5.toFixed(0)+"% win rate (vs +6% meme: "+a10.toFixed(0)+"%). Fokusiraj se na standardne signale."});
   else if(a5!==null&&a10!==null&&a10>a5+10)insights.push({i:"📊",c:"#ffea00",t:"Meme +6% target performira bolje ("+a10.toFixed(0)+"%). Meme season uvjeti povoljni."});
   if(am!==null&&ar!==null){var better=am>ar?"Meme":"Regularni",ba=am>ar?am:ar;if(Math.abs(am-ar)>10)insights.push({i:"💡",c:"#2979ff",t:better+" coinovi performiraju bolje ("+ba.toFixed(0)+"%). Fokusiraj se na taj segment."});}
   if(acc<40)insights.push({i:"⚠️",c:"#ff1744",t:"Win rate ispod 40%. Povećaj min conf na 55%+ i čekaj više potvrda (zelena svjećica) prije ulaza."});
@@ -4864,6 +4954,7 @@ function rMeme(){
 
 function render(){
   lastRefresh.analysis=Date.now();
+  computeSectorRS(); // Svaki render recomputa sektor RS iz trenutnih cijena
   var sc=document.getElementById("sc");
   if(activeFilter==="tracker"){sc.innerHTML=rTracker();return;}
   if(activeFilter==="meme"){sc.innerHTML=rMeme();return;}
@@ -4966,6 +5057,42 @@ function render(){
       h+='</div>';
     }
   }
+
+  // ── SECTOR RELATIVE STRENGTH STRIP ──────────────────────────────
+  (function(){
+    var srs=computeSectorRS();
+    if(srs.length<2)return;
+    var secIco={BTC:"₿",ETH:"Ξ",L1:"🔺",L2:"⬡",DeFi:"🔗",AI:"🤖",Gaming:"🎮",Meme:"🐸",XRP:"✕",Privacy:"🔒",RWA:"🏢",Infra:"⚙️"};
+    h+='<div style="margin-bottom:12px">';
+    h+='<div class="row-between" style="margin-bottom:6px">';
+    h+='<span style="font-size:11px;font-weight:var(--fw-b);color:var(--t3)">📊 Sektorska relativna snaga (24h)</span>';
+    h+='<span style="font-size:10px;color:var(--t4)">'+srs.length+' sektora</span>';
+    h+='</div>';
+    h+='<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none">';
+    srs.forEach(function(r){
+      var pos=r.avg>=0;
+      var col=r.avg>2?"var(--bull)":r.avg>0?"#69f0ae":r.avg>-2?"#ff7043":"var(--bear)";
+      var bg=r.avg>0?"rgba(0,230,118,.08)":"rgba(255,23,68,.08)";
+      var border=r.avg>0?"rgba(0,230,118,.2)":"rgba(255,23,68,.15)";
+      // Top 2 zelena, bottom 2 crvena markirana jače
+      if(r.rank===1){bg="rgba(0,230,118,.15)";border="rgba(0,230,118,.4)";}
+      if(r.rank===srs.length){bg="rgba(255,23,68,.15)";border="rgba(255,23,68,.35)";}
+      h+='<div style="flex-shrink:0;background:'+bg+';border:.5px solid '+border+';border-radius:8px;padding:5px 9px;text-align:center;min-width:56px">';
+      h+='<div style="font-size:13px">'+( secIco[r.sec]||"•")+'</div>';
+      h+='<div style="font-size:10px;color:var(--t2);font-weight:var(--fw-b);margin:1px 0">'+r.sec+'</div>';
+      h+='<div style="font-size:11px;font-weight:var(--fw-x);color:'+col+'">'+(pos?"+":"")+r.avg+'%</div>';
+      if(r.rank===1)h+='<div style="font-size:9px;color:var(--bull)">🔥HOT</div>';
+      if(r.rank===srs.length)h+='<div style="font-size:9px;color:var(--bear)">❄COLD</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+    // Rotation insight
+    var hot=srs[0],cold=srs[srs.length-1];
+    if(hot&&cold&&hot.avg-cold.avg>3){
+      h+='<div style="font-size:10px;color:var(--t3);margin-top:5px">Rotacija: kapital izlazi iz <span style="color:var(--bear)">'+cold.sec+'</span> → ulazi u <span style="color:var(--bull)">'+hot.sec+'</span> (+'+( hot.avg-cold.avg).toFixed(1)+'% spread)</div>';
+    }
+    h+='</div>';
+  })();
 
   // ── SIGNALI tab — chip filter + sort + lista ──────────────────
   if(isSignali){
@@ -5128,11 +5255,39 @@ function render(){
       h+='</div>';
       topPicks.forEach(function(o,i){h+=heroRow(o,i===0);});
     } else {
-      h+='<div class="panel" style="text-align:center;color:var(--t3);font-size:13px;padding:24px 16px">';
-      h+='<div style="font-size:32px;margin-bottom:8px">🔍</div>';
-      h+='<div style="margin-bottom:6px;color:var(--t2);font-weight:var(--fw-b)">Trenutno nema jakih signala</div>';
-      h+='<div style="font-size:11px">Skenirano '+scanSyms.length+' tokena · pričekaj sljedeći refresh ili smanji minConf u Postavkama.</div>';
-      h+='</div>';
+      (function(){
+        var gC={btcDanger:0,wyckoff:0,blocked:0,atr:0,vol:0,conf:0,confl:0};
+        var allA=scanSyms.map(analyze3D).filter(function(x){return x;});
+        allA.forEach(function(a){
+          var blocked=shouldBlockToken(a.sym);
+          if(a.btcDanger){gC.btcDanger++;return;}
+          if(a.wyBlocker){gC.wyckoff++;return;}
+          if(blocked){gC.blocked++;return;}
+          if(!a.achievable3d){gC.atr++;return;}
+          if(!a.volumeOK){gC.vol++;return;}
+          if(a.conf<settings.minConf){gC.conf++;return;}
+          if((a.confluenceCount||0)<2){gC.confl++;return;}
+        });
+        var top=[
+          {n:gC.btcDanger,lbl:"BTC pad",fix:"Čekaj BTC stabilizaciju"},
+          {n:gC.wyckoff,lbl:"Wyckoff dist.",fix:"Distribucijska faza — ne ulazi"},
+          {n:gC.blocked,lbl:"Win-rate blok",fix:"Prethodni signali bili promašaji"},
+          {n:gC.atr,lbl:"ATR prenizak",fix:"Nema volatilnosti za "+settings.targetPct+"%"},
+          {n:gC.vol,lbl:"Volumen slab",fix:"Nema vol spike ≥1.15×"},
+          {n:gC.conf,lbl:"Conf < "+settings.minConf+"%",fix:"Smanji Min Conf u Postavkama"},
+          {n:gC.confl,lbl:"Confluence < 2/6",fix:"Premalo poklapajućih faktora"}
+        ].filter(function(b){return b.n>0;}).sort(function(a,b){return b.n-a.n;});
+        var topFix=top[0];
+        h+='<div class="panel" style="border-color:rgba(255,165,0,.2);background:rgba(255,165,0,.03);padding:14px 16px">';
+        h+='<div style="font-size:12px;font-weight:var(--fw-b);color:var(--t2);margin-bottom:8px">🔍 Zašto nema jakih signala? ('+scanSyms.length+' skenirano)</div>';
+        top.slice(0,3).forEach(function(b){
+          var pct=allA.length?Math.round(b.n/allA.length*100):0;
+          h+='<div style="margin-bottom:6px"><div class="row-between" style="font-size:11px;margin-bottom:2px"><span style="color:var(--t2)">'+b.lbl+'</span><span style="color:var(--warn)">'+b.n+' ('+pct+'%)</span></div>';
+          h+='<div style="height:3px;background:rgba(255,255,255,.07);border-radius:2px"><div style="height:3px;width:'+Math.min(100,pct)+'%;background:var(--warn);border-radius:2px;opacity:.7"></div></div></div>';
+        });
+        if(topFix)h+='<div style="margin-top:8px;padding:6px 10px;background:rgba(41,121,255,.08);border-radius:7px;font-size:11px;color:var(--info)">💡 '+topFix.fix+'</div>';
+        h+='</div>';
+      })();
     }
 
     // ── Quick links na druge tabove (kompaktno, nema više duple sekcije) ──

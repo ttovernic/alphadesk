@@ -278,7 +278,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.92</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.95</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -1879,19 +1879,53 @@ function fetchOrderbookImbalance(sym){
 // Pristup: svaki helper vraca delta (broj) i mutira signals/warnings
 // Bez globalnog state-a — sve sto treba prolazi kao argument
 
-// Time-of-day + vikend penalty (Asian thin liquidity, US active)
-function scoreTimeOfDay(signals,warnings){
-  var delta=0;
+// ── TRADING SESSION HELPER ───────────────────────────────────────
+// Vraća aktivnu sesiju na temelju UTC sata (precizne granice)
+function getTradingSession(){
   var d=new Date();
-  if(d.getDay()===0||d.getDay()===6){delta-=0.5;warnings.push({txt:"📅 Vikend: niži volumen, lažni breakouti češći",type:"warn"});}
   var utcH=d.getUTCHours();
-  if(utcH>=0&&utcH<6){
-    delta-=0.7;
-    warnings.push({txt:"🌏 Asian sesija ("+utcH+"h UTC): thin liquidity, fakeouti češći",type:"warn"});
-  } else if(utcH>=14&&utcH<21){
-    delta+=0.4; // US active session — najjaki volume
+  var utcM=d.getUTCMinutes();
+  var frac=utcH+utcM/60;
+  var isWknd=d.getDay()===0||d.getDay()===6;
+  // Sesije (UTC):
+  //   Tokyo     00:00 – 08:00
+  //   London    08:00 – 16:00
+  //   NY        13:30 – 21:00
+  //   Overlap   13:00 – 16:00  (London+NY — peak likvidnost)
+  //   Dead zone 21:00 – 00:00  (najniži volumen)
+  var session,ico,col,desc,scoreAdj;
+  if(frac>=13.0&&frac<16.0){
+    session="London+NY"; ico="🇬🇧🇺🇸"; col="var(--bull)";
+    desc="Peak likvidnost · institucije + retail aktivni · najjači trendovi";
+    scoreAdj=0.6;
+  } else if(frac>=8.0&&frac<13.0){
+    session="London"; ico="🇬🇧"; col="#69f0ae";
+    desc="Institucioni kapital ulazi · pravi breakouti, ne fakeouts · pazi na EUR/GBP news";
+    scoreAdj=0.3;
+  } else if(frac>=16.0&&frac<21.0){
+    session="New York"; ico="🇺🇸"; col="var(--info)";
+    desc="US retail aktivan · news reakcije · NY close (20h UTC) często reversed move";
+    scoreAdj=0.2;
+  } else if(frac>=0&&frac<8.0){
+    session="Tokyo"; ico="🇯🇵"; col="var(--warn)";
+    desc="Thin likvidnost · JPY parovi aktivni · fakeouti češći · čekaj London";
+    scoreAdj=-0.5;
+  } else {
+    session="Dead zone"; ico="🌙"; col="var(--t3)";
+    desc="21h–00h UTC · najniži volumen dana · izbjegavaj nove ulaske";
+    scoreAdj=-0.8;
   }
-  return delta;
+  if(isWknd){scoreAdj-=0.3; desc="Vikend · "+desc;}
+  return{session:session,ico:ico,col:col,desc:desc,scoreAdj:scoreAdj,isWknd:isWknd,utcH:utcH,utcM:d.getUTCMinutes()};
+}
+
+// Time-of-day + vikend penalty — koristi getTradingSession()
+function scoreTimeOfDay(signals,warnings){
+  var s=getTradingSession();
+  if(s.isWknd)warnings.push({txt:"📅 Vikend: niži volumen, lažni breakouti češći",type:"warn"});
+  if(s.scoreAdj<=-0.5)warnings.push({txt:s.ico+" "+s.session+" sesija ("+s.utcH+"h UTC): thin liquidity, fakeouti češći",type:"warn"});
+  else if(s.scoreAdj>=0.5)signals.push({txt:s.ico+" "+s.session+": peak likvidnost — breakouti pouzdaniji",type:"bull"});
+  return s.scoreAdj;
 }
 
 // Token catalysts (bull) i warnings (bear) iz MACRO konteksta
@@ -2275,7 +2309,8 @@ function analyze3D(sym){
   var macroBull=MACRO.fg<50||MACRO.claudeRegime==="BULL"||MACRO.claudeRegime==="ALT_SEASON"
                ||MACRO.claudeRegime==="CRAB"||MACRO.claudeRegime==="NEUTRAL"||MACRO.stableDom>7;
   var fd2=futuresData[sym];
-  var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
+  var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15)
+            ||(coinbasePremium.value!=null&&coinbasePremium.value>0.08); // CB Premium >0.08% = institucionalni kupci
   // divBull: RSI/Price divergencija — jak reversal signal, zaslužuje vlastitu kategoriju
   var divBull=t&&(t.divergence==="BULLISH"||(t.divDetail&&t.divDetail.type&&t.divDetail.type.indexOf("BULLISH")>-1));
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0)+(divBull?1:0);
@@ -2474,6 +2509,7 @@ function analyze3D(sym){
     confluenceCount:confluenceCount,
     volumeOK:volumeOK,
     btcDanger:btcCtx.danger,
+    wyBlocker:wyBlocker,
     dynamicTarget:dynTarget!==null
   };
 }
@@ -2562,6 +2598,25 @@ function renderOpp(o){
     h+='<span style="font-size:10px;font-weight:var(--fw-x);color:'+tierCol+';letter-spacing:.04em;background:rgba(255,255,255,.05);padding:2px 7px;border-radius:6px">'+tierLbl+'</span>';
   }
   if(alreadyTracked)h+='<span style="font-size:10px;background:rgba(0,230,118,.12);color:var(--bull);border-radius:6px;padding:2px 7px;font-weight:var(--fw-b)">PRAĆEN</span>';
+  // ── WYCKOFF faza badge (4h primarno, daily fallback) ──────────
+  (function(){
+    var wy=wyckoff4h[o.sym]||wyckoffData[o.sym];
+    if(!wy||!wy.phase)return;
+    var pMap={
+      SPRING:    {ico:"🌱",lbl:"Spring",     col:"var(--bull)",  bg:"rgba(0,230,118,.12)", tip:"Phase C — proboj podrške + oporavak. Najjači akumulacijski signal."},
+      SOS:       {ico:"🚀",lbl:"SOS",        col:"var(--bull)",  bg:"rgba(0,230,118,.10)", tip:"Sign of Strength — proboj otpora s volumenom. Markup faza počinje."},
+      LPS:       {ico:"📍",lbl:"LPS",        col:"#69f0ae",      bg:"rgba(105,240,174,.10)",tip:"Last Point of Support — pullback na podršku, volumen presušuje. Re-entry zona."},
+      ACCUMULATION:{ico:"⏳",lbl:"Akumul.",  col:"var(--info)",  bg:"rgba(41,121,255,.10)", tip:"Donji dio raspona, neutralan volumen. Čekaj Spring ili SOS potvrdu."},
+      UTAD:      {ico:"⚠️",lbl:"UTAD",       col:"var(--bear)",  bg:"rgba(255,23,68,.10)",  tip:"Upthrust After Distribution — lažni breakout gore. Distribucija, izbjegavaj long."},
+      SOW:       {ico:"📉",lbl:"SOW",        col:"var(--bear)",  bg:"rgba(255,23,68,.10)",  tip:"Sign of Weakness — proboj podrške s volumenom. Markdown faza."},
+      LPSY:      {ico:"🔻",lbl:"LPSY",       col:"#ff7043",      bg:"rgba(255,112,67,.10)", tip:"Last Point of Supply — slab bounce bez kupaca. Prodavači dominiraju."},
+      DISTRIBUTION:{ico:"🔴",lbl:"Distribuc.",col:"var(--bear)", bg:"rgba(255,23,68,.10)",  tip:"Gornji dio raspona. Pametni novac distribuira pozicije."}
+    };
+    var p=pMap[wy.phase];
+    if(!p)return;
+    var tf=wyckoff4h[o.sym]?"4h":"1d";
+    h+='<span title="'+p.tip+' ('+tf+')" style="font-size:10px;font-weight:var(--fw-b);color:'+p.col+';background:'+p.bg+';padding:2px 7px;border-radius:6px;cursor:help">'+p.ico+' '+p.lbl+'</span>';
+  })();
   h+='</div>';
   // Conf big number desno
   var confCol=o.conf>=70?"var(--bull)":o.conf>=60?"var(--info)":o.conf>=48?"var(--warn)":"var(--bear)";
@@ -4847,6 +4902,8 @@ function render(){
     var fgCol=MACRO.fg<25?"var(--bull)":MACRO.fg<45?"var(--info)":MACRO.fg>70?"var(--bear)":"var(--t2)";
     var btcDomCol=MACRO.btcDom>60?"var(--bear)":MACRO.btcDom>55?"var(--warn)":MACRO.btcDom<45?"var(--bull)":"var(--t2)";
     var rCol=regimeCol[regime2]||"var(--t2)";
+    var sess=getTradingSession();
+    var pad2=function(n){return n<10?"0"+n:n;};
     h+='<div class="panel panel-tight" style="margin-bottom:12px;border-color:'+rCol+'33;background:rgba(255,255,255,.02)">';
     h+='<div class="row-wrap" style="gap:14px;font-size:12px;font-weight:var(--fw-x)">';
     h+='<span class="row" style="gap:5px"><span class="txt-t4">Režim</span><span style="color:'+rCol+'">'+(regimeLbl[regime2]||regime2)+'</span></span>';
@@ -4854,7 +4911,21 @@ function render(){
     h+='<span class="row" style="gap:5px"><span class="txt-t4">BTC Dom</span><span style="color:'+btcDomCol+'">'+MACRO.btcDom+'%</span></span>';
     if(MACRO.dxy)h+='<span class="row" style="gap:5px"><span class="txt-t4">DXY</span><span style="color:'+(MACRO.dxy>106?"var(--bear)":MACRO.dxy<100?"var(--bull)":"var(--t2)")+'">'+MACRO.dxy.toFixed(1)+'</span></span>';
     if(MACRO.oil)h+='<span class="row" style="gap:5px"><span class="txt-t4">Oil</span><span style="color:'+(MACRO.oil>110?"var(--bear)":MACRO.oil<90?"var(--bull)":"var(--t2)")+'">$'+MACRO.oil+'</span></span>';
-    h+='</div></div>';
+    // ── Sesija ─────────────────────────────────────────────────────
+    h+='<span class="row" style="gap:5px" title="'+sess.desc+'">';
+    h+='<span class="txt-t4">Sesija</span>';
+    h+='<span style="color:'+sess.col+';cursor:help">'+sess.ico+' '+sess.session+'</span>';
+    h+='<span class="txt-t4" style="font-size:10px">'+pad2(sess.utcH)+':'+pad2(sess.utcM)+'</span>';
+    h+='</span>';
+    h+='</div>';
+    // ── Sesija napomena (jednoredna, samo ako je loša ili peak) ────
+    if(sess.scoreAdj<=-0.5||sess.scoreAdj>=0.5){
+      var sNote=sess.scoreAdj>=0.5
+        ?'<span style="color:var(--bull)">✓ Peak likvidnost</span> — breakouti pouzdaniji, institucije aktivne'
+        :'<span style="color:var(--warn)">⚠ Thin market</span> — '+sess.desc;
+      h+='<div style="font-size:10px;color:var(--t3);padding:5px 0 2px;border-top:.5px solid var(--sep2);margin-top:6px;line-height:1.5">'+sNote+'</div>';
+    }
+    h+='</div>';
 
     // ── 2. KOMPAKTNI STAT GRID (4 boxa, manji) ──────────────────
     var scanSyms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
@@ -4923,12 +4994,69 @@ function render(){
   }
 
   if(opps.length===0&&activeFilter!=="all"){
-    if(isSignali){
-      var hint=signalChip==="ulaz"?"Nema ✅ ulaza s ≥60% conf. Provjeri 🟡 Oprez ili 🔵 Spek.":(signalChip==="all"?"Nema signala. Smanji min conf u Postavkama ili pričekaj bolji setup.":"Nema u ovoj tier kategoriji. Probaj 'Sve' chip.");
-      h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">🔍</div><div style="font-size:15px;font-weight:600;color:var(--t2);margin-bottom:6px">Nema signala</div><div style="font-size:12px;color:var(--t3)">'+hint+'</div></div>';
-    } else {
-      h+='<div class="empty"><div style="font-size:48px;margin-bottom:14px">🔍</div><div style="font-size:17px;font-weight:600;color:var(--t2);margin-bottom:6px">Nema prilike</div><div style="font-size:13px;color:var(--t3)">Trenutni uvjeti ne zadovoljavaju kriterije.</div></div>';
-    }
+    // ── Dijagnostički panel: zašto nema signala ──────────────────
+    (function(){
+      var scanAll=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
+      var allAnalyzed=scanAll.map(analyze3D).filter(function(x){return x;});
+      // Svakom tokenu pronađi koji gate ga blokira
+      var gCounts={btcDanger:0,wyckoff:0,blocked:0,atr:0,vol:0,conf:0,confl:0,passed:0};
+      var confVals=[];
+      var conflVals=[];
+      allAnalyzed.forEach(function(a){
+        var conf=a.conf||0;
+        confVals.push(conf);
+        var confluenceCount=a.confluenceCount||0;
+        conflVals.push(confluenceCount);
+        var blocked=shouldBlockToken(a.sym);
+        if(a.btcDanger){gCounts.btcDanger++;return;}
+        if(a.wyBlocker){gCounts.wyckoff++;return;}
+        if(blocked){gCounts.blocked++;return;}
+        if(!a.achievable3d){gCounts.atr++;return;}
+        if(!a.volumeOK){gCounts.vol++;return;}
+        if(conf<settings.minConf){gCounts.conf++;return;}
+        if(confluenceCount<2){gCounts.confl++;return;}
+        gCounts.passed++;
+      });
+      var avgConf=confVals.length?Math.round(confVals.reduce(function(a,b){return a+b;},0)/confVals.length):0;
+      var avgConfl=conflVals.length?(conflVals.reduce(function(a,b){return a+b;},0)/conflVals.length).toFixed(1):0;
+      // Pronađi dominantni bloker
+      var blockers=[
+        {key:"btcDanger",n:gCounts.btcDanger,lbl:"BTC pad >4%",fix:"Čekaj BTC stabilizaciju"},
+        {key:"wyckoff",n:gCounts.wyckoff,lbl:"Wyckoff distribucija",fix:"Čekaj re-akumulaciju"},
+        {key:"blocked",n:gCounts.blocked,lbl:"Win-rate blokada",fix:"Prethodni signali bili promašaji"},
+        {key:"atr",n:gCounts.atr,lbl:"ATR prenizak",fix:"Nema dovoljno volatilnosti za "+settings.targetPct+"% target"},
+        {key:"vol",n:gCounts.vol,lbl:"Volumen slab",fix:"Nema volume spike ≥1.15× ili c24>1%"},
+        {key:"conf",n:gCounts.conf,lbl:"Conf < "+settings.minConf+"%",fix:"Smanji Min Conf u Postavkama (trenutno "+settings.minConf+"%)"},
+        {key:"confl",n:gCounts.confl,lbl:"Confluence < 2/6",fix:"Tržište nema dovoljno podudarajućih faktora"}
+      ].filter(function(b){return b.n>0;}).sort(function(a,b){return b.n-a.n;});
+      var topBlocker=blockers[0];
+      h+='<div class="panel" style="border-color:rgba(255,165,0,.25);background:rgba(255,165,0,.04);padding:14px 16px;margin-top:4px">';
+      h+='<div class="row-between" style="margin-bottom:10px">';
+      h+='<span style="font-size:13px;font-weight:var(--fw-b);color:var(--t2)">🔍 Zašto nema signala?</span>';
+      h+='<span class="txt-t4" style="font-size:10px">'+scanAll.length+' skenirano · avg conf '+avgConf+'% · avg confl '+avgConfl+'/6</span>';
+      h+='</div>';
+      // Bloker lista (max 4)
+      blockers.slice(0,4).forEach(function(b){
+        var pct=scanAll.length>0?Math.round(b.n/scanAll.length*100):0;
+        var barW=Math.min(100,pct);
+        h+='<div style="margin-bottom:8px">';
+        h+='<div class="row-between" style="margin-bottom:3px"><span style="font-size:11px;color:var(--t2)">'+b.lbl+'</span><span style="font-size:11px;color:var(--warn);font-weight:var(--fw-b)">'+b.n+' tokena ('+pct+'%)</span></div>';
+        h+='<div style="height:4px;background:rgba(255,255,255,.07);border-radius:2px"><div style="height:4px;width:'+barW+'%;background:var(--warn);border-radius:2px;opacity:.7"></div></div>';
+        h+='</div>';
+      });
+      // Macro kontekst
+      h+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:var(--t3)">';
+      h+='Režim: <span style="color:var(--t2);font-weight:var(--fw-b)">'+MACRO.claudeRegime+'</span>';
+      if(MACRO.warActive)h+=' · <span style="color:var(--bear)">⚔️ Rat aktivan</span>';
+      h+=' · BTC dom <span style="color:'+(MACRO.btcDom>60?"var(--bear)":"var(--t2)")+'">'+MACRO.btcDom+'%</span>';
+      h+=' · F&G <span style="color:var(--t2)">'+MACRO.fg+'</span>';
+      h+='</div>';
+      // Prijedlog akcije
+      if(topBlocker){
+        h+='<div style="margin-top:8px;padding:8px 10px;background:rgba(41,121,255,.08);border-radius:8px;font-size:11px;color:var(--info)">💡 '+topBlocker.fix+'</div>';
+      }
+      h+='</div>';
+    })();
   } else if(isSignali&&opps.length>0){
     // Render filtrirani opps po signal chip-u
     if(signalChip==="all"){
@@ -6358,7 +6486,7 @@ function runBacktest(){
           var closes=data.map(function(k){return parseFloat(k[4]);});
           var results=[];
           var LOOKBACK=30; // treba 30 kandli za pouzdane signale
-          var TARGET_PCT=0.05; // 5% target
+          var TARGET_PCT=(settings&&settings.targetPct?settings.targetPct:6)/100; // koristi postavke (default 6%)
           for(var i=LOOKBACK;i<closes.length-3;i++){
             var slice=closes.slice(0,i+1);
             var taR=compTA(slice);
@@ -6424,7 +6552,7 @@ function runSignalBacktest(){
 }
 
 function processSignalBacktest(allData){
-  var TARGET_PCT=0.05;
+  var TARGET_PCT=(settings&&settings.targetPct?settings.targetPct:6)/100; // koristi postavke (default 6%)
   var LOOKBACK=21; // treba 21 dana za pouzdane signale
 
   // Definiraj sve signale s imenom i brojevima
@@ -6565,8 +6693,8 @@ function runWalkForwardBacktest(){
 }
 
 function processWalkForward(allData){
-  var TARGET=0.05;
-  var STOP=0.025;
+  var TARGET=(settings&&settings.targetPct?settings.targetPct:6)/100; // koristi postavke (default 6%)
+  var STOP=(settings&&settings.maxRisk?settings.maxRisk:2)/100; // koristi postavke (default 2%)
   var FEE=0.0015; // 0.15% round trip
   var SLIP=0.0005;
   var LOOKBACK=30;

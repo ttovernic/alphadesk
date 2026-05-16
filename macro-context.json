@@ -1,116 +1,135 @@
 {
     "dxy":  99.27,
-    "changeSummary":  "BTC pao ispod $80K uz treći neuspjeli proboj $82K i $360M likvidacija dugih pozicija, dok nafta skočila na $106 zbog zatvorenog Hormuz tjesnjaca.",
-    "lastUpdated":  "2026-05-16T12:00:00Z",
+    "changeSummary":  "Makro uvjeti ostaju stabilni — DXY na 99.27, Fear & Greed na 49 i CRAB režim se nastavljaju, dok ETH dobiva impuls od Schwabovog lansiranja spot trgovanja za 39M korisnika.",
+    "lastUpdated":  "2026-05-16T15:00:00Z",
     "warnings":  {
                      "ACT":  [
-                             "BTC Season, meme altcoini bez katalizatora"
+
                              ],
                      "MEME":  [
-                              "BTC Season, meme sektor zaostaje za BTC-om"
+
                               ],
                      "ANIME":  [
-                               "BTC Season, meme altcoini bez katalizatora"
+
                                ],
                      "XRP":  [
+                                 "Pad ~5% usred tržišne konsolidacije"
                              ],
                      "BNB":  [
-                             "Konsolidacija, BTC dom 60.3%, altcoini pod pritiskom"
+
                              ],
                      "SUI":  [
-                             "BTC Season, kapital ostaje u BTC-u"
+                                 "Pad ~8% — nadprosječna slabost altcoina"
                              ],
                      "AVAX":  [
-                              "BTC Season, kapital ostaje u BTC-u"
+                                  "Pad ~5% — pritisak na altcoins"
                               ],
                      "PENGU":  [
-                               "BTC Season, meme altcoini bez katalizatora"
+
                                ],
                      "BOME":  [
-                              "BTC Season, meme sektor zaostaje za BTC-om"
+
                               ],
                      "DOGS":  [
-                              "BTC Season, meme altcoini bez katalizatora"
+
                               ],
                      "NOT":  [
-                             "BTC Season, meme altcoini bez katalizatora"
+
                              ],
                      "PEOPLE":  [
-                                "BTC Season, meme altcoini bez katalizatora"
+
                                 ],
                      "SOL":  [
-                             "BTC Season, kapital ostaje u BTC-u"
+
                              ],
                      "ADA":  [
-                             "BTC Season, kapital ostaje u BTC-u"
+                                 "Pad ~5% — tržišna konsolidacija"
                              ],
                      "PNUT":  [
-                              "BTC Season, meme sektor zaostaje za BTC-om"
+
                               ],
                      "AIXBT":  [
+
                                ],
                      "ETH":  [
-                             "Konsolidacija, BTC dom 60.3%, altcoini pod pritiskom"
+                                 "ETF odljevi $36.3M, BlackRock prodao $22.3M"
                              ],
                      "LINK":  [
-                              "BTC Season, kapital ostaje u BTC-u"
+                                  "Pad ~5% — tržišna konsolidacija"
                               ],
                      "PUMP":  [
-                              "BTC Season, meme altcoini bez katalizatora"
+
                               ],
                      "TRUMP":  [
+
                                ],
                      "BTC":  [
-                             "Treći neuspjeli proboj $82K, otpor jak",
-                             "$360M liq u 24h, rastući prinosi obveznica"
+                                 "Rast prinosa obveznica + BTC ispod $80K"
                              ]
                  },
     "catalysts":  {
                       "ACT":  [
+
                               ],
                       "MEME":  [
+
                                ],
                       "ANIME":  [
+
                                 ],
                       "XRP":  [
-                              "Povoljno sudsko rješenje smanjuje regulatorni rizik"
+
                               ],
                       "BNB":  [
+
                               ],
                       "SUI":  [
+
                               ],
                       "AVAX":  [
+
                                ],
                       "PENGU":  [
+
                                 ],
                       "BOME":  [
+
                                ],
                       "DOGS":  [
+
                                ],
                       "NOT":  [
+
                               ],
                       "PEOPLE":  [
+                                     "CLARITY Act — regulatorni okvir za digitalnu imovinu"
                                  ],
                       "SOL":  [
+
                               ],
                       "ADA":  [
+
                               ],
                       "PNUT":  [
+
                                ],
                       "AIXBT":  [
-                                "AI blockchain infrastruktura privlači kapital"
+
                                 ],
                       "ETH":  [
+                                  "Schwab pokrenuo spot ETH za 39M korisnika"
                               ],
                       "LINK":  [
+
                                ],
                       "PUMP":  [
+
                                ],
                       "TRUMP":  [
-                                "Trump gura kripto zakon u Kongres do srpnja"
+
                                 ],
                       "BTC":  [
-                              "CLARITY Act napreduje u Senatu prema glasanju"
+                                  "CLARITY Act napreduje prema glasanju u Senatu"
                               ]
                   },
     "fearGreed":  49,
@@ -120,28 +139,28 @@
                            "ACT":  0,
                            "MEME":  0,
                            "ANIME":  0,
-                           "XRP":  1,
+                           "XRP":  -1,
                            "BNB":  0,
-                           "SUI":  0,
-                           "AVAX":  0,
+                           "SUI":  -1,
+                           "AVAX":  -1,
                            "PENGU":  0,
                            "BOME":  0,
                            "DOGS":  0,
                            "NOT":  0,
-                           "PEOPLE":  0,
+                           "PEOPLE":  1,
                            "SOL":  0,
-                           "ADA":  0,
+                           "ADA":  -1,
                            "PNUT":  0,
-                           "AIXBT":  1,
-                           "ETH":  0,
-                           "LINK":  0,
+                           "AIXBT":  0,
+                           "ETH":  1,
+                           "LINK":  -1,
                            "PUMP":  0,
-                           "TRUMP":  1,
-                           "BTC":  0
+                           "TRUMP":  0,
+                           "BTC":  -1
                        },
-    "aiSummary":  "DXY ostaje na 99.27 bez značajnih promjena, dok BTC konsolidira ispod $80K nakon trećeg uzastopnog neuspjelog proboja $82K uz $360M likvidacija dugih pozicija. Fear & Greed indeks na 49 i BTC dominacija od 60.3% potvrđuju CRAB režim — altcoini zaostaju, a Altcoin Season Index na 39/100 signalizira Bitcoin Season. Iranski rat drži naftu na ~$106 i pojačava inflacijske strahove, no napredak CLARITY Acta u Senatu donosi regulatorni optimizam za sektor.",
+    "aiSummary":  "DXY se stabilizirao na 99.27 bez značajnih pomaka, dok nafta (WTI) blago pada na ~$105 jer geopolitička napetost oko Hormuškog tjesnaca ostaje povišena uz ratno stanje. BTC konsolidira ispod $80K uz Fear & Greed na 49 i dominaciju od 60.2%, potvrđujući CRAB režim — altcoini su pod pritiskom s padovima 5-8%. Pozitivni signal dolazi od Charles Schwabovog lansiranja spot ETH trgovanja za 39M korisnika, dok CLARITY Act napreduje prema glasanju u Senatu uz 100+ amandmana.",
     "warActive":  true,
-    "btcDom":  60.3,
-    "stableDom":  11.8,
-    "oil":  106
+    "btcDom":  60.2,
+    "stableDom":  12.0,
+    "oil":  105
 }

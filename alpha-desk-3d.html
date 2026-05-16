@@ -278,7 +278,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.89</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.90</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -338,7 +338,7 @@ svg.sp{overflow:visible;display:block}
   <h2 style="font-size:19px;font-weight:800;margin-bottom:4px">Postavke skenera</h2>
   <p style="font-size:13px;color:var(--t3);margin-bottom:18px">Prilagodi parametre za standardni +6% target u 3 dana (i meme tab)</p>
   <div class="g2" style="margin-bottom:12px">
-    <div><label class="inp-lbl">Min pouzdanost (%)</label><input id="s-conf" class="inp" type="number" value="50" min="20" max="90"></div>
+    <div><label class="inp-lbl">Min pouzdanost (%)</label><input id="s-conf" class="inp" type="number" value="45" min="20" max="90"></div>
     <div><label class="inp-lbl">Target profit (%)</label><input id="s-tgt" class="inp" type="number" value="6" min="2" max="20" step="0.5"></div>
     <div><label class="inp-lbl">Max rizik (%)</label><input id="s-risk" class="inp" type="number" value="2" min="1" max="10" step="0.5"></div>
     <div><label class="inp-lbl">Min R/R omjer</label><input id="s-rr" class="inp" type="number" value="1.2" min="0.8" max="5" step="0.1"></div>
@@ -529,16 +529,18 @@ function getMemeSYMS(){
 }
 
 // Settings
-var settings={minConf:50,targetPct:6,maxRisk:2,minRR:1.2};
+var settings={minConf:45,targetPct:6,maxRisk:2,minRR:1.2};
 try{var ss=JSON.parse(lsGet("ad3d_s")||"{}");if(ss.minConf)settings=ss;}catch(e){}
 // Migracija: stari settings sa targetPct=5 se updateaju na 6 (default)
 // (10% mode UKLONJEN, ako je korisnik bio na 10% prebaci na 6)
 if(settings.targetPct===5||settings.targetPct===10){settings.targetPct=6;lsSet("ad3d_s",JSON.stringify(settings));}
+// Migracija: stari minConf=50 prebaci na 45 (nova default — CRAB+war uvjeti)
+if(settings.minConf>=50&&!settings._minConfMigrated){settings.minConf=45;settings._minConfMigrated=true;lsSet("ad3d_s",JSON.stringify(settings));}
 
 // Macro context
 var MACRO={
-  warActive:true,macroPenalty:4,oil:115,dxy:103,
-  fg:13,btcDom:57.9,stableDom:8.2,
+  warActive:true,macroPenalty:1,oil:105,dxy:99.05,
+  fg:46,btcDom:60.0,stableDom:6.5,
   fearGreed:13,      // 0-100, live iz macro-context.json (Claude)
   claudeRegime:null, // BULL|BEAR|ALT_SEASON|CRAB|VOLATILE|NEUTRAL — Claude procjena
   sentimentScore:{}, // {sym: -3..+3} — Claude news sentiment po tokenu → Signal 29
@@ -2082,15 +2084,15 @@ function computeTargets(price,atrPct,targetPct,maxRisk,sym){
 }
 
 // Score → Confidence calculation s war cap, calibration, token accuracy
-// REKALIBRIRANO (v4.89): baseline 35 (bilo 44), spread 30-95
+// REKALIBRIRANO (v4.90): baseline 35 (bilo 44), spread 30-95
 // Razlog: analiza pokazala POGODAK avg 47.6 vs PROMAŠAJ 45.8 (samo 1.8 razlike)
 // Niži baseline → conf 60+ stvarno predstavlja "iznadprosječan" setup
 function computeConfidence(score,sym,targetPct){
   var maxScore=28;
-  // NOVO: baseline 35, full spread 53 (35-88), sa razlikom 53/28=1.89 boda po score unit
-  var rawConf=Math.round(35+(score/maxScore)*53);
-  // War cap takodjer rekalibriran (bilo 55/50/44)
-  var warCap=score>=4?52:score>=2?45:38;
+  // baseline 38 (bila 35 — prestrogo u CRAB+war uvjetima), spread 50 (38-88)
+  var rawConf=Math.round(38+(score/maxScore)*50);
+  // War cap — dozvoljava vidljivost signala čak i u ratu, quality gate je passesAllGates
+  var warCap=score>=5?72:score>=3?60:score>=1?50:40;
   var conf=Math.min(MACRO.warActive?warCap:90,Math.max(20,rawConf));
   var calCap=getConfCalibrationCap(targetPct||6);
   if(calCap!==null)conf=Math.min(conf,calCap);
@@ -2193,7 +2195,8 @@ function analyze3D(sym){
   // ATR — volatility determines if 5% is achievable in 3 days
   var atrPct=a?parseFloat(a.pct):2.0;
   var daily5pct=settings.targetPct/3;
-  var achievable3d=atrPct>=daily5pct*0.8;
+  // 0.65 multiplier (bio 0.8) — prag smanjen jer 6% target povisio zahtjev s 1.33 na 1.6%/dan
+  var achievable3d=atrPct>=daily5pct*0.65;
 
   // Tržišni signali: BTC dom, BTC trend, volume, order book, 7d trend, DXY
   score+=scoreMarketSignals(sym,signals,warnings);
@@ -2232,7 +2235,7 @@ function analyze3D(sym){
   score+=scoreTimeOfDay(signals,warnings);
 
   // CONFIDENCE + ENTRY QUALITY (extracted helperi)
-  var conf=computeConfidence(score,sym,5);
+  var conf=computeConfidence(score,sym,settings.targetPct);
   var vp3d=volProfile[sym];
   var eqRes=applyEntryQualityMult(conf,t,price,vp3d,signals);
   conf=eqRes.conf;
@@ -2267,7 +2270,7 @@ function analyze3D(sym){
   var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
 
-  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.89): 1.3 → 1.15
+  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.90): 1.3 → 1.15
   // 1.3× je previse strogo - blokiralo SVE ✅ ulaze. Trazimo barem +15% iznad prosjeka.
   var volumeOK=vsT1&&vsT1.ratio>=1.15;
 
@@ -2467,7 +2470,8 @@ function getOpportunities(){
   var analyzeFn=analyze3D;
   // HARD min conf — RL bandit predlaze optimalni threshold (ako ima dovoljno data ≥5 trade)
   var bestArm=typeof confBandit!=="undefined"?confBandit.bestArm():null;
-  var dynamicFloor=bestArm?bestArm.threshold:52;
+  // dynamicFloor: 44 default (bio 52 — jednako warCap-u, blokirao sve u CRAB+war uvjetima)
+  var dynamicFloor=bestArm?bestArm.threshold:44;
   var minConf=activeFilter==="signali"?Math.max(dynamicFloor,settings.minConf):settings.minConf;
   var syms=TOP100.filter(function(s){
     if(!px[s]||!px[s].p||px[s].p<=0||KNOWN_MEME.indexOf(s)>-1)return false;
@@ -3316,11 +3320,11 @@ function autoTrackOpps(opps, source){
   var now=Date.now();
   var added=false;
 
-  // ── NEWS EVENT BLACKOUT (v4.89) — pauziraj 30min prije/nakon FOMC/CPI/NFP
+  // ── NEWS EVENT BLACKOUT (v4.90) — pauziraj 30min prije/nakon FOMC/CPI/NFP
   var blackout=getActiveBlackout();
   if(blackout)return; // skip ENTIRE batch — sav market u nepredvidivom stanju
 
-  // ── MULTI-POSITION CORRELATION GATE (v4.89)
+  // ── MULTI-POSITION CORRELATION GATE (v4.90)
   // Ako vec >=2 alt LONG aktivna, ne otvaraj novi alt LONG (>70% korelirano s BTC)
   // Iznimka: BTC sam, ili counter-trend (SHORT)
   var activeAltLongs=predTracker.filter(function(p){
@@ -3339,7 +3343,7 @@ function autoTrackOpps(opps, source){
   var maxTrack = source==="watch" ? 3 : 5;
   opps = opps.slice().sort(function(a,b){return b.conf-a.conf;}).slice(0, maxTrack);
 
-  // Drawdown circuit breaker — UNAPRJEDJENO (v4.89)
+  // Drawdown circuit breaker — UNAPRJEDJENO (v4.90)
   // 1. Stara logika: 2 uzastopna PROMAŠAJa = 6h cooldown
   // 2. Nova: win rate zadnjih 10 trade-ova <30% = 12h cooldown (širi pogled)
   var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,10);
@@ -3370,7 +3374,7 @@ function autoTrackOpps(opps, source){
     // ── PER-TOKEN GATE — token s <30% win rate (5+ tradova) = block 24h
     if(shouldBlockToken(o.sym))return;
 
-    // ── MULTI-POSITION CORRELATION (v4.89)
+    // ── MULTI-POSITION CORRELATION (v4.90)
     // Ako >=2 alt LONG vec aktivna i ovo je novi alt LONG → blokiraj
     if(o.sym!=="BTC" && activeAltLongs>=2)return;
 
@@ -5069,7 +5073,7 @@ function setSignalChip(c){
   signalChip=c;
   render();
 }
-// activePct fiksiran na 6% (10% mode uklonjen u v4.89). Settings → targetPct za promjenu.
+// activePct fiksiran na 6% (10% mode uklonjen u v4.90). Settings → targetPct za promjenu.
 
 // ── AI SUMMARY TOGGLE (Pregled tab) ─────────────────────────────
 function toggleAISummary(){
@@ -7022,7 +7026,7 @@ scheduler.add("fundingHistory", 1800, fetchAllFundingRates);    // 30 min — sa
 function backgroundAutoTrack(){
   var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
   if(!syms.length)return;
-  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.89)
+  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.90)
   var minConf=settings.minConf||40;
   var all=syms.map(analyze3D).filter(function(x){return x&&x.conf>=minConf;});
   var ulaz=all.filter(function(x){return x.verdict&&x.verdict.indexOf("✅")===0;});

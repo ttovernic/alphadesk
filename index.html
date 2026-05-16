@@ -278,7 +278,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.90</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.91</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -1493,13 +1493,8 @@ function scoreMarketSignals(sym,signals,warnings){
     if(t4h.trend==="DOWN"&&t4h.rsi>55){delta-=1;warnings.push({txt:"4h downtrend — 1h signali manje pouzdani",type:"warn"});}
     else if(t4h.trend==="UP"){delta+=0.5;signals.push({txt:"4h uptrend — potvrda smjera",type:"bull"});}
   }
-  // 3. Volume Spike (iz Binance klines)
-  var vs=volSpike[sym];
-  if(vs){
-    if(vs.ratio>2.0){delta+=wt("volSpike",2);signals.push({txt:"Volume spike "+vs.ratio.toFixed(1)+"x avg — jak interes",type:"bull"});}
-    else if(vs.ratio>1.4){delta+=wt("volSpike",1);signals.push({txt:"Volume "+vs.ratio.toFixed(1)+"x avg — interes raste",type:"bull"});}
-    else if(vs.weak){delta-=1;warnings.push({txt:"Volume slab "+vs.ratio.toFixed(1)+"x — nema interesa",type:"warn"});}
-  }
+  // 3. Volume Spike — PREMJEŠTENO u scoreVolumeBoost() da izbjegnemo double-count
+  // (scoreVolumeBoost() se poziva zasebno u analyze3D, ne broji ovdje dvaput)
   // 4. Order Book Imbalance (Binance depth)
   var ob=orderBook[sym];
   if(ob){
@@ -1810,13 +1805,11 @@ function getBtcContext(){
   var btc4h=ta4h["BTC"];
   var trend1h=btcTa?btcTa.trend:"FLAT";
   var trend4h=btc4h?btc4h.trend:"FLAT";
-  // BTC u "danger" zoni za alt LONG ako:
-  // - 24h pad > 3%, ili
-  // - 24h pad > 1.5% i 1h trend DOWN, ili
-  // - 1h DOWN i 4h DOWN istovremeno
-  var danger=btc24<-3 ||
-             (btc24<-1.5 && trend1h==="DOWN") ||
-             (trend4h==="DOWN" && trend1h==="DOWN");
+  // BTC u "danger" zoni za alt LONG — UBLAŽENO (v4.91):
+  // Stari uvjet "1h DOWN && 4h DOWN" blokirao bounce setupe (upravo kad alti trebaju pasti)
+  // Novi: treba i cjenovni pad, ne samo trend — inače blokiramo normalne pullbacke
+  var danger=btc24<-4 ||
+             (btc24<-2 && trend1h==="DOWN" && trend4h==="DOWN");
   return{c24:btc24,trend1h:trend1h,trend4h:trend4h,danger:danger};
 }
 
@@ -2084,7 +2077,7 @@ function computeTargets(price,atrPct,targetPct,maxRisk,sym){
 }
 
 // Score → Confidence calculation s war cap, calibration, token accuracy
-// REKALIBRIRANO (v4.90): baseline 35 (bilo 44), spread 30-95
+// REKALIBRIRANO (v4.91): baseline 35 (bilo 44), spread 30-95
 // Razlog: analiza pokazala POGODAK avg 47.6 vs PROMAŠAJ 45.8 (samo 1.8 razlike)
 // Niži baseline → conf 60+ stvarno predstavlja "iznadprosječan" setup
 function computeConfidence(score,sym,targetPct){
@@ -2265,14 +2258,19 @@ function analyze3D(sym){
   var trendBull=(t&&t.trend==="UP")||(tDayV&&tDayV.trend==="UP")||(t4hV&&t4hV.trend==="UP");
   var momBull=(m&&(m.cross==="BULLISH"||m.bullish))||(t&&t.rsi<40)||(t&&(t.divergence==="BULLISH"||(t.divDetail&&t.divDetail.type&&t.divDetail.type.indexOf("BULLISH")>-1)));
   var volBull=(vsT1&&vsT1.ratio>=1.5)||(cvdData[sym]&&cvdData[sym].divergence==="BULLISH");
-  var macroBull=MACRO.fg<35||MACRO.claudeRegime==="BULL"||MACRO.claudeRegime==="ALT_SEASON";
+  // macroBull: proširen uvjet — u CRAB/NEUTRAL tržištu fg<50 je dovoljno (nije euforia)
+  // Stari uvjet fg<35 je bio prestrogo — nikad nije bio true s fg=46 u CRAB fazi
+  var macroBull=MACRO.fg<50||MACRO.claudeRegime==="BULL"||MACRO.claudeRegime==="ALT_SEASON"
+               ||MACRO.claudeRegime==="CRAB"||MACRO.claudeRegime==="NEUTRAL"||MACRO.stableDom>7;
   var fd2=futuresData[sym];
   var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
 
-  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.90): 1.3 → 1.15
-  // 1.3× je previse strogo - blokiralo SVE ✅ ulaze. Trazimo barem +15% iznad prosjeka.
-  var volumeOK=vsT1&&vsT1.ratio>=1.15;
+  // 2. VOLUME HARD FILTER — s fallbackom kad volSpike podaci nisu učitani
+  // Fallback: ako nema volSpike podataka ali c24>1% i nema "weak" signala → OK
+  var volumeOK=vsT1
+    ?(vsT1.ratio>=1.15)        // volSpike dostupan — treba ≥1.15× prosjeka
+    :(d.c24!=null&&d.c24>1);  // fallback: API nije vratio volSpike, ali cijena raste → OK
 
   // 3. BTC CORRELATION GATE (samo za alte LONG)
   var btcCtx=sym!=="BTC"?getBtcContext():{danger:false,c24:0,trend1h:"FLAT"};
@@ -2390,13 +2388,14 @@ function analyze3D(sym){
     // Kratak verdict — bez šuma. Detalji u expand.
     verdict="✅ Ulazi";
     var keyReason=hasTrifecta?"Trifecta — izniman poklopaj":hasMtf3?"MTF 3/3 — trend potvrđen":topBullSignal||"Višestruki bullish signali";
-    verdictWhy=keyReason+". Confluence "+confluenceCount+"/5 · Vol "+(vsT1?vsT1.ratio.toFixed(1):'?')+"× · "+(achievable3d?"ATR pokriva "+settings.targetPct+"%":"vol niska")+riskSuffix;
+    var volTxt=vsT1?vsT1.ratio.toFixed(1)+"×":(volumeOK?"c24 +"+d.c24.toFixed(1)+"%":"—");
+    verdictWhy=keyReason+". Confluence "+confluenceCount+"/5 · Vol "+volTxt+" · "+(achievable3d?"ATR pokriva "+settings.targetPct+"%":"vol niska")+riskSuffix;
   } else if(conf>=60&&score>=2){
     // Bio bi ✅ ali nedostaje neki gate → downgrade na 🟡 s eksplicitnim razlogom
     verdict="🟡 Oprez";
     var blockers=[];
     if(confluenceCount<2)blockers.push(confluenceCount+"/5 kategorija");
-    if(!volumeOK)blockers.push("vol "+(vsT1?vsT1.ratio.toFixed(1)+"×":"nedost.")+" <1.15×");
+    if(!volumeOK)blockers.push("vol "+(vsT1?vsT1.ratio.toFixed(1)+"× <1.15×":"pada (c24 "+d.c24.toFixed(1)+"%)"));
     if(btcCtx.danger)blockers.push("BTC "+btcCtx.c24.toFixed(1)+"%/24h");
     if(wyBlocker)blockers.push(wyBlocker);
     verdictWhy="Blokirano: "+blockers.join(" · ")+riskSuffix;
@@ -3320,11 +3319,11 @@ function autoTrackOpps(opps, source){
   var now=Date.now();
   var added=false;
 
-  // ── NEWS EVENT BLACKOUT (v4.90) — pauziraj 30min prije/nakon FOMC/CPI/NFP
+  // ── NEWS EVENT BLACKOUT (v4.91) — pauziraj 30min prije/nakon FOMC/CPI/NFP
   var blackout=getActiveBlackout();
   if(blackout)return; // skip ENTIRE batch — sav market u nepredvidivom stanju
 
-  // ── MULTI-POSITION CORRELATION GATE (v4.90)
+  // ── MULTI-POSITION CORRELATION GATE (v4.91)
   // Ako vec >=2 alt LONG aktivna, ne otvaraj novi alt LONG (>70% korelirano s BTC)
   // Iznimka: BTC sam, ili counter-trend (SHORT)
   var activeAltLongs=predTracker.filter(function(p){
@@ -3343,7 +3342,7 @@ function autoTrackOpps(opps, source){
   var maxTrack = source==="watch" ? 3 : 5;
   opps = opps.slice().sort(function(a,b){return b.conf-a.conf;}).slice(0, maxTrack);
 
-  // Drawdown circuit breaker — UNAPRJEDJENO (v4.90)
+  // Drawdown circuit breaker — UNAPRJEDJENO (v4.91)
   // 1. Stara logika: 2 uzastopna PROMAŠAJa = 6h cooldown
   // 2. Nova: win rate zadnjih 10 trade-ova <30% = 12h cooldown (širi pogled)
   var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,10);
@@ -3374,7 +3373,7 @@ function autoTrackOpps(opps, source){
     // ── PER-TOKEN GATE — token s <30% win rate (5+ tradova) = block 24h
     if(shouldBlockToken(o.sym))return;
 
-    // ── MULTI-POSITION CORRELATION (v4.90)
+    // ── MULTI-POSITION CORRELATION (v4.91)
     // Ako >=2 alt LONG vec aktivna i ovo je novi alt LONG → blokiraj
     if(o.sym!=="BTC" && activeAltLongs>=2)return;
 
@@ -5073,7 +5072,7 @@ function setSignalChip(c){
   signalChip=c;
   render();
 }
-// activePct fiksiran na 6% (10% mode uklonjen u v4.90). Settings → targetPct za promjenu.
+// activePct fiksiran na 6% (10% mode uklonjen u v4.91). Settings → targetPct za promjenu.
 
 // ── AI SUMMARY TOGGLE (Pregled tab) ─────────────────────────────
 function toggleAISummary(){
@@ -7026,7 +7025,7 @@ scheduler.add("fundingHistory", 1800, fetchAllFundingRates);    // 30 min — sa
 function backgroundAutoTrack(){
   var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
   if(!syms.length)return;
-  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.90)
+  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.91)
   var minConf=settings.minConf||40;
   var all=syms.map(analyze3D).filter(function(x){return x&&x.conf>=minConf;});
   var ulaz=all.filter(function(x){return x.verdict&&x.verdict.indexOf("✅")===0;});

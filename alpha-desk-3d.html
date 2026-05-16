@@ -278,7 +278,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.86</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.87</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -339,7 +339,7 @@ svg.sp{overflow:visible;display:block}
   <p style="font-size:13px;color:var(--t3);margin-bottom:18px">Prilagodi parametre za standardni +6% target u 3 dana (i meme tab)</p>
   <div class="g2" style="margin-bottom:12px">
     <div><label class="inp-lbl">Min pouzdanost (%)</label><input id="s-conf" class="inp" type="number" value="50" min="20" max="90"></div>
-    <div><label class="inp-lbl">Target profit (%)</label><input id="s-tgt" class="inp" type="number" value="5" min="2" max="20" step="0.5"></div>
+    <div><label class="inp-lbl">Target profit (%)</label><input id="s-tgt" class="inp" type="number" value="6" min="2" max="20" step="0.5"></div>
     <div><label class="inp-lbl">Max rizik (%)</label><input id="s-risk" class="inp" type="number" value="2" min="1" max="10" step="0.5"></div>
     <div><label class="inp-lbl">Min R/R omjer</label><input id="s-rr" class="inp" type="number" value="1.2" min="0.8" max="5" step="0.1"></div>
   </div>
@@ -2082,7 +2082,7 @@ function computeTargets(price,atrPct,targetPct,maxRisk,sym){
 }
 
 // Score → Confidence calculation s war cap, calibration, token accuracy
-// REKALIBRIRANO (v4.86): baseline 35 (bilo 44), spread 30-95
+// REKALIBRIRANO (v4.87): baseline 35 (bilo 44), spread 30-95
 // Razlog: analiza pokazala POGODAK avg 47.6 vs PROMAŠAJ 45.8 (samo 1.8 razlike)
 // Niži baseline → conf 60+ stvarno predstavlja "iznadprosječan" setup
 function computeConfidence(score,sym,targetPct){
@@ -2092,9 +2092,9 @@ function computeConfidence(score,sym,targetPct){
   // War cap takodjer rekalibriran (bilo 55/50/44)
   var warCap=score>=4?52:score>=2?45:38;
   var conf=Math.min(MACRO.warActive?warCap:90,Math.max(20,rawConf));
-  var calCap=getConfCalibrationCap(targetPct||5);
+  var calCap=getConfCalibrationCap(targetPct||6);
   if(calCap!==null)conf=Math.min(conf,calCap);
-  var tokAcc=getTokenAccuracy(sym,targetPct||5);
+  var tokAcc=getTokenAccuracy(sym,targetPct||6);
   if(tokAcc!==null){
     var tokCap=Math.round((tokAcc*100+12)/5)*5;
     conf=Math.min(conf,Math.max(25,tokCap));
@@ -2267,7 +2267,7 @@ function analyze3D(sym){
   var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
 
-  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.86): 1.3 → 1.15
+  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.87): 1.3 → 1.15
   // 1.3× je previse strogo - blokiralo SVE ✅ ulaze. Trazimo barem +15% iznad prosjeka.
   var volumeOK=vsT1&&vsT1.ratio>=1.15;
 
@@ -2707,7 +2707,7 @@ function renderOpp(o){
     }
 
     // Kelly position sizing (kompakt)
-    var kellyGroup=predTracker.filter(function(p){return o.targetPct===10?(p.targetPct===10):(p.targetPct===5||!p.targetPct);});
+    var kellyGroup=predTracker.filter(function(p){return o.targetPct===10?(p.targetPct===10||(p.type==="meme"&&p.targetPct===6)):(p.targetPct===5||p.targetPct===6||!p.targetPct);});
     var kelly=kellyForGroup(kellyGroup);
     if(kelly){
       var kAdj=+(kelly.halfKelly*(o.conf/100)*2).toFixed(1);
@@ -3138,7 +3138,7 @@ function getConfCalibrationCap(targetPct){
 function getTokenAccuracy(sym,tPct){
   var pct=tPct||settings.targetPct;
   // Prvo traži podatke za ovaj specifičan target
-  var tokenPreds=predTracker.filter(function(p){return p.sym===sym&&p.status!=="AKTIVAN"&&(p.targetPct||5)===pct;});
+  var tokenPreds=predTracker.filter(function(p){return p.sym===sym&&p.status!=="AKTIVAN"&&(p.targetPct||6)===pct;});
   // Fallback na sve podatke za token ako nema dovoljno
   if(tokenPreds.length<5){
     tokenPreds=predTracker.filter(function(p){return p.sym===sym&&p.status!=="AKTIVAN";});
@@ -3248,7 +3248,7 @@ function autoClosePreds(){
         else if(elapsed>=5*DAY){reason="⏰ 5 dana isteklo";hit=u.valleyPrice&&u.valleyPrice<=halfT;}
       } else {
         // Smart exit za 5% SHORT: trailing stop nakon hit-a D1
-        var halfShortT=p.entry*(1-(p.targetPct||5)/2/100); // half target
+        var halfShortT=p.entry*(1-(p.targetPct||6)/2/100); // half target
         var trailShortS=p.entry*(1+0.005); // trail na +0.5% iznad entry (čuvam mali profit)
         if(cur>=p.stop){reason="🛑 Stop-loss hit";hit=false;}
         else if(u.d3Hit){reason="🎯 Target D3 dostignut";hit=true;}
@@ -3268,7 +3268,7 @@ function autoClosePreds(){
         else if(elapsed>=5*DAY){reason="⏰ 5 dana isteklo";hit=cur>=(p.entry*(1+0.05));}
       } else {
         // Smart exit za 5% LONG: trailing stop nakon hit-a D1, soft time exit
-        var halfLongT=p.entry*(1+(p.targetPct||5)/2/100); // half target = +2.5%
+        var halfLongT=p.entry*(1+(p.targetPct||6)/2/100); // half target = +2.5%
         var trailLongS=p.entry*(1-0.005); // trail na -0.5% ispod entry (čuvam break-even)
         if(cur<=p.stop){reason="🛑 Stop-loss hit";hit=false;}
         else if(u.d3Hit){reason="🎯 Target D3 dostignut";hit=true;}
@@ -3307,11 +3307,11 @@ function autoTrackOpps(opps, source){
   var now=Date.now();
   var added=false;
 
-  // ── NEWS EVENT BLACKOUT (v4.86) — pauziraj 30min prije/nakon FOMC/CPI/NFP
+  // ── NEWS EVENT BLACKOUT (v4.87) — pauziraj 30min prije/nakon FOMC/CPI/NFP
   var blackout=getActiveBlackout();
   if(blackout)return; // skip ENTIRE batch — sav market u nepredvidivom stanju
 
-  // ── MULTI-POSITION CORRELATION GATE (v4.86)
+  // ── MULTI-POSITION CORRELATION GATE (v4.87)
   // Ako vec >=2 alt LONG aktivna, ne otvaraj novi alt LONG (>70% korelirano s BTC)
   // Iznimka: BTC sam, ili counter-trend (SHORT)
   var activeAltLongs=predTracker.filter(function(p){
@@ -3330,7 +3330,7 @@ function autoTrackOpps(opps, source){
   var maxTrack = source==="watch" ? 3 : 5;
   opps = opps.slice().sort(function(a,b){return b.conf-a.conf;}).slice(0, maxTrack);
 
-  // Drawdown circuit breaker — UNAPRJEDJENO (v4.86)
+  // Drawdown circuit breaker — UNAPRJEDJENO (v4.87)
   // 1. Stara logika: 2 uzastopna PROMAŠAJa = 6h cooldown
   // 2. Nova: win rate zadnjih 10 trade-ova <30% = 12h cooldown (širi pogled)
   var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,10);
@@ -3361,7 +3361,7 @@ function autoTrackOpps(opps, source){
     // ── PER-TOKEN GATE — token s <30% win rate (5+ tradova) = block 24h
     if(shouldBlockToken(o.sym))return;
 
-    // ── MULTI-POSITION CORRELATION (v4.86)
+    // ── MULTI-POSITION CORRELATION (v4.87)
     // Ako >=2 alt LONG vec aktivna i ovo je novi alt LONG → blokiraj
     if(o.sym!=="BTC" && activeAltLongs>=2)return;
 
@@ -3869,7 +3869,7 @@ function renderClosedList(preds){
     h+='<span style="font-size:18px;line-height:1;flex-shrink:0">'+(isHit?"✅":"❌")+'</span>';
     h+='<div style="flex:1;min-width:0">';
     h+='<div style="font-size:13px;font-weight:800;color:var(--t1)">'+typeDot+p.sym+' '+dirBadge+autoB+' <span style="font-size:10px;color:var(--t4);font-weight:400">'+p.date+'</span></div>';
-    h+='<div style="font-size:10px;color:var(--t3);margin-top:1px">'+fp(p.entry)+'→'+fp(p.closePrice||p.entry)+' · +'+(p.targetPct||5)+'% target · '+dStr+'</div>';
+    h+='<div style="font-size:10px;color:var(--t3);margin-top:1px">'+fp(p.entry)+'→'+fp(p.closePrice||p.entry)+' · +'+(p.targetPct||6)+'% target · '+dStr+'</div>';
     if(p.closeReason)h+='<div style="font-size:10px;color:var(--t4);margin-top:1px">'+p.closeReason+'</div>';
     h+='</div>';
     h+='<div style="font-size:15px;font-weight:900;color:'+col+';flex-shrink:0">'+pnlVal+'</div>';
@@ -3952,7 +3952,7 @@ function renderActiveCard(p){
   var riskMult=isShort?1:(-1);
   var stopPctRaw=p.entry>0?(p.stop-p.entry)/p.entry*100:riskMult*(p.targetPct===10?3:2);
   // Za SHORT stopPct je pozitivan (stop je iznad ulaza), za Long negativan
-  var targetPctVal=p.targetPct||5;
+  var targetPctVal=p.targetPct||6;
   var barCol=curPct>=0?"var(--gr)":curPct>-targetPctVal*0.5?"var(--ye)":"var(--re)";
   h+='<div style="margin-bottom:10px">';
   h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t4);margin-bottom:3px">';
@@ -4029,7 +4029,7 @@ function renderWeightsPanel(){
   var misses=closed.filter(function(p){return p.status==="PROMAŠAJ"&&p.peakPct!=null&&p.peakPct>0;});
   if(misses.length>0){
     var avgPeak=(misses.reduce(function(s,p){return s+(p.peakPct||0);},0)/misses.length).toFixed(1);
-    var almostHit=misses.filter(function(p){return p.peakPct>=(p.targetPct||5)*0.8;}).length;
+    var almostHit=misses.filter(function(p){return p.peakPct>=(p.targetPct||6)*0.8;}).length;
     h+='<div style="margin-top:10px;padding-top:10px;border-top:.5px solid var(--sep)">';
     h+='<div style="font-size:10px;color:var(--t3)">📈 <strong style="color:var(--ye)">Peak analiza promašaja:</strong> prosj. vrh +'+avgPeak+'% · <strong style="color:var(--ye)">'+almostHit+'</strong> od '+misses.length+' promašaja doseglo ≥80% targeta</div>';
     h+='</div>';
@@ -4055,8 +4055,10 @@ function kellyForGroup(preds){
 function renderKellyPanel(){
   var closed=predTracker.filter(function(p){return p.status!=="AKTIVAN";});
   if(closed.length<4)return'<div style="background:var(--s1);border-radius:14px;padding:12px 16px;margin-bottom:12px;border:.5px solid rgba(255,255,255,.06);text-align:center;color:var(--t3);font-size:12px">📐 Kelly kalkulator — treba min. 4 zatvorene predikcije (trenutno: '+closed.length+')</div>';
-  var preds5=closed.filter(function(p){return p.targetPct===5||!p.targetPct;});
-  var preds10=closed.filter(function(p){return p.targetPct===10;});
+  // preds5: standardne predikcije (5% stare, 6% nove, bez targetPct = stari default)
+  var preds5=closed.filter(function(p){return p.targetPct===5||p.targetPct===6||!p.targetPct;});
+  // predsMeme: meme predikcije (10% stare, 6% nove s type=meme)
+  var preds10=closed.filter(function(p){return p.targetPct===10||(p.type==="meme"&&p.targetPct===6);});
   var k5=kellyForGroup(preds5);
   var k10=kellyForGroup(preds10);
   var kAll=kellyForGroup(closed);
@@ -4298,8 +4300,8 @@ function renderDailyRec(){
   // Za svaki dan odaberi token s najvišim d1/d2/d3 očekivanom vrijednošću (prob * tgt / 100)
   function best(arr,probKey){
     return arr.slice().sort(function(a,b){
-      var evA=(a[probKey]||0)*(a.targetPct||5)/100*(a.conf/100);
-      var evB=(b[probKey]||0)*(b.targetPct||5)/100*(b.conf/100);
+      var evA=(a[probKey]||0)*(a.targetPct||6)/100*(a.conf/100);
+      var evB=(b[probKey]||0)*(b.targetPct||6)/100*(b.conf/100);
       return evB-evA;
     })[0];
   }
@@ -5058,7 +5060,7 @@ function setSignalChip(c){
   signalChip=c;
   render();
 }
-// activePct fiksiran na 6% (10% mode uklonjen u v4.86). Settings → targetPct za promjenu.
+// activePct fiksiran na 6% (10% mode uklonjen u v4.87). Settings → targetPct za promjenu.
 
 // ── AI SUMMARY TOGGLE (Pregled tab) ─────────────────────────────
 function toggleAISummary(){
@@ -5348,6 +5350,14 @@ function doSearch(){
 // ── SETTINGS ────────────────────────────────────────────────────
 function openSettings(){
   document.getElementById("modal").classList.add("open");
+  // Popuni numeričke inpute iz settings objekta (da se vide stvarne vrijednosti, ne HTML defaults)
+  var sc=document.getElementById("s-conf");var st=document.getElementById("s-tgt");
+  var sr=document.getElementById("s-risk");var srr=document.getElementById("s-rr");
+  if(sc)sc.value=settings.minConf||50;
+  if(st)st.value=settings.targetPct||6;
+  if(sr)sr.value=settings.maxRisk||2;
+  if(srr)srr.value=settings.minRR||1.2;
+  // Popuni API ključeve
   var cq=document.getElementById("s-cq");var lc=document.getElementById("s-lc");var gh=document.getElementById("s-gh");var cp=document.getElementById("s-cp");
   if(cq&&apiKeys.cryptoquant)cq.value=apiKeys.cryptoquant;
   if(lc&&apiKeys.lunarcrush)lc.value=apiKeys.lunarcrush;
@@ -5385,8 +5395,8 @@ function closeModal(){document.getElementById("modal").classList.remove("open");
 function applySettings(){
   settings.minConf=parseInt(document.getElementById("s-conf").value)||40;
   settings.targetPct=parseFloat(document.getElementById("s-tgt").value)||6;
-  settings.maxRisk=parseFloat(document.getElementById("s-risk").value)||3;
-  settings.minRR=parseFloat(document.getElementById("s-rr").value)||1.5;
+  settings.maxRisk=parseFloat(document.getElementById("s-risk").value)||2;
+  settings.minRR=parseFloat(document.getElementById("s-rr").value)||1.2;
   // Sync activePct sa novim target-om iz settings (UI toggle UKLONJEN)
   activePct=settings.targetPct;
   lsSet("ad3d_s",JSON.stringify(settings));
@@ -7003,7 +7013,7 @@ scheduler.add("fundingHistory", 1800, fetchAllFundingRates);    // 30 min — sa
 function backgroundAutoTrack(){
   var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
   if(!syms.length)return;
-  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.86)
+  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.87)
   var minConf=settings.minConf||40;
   var all=syms.map(analyze3D).filter(function(x){return x&&x.conf>=minConf;});
   var ulaz=all.filter(function(x){return x.verdict&&x.verdict.indexOf("✅")===0;});

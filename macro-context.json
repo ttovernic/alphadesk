@@ -1,7 +1,7 @@
 {
-    "dxy":  99.05,
-    "changeSummary":  "Prijelaz iz praznog NEUTRAL stanja u CRAB režim s DXY 99.05, FG 46 i BTC dom 60%; iranski rat aktivira warActive i podiže macroPenalty na 1.",
-    "lastUpdated":  "2026-05-15T10:00:00Z",
+    "dxy":  99.27,
+    "changeSummary":  "BTC pao ispod $80K uz treći neuspjeli proboj $82K, dok Fear & Greed blago porastao s 46 na 49, a tržišni režim ostaje CRAB uz DXY stabilno na 99.27.",
+    "lastUpdated":  "2026-05-16T10:00:00Z",
     "warnings":  {
                      "ACT":  [
 
@@ -16,7 +16,7 @@
 
                              ],
                      "BNB":  [
-                                 "Thorchain hack - BSC lanac zahvaćen"
+
                              ],
                      "SUI":  [
 
@@ -52,7 +52,7 @@
 
                                ],
                      "ETH":  [
-                                 "Thorchain hack $10.8M - ETH lanac zahvaćen"
+
                              ],
                      "LINK":  [
 
@@ -64,7 +64,7 @@
 
                                ],
                      "BTC":  [
-                                 "Makro rout - leveraged bullovi likvidirani"
+                         "Otpor na $81K; treći neuspjeli proboj $82K razine"
                              ]
                  },
     "catalysts":  {
@@ -78,7 +78,7 @@
 
                                 ],
                       "XRP":  [
-                                  "Clarity Act jača Rippleove platne kanale"
+                          "Sudska presuda smanjila regulatorni rizik XRP-a"
                               ],
                       "BNB":  [
 
@@ -117,7 +117,7 @@
 
                                 ],
                       "ETH":  [
-
+                          "Bitmine proširio ETH holdings na 5.21M ($13.4B)"
                               ],
                       "LINK":  [
 
@@ -126,14 +126,13 @@
 
                                ],
                       "TRUMP":  [
-
+                          "Crypto market structure bill napreduje u Senatu"
                                 ],
                       "BTC":  [
-                                  "Clarity Act prolazi Senat - reg. pozitivac za kripto",
-                                  "Hana Bank ulaže $670M u Upbit operatera Dunamu"
+                          "Kitovi nakupili 16,622 BTC u svibnju; ETF priljevi"
                               ]
                   },
-    "fearGreed":  46,
+    "fearGreed":  49,
     "macroPenalty":  1,
     "regime":  "CRAB",
     "sentimentScore":  {
@@ -141,7 +140,7 @@
                            "MEME":  0,
                            "ANIME":  0,
                            "XRP":  1,
-                           "BNB":  -1,
+                           "BNB":  0,
                            "SUI":  0,
                            "AVAX":  0,
                            "PENGU":  0,
@@ -153,15 +152,15 @@
                            "ADA":  0,
                            "PNUT":  0,
                            "AIXBT":  0,
-                           "ETH":  -1,
+                           "ETH":  1,
                            "LINK":  0,
                            "PUMP":  0,
-                           "TRUMP":  0,
+                           "TRUMP":  1,
                            "BTC":  1
                        },
-    "aiSummary":  "DXY se drži ispod 100 na razini 99.05, što blago olakšava makro pritisak na kripto, no iranski rat uzrokuje energetski šok i ograničen promet kroz Hormuz. Fear & Greed na 46 i BTC dominacija od 60% signaliziraju CRAB tržište gdje altcoini zaostaju za Bitcoinom. Clarity Act prolazak kroz Senat je pozitivan regulatorni signal, ali leveraged pozicije ostaju pod pritiskom makro volatilnosti.",
+    "aiSummary":  "DXY se zadržava na 99.27, gotovo nepromijenjeno od jučer, dok BTC konsolidira ispod $80K nakon trećeg neuspjelog proboja razine $82K. Fear & Greed indeks na 49 i BTC dominacija od 60.3% potvrđuju CRAB tržišni režim u kojemu altcoini zaostaju za Bitcoinom. Regulatorni sentiment je pozitivan zahvaljujući napretku crypto market structure billa u Senatu, no rastuće obveznice i inflacijski strahovi kratkoročno pritišću tržište.",
     "warActive":  true,
-    "btcDom":  60.0,
-    "stableDom":  6.5,
+    "btcDom":  60.3,
+    "stableDom":  8.5,
     "oil":  105.0
 }

@@ -1,135 +1,105 @@
 {
     "dxy":  99.27,
-    "changeSummary":  "Makro uvjeti ostaju stabilni — DXY na 99.27, Fear & Greed na 49 i CRAB režim se nastavljaju, dok ETH dobiva impuls od Schwabovog lansiranja spot trgovanja za 39M korisnika.",
-    "lastUpdated":  "2026-05-16T15:00:00Z",
+    "changeSummary":  "Stanje ostaje stabilno u CRAB režimu — BTC pada ispod $80K pod pritiskom rastućih prinosa obveznica, dok DXY, FG i BTC dominacija ostaju nepromijenjeni u odnosu na prijašnju analizu.",
+    "lastUpdated":  "2026-05-16T12:00:00Z",
     "warnings":  {
                      "ACT":  [
-
                              ],
                      "MEME":  [
-
+                                 "Altcoin season indeks 39/100 - Bitcoin sezona"
                               ],
                      "ANIME":  [
-
                                ],
                      "XRP":  [
-                                 "Pad ~5% usred tržišne konsolidacije"
                              ],
                      "BNB":  [
-
                              ],
                      "SUI":  [
-                                 "Pad ~8% — nadprosječna slabost altcoina"
                              ],
                      "AVAX":  [
-                                  "Pad ~5% — pritisak na altcoins"
                               ],
                      "PENGU":  [
-
+                                 "Altcoin season indeks 39/100 - Bitcoin sezona"
                                ],
                      "BOME":  [
-
+                                 "Altcoin season indeks 39/100 - Bitcoin sezona"
                               ],
                      "DOGS":  [
-
+                                 "Altcoin season indeks 39/100 - Bitcoin sezona"
                               ],
                      "NOT":  [
-
+                                "Altcoin season indeks 39/100 - Bitcoin sezona"
                              ],
                      "PEOPLE":  [
-
                                 ],
                      "SOL":  [
-
                              ],
                      "ADA":  [
-                                 "Pad ~5% — tržišna konsolidacija"
                              ],
                      "PNUT":  [
-
+                                 "Altcoin season indeks 39/100 - Bitcoin sezona"
                               ],
                      "AIXBT":  [
-
                                ],
                      "ETH":  [
-                                 "ETF odljevi $36.3M, BlackRock prodao $22.3M"
                              ],
                      "LINK":  [
-                                  "Pad ~5% — tržišna konsolidacija"
                               ],
                      "PUMP":  [
-
+                                 "Altcoin season indeks 39/100 - Bitcoin sezona"
                               ],
                      "TRUMP":  [
-
+                                  "Altcoin season indeks 39/100 - Bitcoin sezona"
                                ],
                      "BTC":  [
-                                 "Rast prinosa obveznica + BTC ispod $80K"
+                                "Rastuci prinosi obveznica pritiscaju rizicnu imovinu",
+                                "BTC pada ispod $80K - gubitak kljucne razine"
                              ]
                  },
     "catalysts":  {
                       "ACT":  [
-
                               ],
                       "MEME":  [
-
                                ],
                       "ANIME":  [
-
                                 ],
                       "XRP":  [
-
                               ],
                       "BNB":  [
-
                               ],
                       "SUI":  [
-
                               ],
                       "AVAX":  [
-
                                ],
                       "PENGU":  [
-
                                 ],
                       "BOME":  [
-
                                ],
                       "DOGS":  [
-
                                ],
                       "NOT":  [
-
                               ],
                       "PEOPLE":  [
-                                     "CLARITY Act — regulatorni okvir za digitalnu imovinu"
                                  ],
                       "SOL":  [
-
                               ],
                       "ADA":  [
-
                               ],
                       "PNUT":  [
-
                                ],
                       "AIXBT":  [
-
                                 ],
                       "ETH":  [
-                                  "Schwab pokrenuo spot ETH za 39M korisnika"
+                                 "Schwab spot ETH trading za 39M korisnika"
                               ],
                       "LINK":  [
-
                                ],
                       "PUMP":  [
-
                                ],
                       "TRUMP":  [
-
                                 ],
                       "BTC":  [
-                                  "CLARITY Act napreduje prema glasanju u Senatu"
+                                 "CLARITY Act odobren u Senate Banking Committee"
                               ]
                   },
     "fearGreed":  49,
@@ -137,30 +107,30 @@
     "regime":  "CRAB",
     "sentimentScore":  {
                            "ACT":  0,
-                           "MEME":  0,
+                           "MEME":  -1,
                            "ANIME":  0,
-                           "XRP":  -1,
+                           "XRP":  0,
                            "BNB":  0,
-                           "SUI":  -1,
-                           "AVAX":  -1,
-                           "PENGU":  0,
-                           "BOME":  0,
-                           "DOGS":  0,
-                           "NOT":  0,
-                           "PEOPLE":  1,
+                           "SUI":  0,
+                           "AVAX":  0,
+                           "PENGU":  -1,
+                           "BOME":  -1,
+                           "DOGS":  -1,
+                           "NOT":  -1,
+                           "PEOPLE":  0,
                            "SOL":  0,
-                           "ADA":  -1,
-                           "PNUT":  0,
+                           "ADA":  0,
+                           "PNUT":  -1,
                            "AIXBT":  0,
                            "ETH":  1,
-                           "LINK":  -1,
-                           "PUMP":  0,
-                           "TRUMP":  0,
-                           "BTC":  -1
+                           "LINK":  0,
+                           "PUMP":  -1,
+                           "TRUMP":  -1,
+                           "BTC":  0
                        },
-    "aiSummary":  "DXY se stabilizirao na 99.27 bez značajnih pomaka, dok nafta (WTI) blago pada na ~$105 jer geopolitička napetost oko Hormuškog tjesnaca ostaje povišena uz ratno stanje. BTC konsolidira ispod $80K uz Fear & Greed na 49 i dominaciju od 60.2%, potvrđujući CRAB režim — altcoini su pod pritiskom s padovima 5-8%. Pozitivni signal dolazi od Charles Schwabovog lansiranja spot ETH trgovanja za 39M korisnika, dok CLARITY Act napreduje prema glasanju u Senatu uz 100+ amandmana.",
+    "aiSummary":  "DXY se stabilizirao na ~99.27, ispod ključnog otpora 100, što blago smanjuje makro pritisak na kripto tržište. BTC pada ispod $80K pod utjecajem rastućih prinosa obveznica i inflacijskih briga, uz Fear & Greed na 49 i BTC dominaciju od ~60% koji potvrđuju CRAB konsolidacijski režim — altcoini pod pritiskom s altcoin season indeksom na 39/100. Pozitivan dugoročni signal dolazi od odobrenja CLARITY Acta u Senate Banking Committeeu, dok Hormuzov tjesnac ostaje zatvoren uz naftu na ~$105.",
     "warActive":  true,
-    "btcDom":  60.2,
-    "stableDom":  12.0,
-    "oil":  105
+    "btcDom":  60.0,
+    "stableDom":  11.9,
+    "oil":  105.4
 }

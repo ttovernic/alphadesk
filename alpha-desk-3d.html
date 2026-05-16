@@ -278,7 +278,7 @@ svg.sp{overflow:visible;display:block}
 <div class="app">
   <div class="hd">
     <div class="hd-logo">
-      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.87</span></div>
+      <div class="hd-title">Alpha Desk <span>· 3D</span> <span style="font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.5px;opacity:.7">v4.88</span></div>
       <div class="hd-sub" id="hdsub">Učitavam top 100 tokena…</div>
       <div class="hd-claude" id="claude-update" style="display:flex;align-items:center;gap:6px">
         <span id="claude-update-txt">🤖 Claude analiza: —</span>
@@ -2082,7 +2082,7 @@ function computeTargets(price,atrPct,targetPct,maxRisk,sym){
 }
 
 // Score → Confidence calculation s war cap, calibration, token accuracy
-// REKALIBRIRANO (v4.87): baseline 35 (bilo 44), spread 30-95
+// REKALIBRIRANO (v4.88): baseline 35 (bilo 44), spread 30-95
 // Razlog: analiza pokazala POGODAK avg 47.6 vs PROMAŠAJ 45.8 (samo 1.8 razlike)
 // Niži baseline → conf 60+ stvarno predstavlja "iznadprosječan" setup
 function computeConfidence(score,sym,targetPct){
@@ -2267,7 +2267,7 @@ function analyze3D(sym){
   var ofBull=(fd2&&fd2.lsRatio!=null&&fd2.lsRatio<0.85)||(f&&f.rate<-0.005)||(fd2&&fd2.takerRatio>1.15);
   var confluenceCount=(trendBull?1:0)+(momBull?1:0)+(volBull?1:0)+(macroBull?1:0)+(ofBull?1:0);
 
-  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.87): 1.3 → 1.15
+  // 2. VOLUME HARD FILTER — RELAKSIRAN (v4.88): 1.3 → 1.15
   // 1.3× je previse strogo - blokiralo SVE ✅ ulaze. Trazimo barem +15% iznad prosjeka.
   var volumeOK=vsT1&&vsT1.ratio>=1.15;
 
@@ -3121,7 +3121,11 @@ function getConfCalibrationCap(targetPct){
   // Recency bias je poželjno — stariji podaci reflektiraju drugačiji tržišni režim
   var recent=allClosed.slice(0,30);
   var closed=recent.filter(function(p){
-    return p.status!=="AKTIVAN"&&(targetPct==="meme"?p.type==="meme":(p.targetPct===targetPct&&p.type!=="meme"));
+    if(p.status==="AKTIVAN")return false;
+    if(targetPct==="meme")return p.type==="meme"||(p.targetPct===10);
+    // 6% i 5% se tretiraju kao isti standardni engine (backward compat)
+    var match=targetPct===6?(p.targetPct===5||p.targetPct===6||!p.targetPct):p.targetPct===targetPct;
+    return match&&p.type!=="meme";
   });
   // Fallback na sve iz recent prozora ako nema dovoljno za ovaj target
   if(closed.length<8){
@@ -3138,7 +3142,12 @@ function getConfCalibrationCap(targetPct){
 function getTokenAccuracy(sym,tPct){
   var pct=tPct||settings.targetPct;
   // Prvo traži podatke za ovaj specifičan target
-  var tokenPreds=predTracker.filter(function(p){return p.sym===sym&&p.status!=="AKTIVAN"&&(p.targetPct||6)===pct;});
+  // pct=6 uključuje i stare 5% predikcije (isti engine, backward compat)
+  var tokenPreds=predTracker.filter(function(p){
+    if(p.sym!==sym||p.status==="AKTIVAN")return false;
+    var tp=p.targetPct||6;
+    return pct===6?(tp===5||tp===6):tp===pct;
+  });
   // Fallback na sve podatke za token ako nema dovoljno
   if(tokenPreds.length<5){
     tokenPreds=predTracker.filter(function(p){return p.sym===sym&&p.status!=="AKTIVAN";});
@@ -3307,11 +3316,11 @@ function autoTrackOpps(opps, source){
   var now=Date.now();
   var added=false;
 
-  // ── NEWS EVENT BLACKOUT (v4.87) — pauziraj 30min prije/nakon FOMC/CPI/NFP
+  // ── NEWS EVENT BLACKOUT (v4.88) — pauziraj 30min prije/nakon FOMC/CPI/NFP
   var blackout=getActiveBlackout();
   if(blackout)return; // skip ENTIRE batch — sav market u nepredvidivom stanju
 
-  // ── MULTI-POSITION CORRELATION GATE (v4.87)
+  // ── MULTI-POSITION CORRELATION GATE (v4.88)
   // Ako vec >=2 alt LONG aktivna, ne otvaraj novi alt LONG (>70% korelirano s BTC)
   // Iznimka: BTC sam, ili counter-trend (SHORT)
   var activeAltLongs=predTracker.filter(function(p){
@@ -3330,7 +3339,7 @@ function autoTrackOpps(opps, source){
   var maxTrack = source==="watch" ? 3 : 5;
   opps = opps.slice().sort(function(a,b){return b.conf-a.conf;}).slice(0, maxTrack);
 
-  // Drawdown circuit breaker — UNAPRJEDJENO (v4.87)
+  // Drawdown circuit breaker — UNAPRJEDJENO (v4.88)
   // 1. Stara logika: 2 uzastopna PROMAŠAJa = 6h cooldown
   // 2. Nova: win rate zadnjih 10 trade-ova <30% = 12h cooldown (širi pogled)
   var recentClosed=predTracker.filter(function(p){return p.status!=="AKTIVAN"&&p.autoSource===source;}).slice(0,10);
@@ -3361,7 +3370,7 @@ function autoTrackOpps(opps, source){
     // ── PER-TOKEN GATE — token s <30% win rate (5+ tradova) = block 24h
     if(shouldBlockToken(o.sym))return;
 
-    // ── MULTI-POSITION CORRELATION (v4.87)
+    // ── MULTI-POSITION CORRELATION (v4.88)
     // Ako >=2 alt LONG vec aktivna i ovo je novi alt LONG → blokiraj
     if(o.sym!=="BTC" && activeAltLongs>=2)return;
 
@@ -3669,9 +3678,9 @@ function hcInsights(sorted){
     var sub=sorted.filter(function(p){return p.conf>=t;});
     if(sub.length>=2){var a=sub.filter(function(p){return p.status==="POGODAK";}).length/sub.length*100;if(a>bestAcc){bestAcc=a;bestT=t;bestN=sub.length;}}
   });
-  // 3% vs 5% target
-  var t5=sorted.filter(function(p){return p.targetPct===5;});
-  var t10=sorted.filter(function(p){return p.targetPct===10;});
+  // Standardni (5%/6%) vs meme target
+  var t5=sorted.filter(function(p){return p.targetPct===5||p.targetPct===6||(!p.targetPct&&p.type!=="meme");});
+  var t10=sorted.filter(function(p){return p.targetPct===10||(p.type==="meme"&&p.targetPct===6);});
   var a5=t5.length>0?t5.filter(function(p){return p.status==="POGODAK";}).length/t5.length*100:null;
   var a10=t10.length>0?t10.filter(function(p){return p.status==="POGODAK";}).length/t10.length*100:null;
   // Meme vs regular
@@ -5060,7 +5069,7 @@ function setSignalChip(c){
   signalChip=c;
   render();
 }
-// activePct fiksiran na 6% (10% mode uklonjen u v4.87). Settings → targetPct za promjenu.
+// activePct fiksiran na 6% (10% mode uklonjen u v4.88). Settings → targetPct za promjenu.
 
 // ── AI SUMMARY TOGGLE (Pregled tab) ─────────────────────────────
 function toggleAISummary(){
@@ -7013,7 +7022,7 @@ scheduler.add("fundingHistory", 1800, fetchAllFundingRates);    // 30 min — sa
 function backgroundAutoTrack(){
   var syms=TOP100.filter(function(s){return px[s]&&px[s].p>0;});
   if(!syms.length)return;
-  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.87)
+  // Koristi analyze3D engine (jedini aktivan — 10% mode uklonjen u v4.88)
   var minConf=settings.minConf||40;
   var all=syms.map(analyze3D).filter(function(x){return x&&x.conf>=minConf;});
   var ulaz=all.filter(function(x){return x.verdict&&x.verdict.indexOf("✅")===0;});

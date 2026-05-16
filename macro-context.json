@@ -1,135 +1,116 @@
 {
     "dxy":  99.27,
-    "changeSummary":  "BTC pao ispod $80K uz treći neuspjeli proboj $82K, dok Fear & Greed blago porastao s 46 na 49, a tržišni režim ostaje CRAB uz DXY stabilno na 99.27.",
-    "lastUpdated":  "2026-05-16T10:00:00Z",
+    "changeSummary":  "BTC pao ispod $80K uz treći neuspjeli proboj $82K i $360M likvidacija dugih pozicija, dok nafta skočila na $106 zbog zatvorenog Hormuz tjesnjaca.",
+    "lastUpdated":  "2026-05-16T12:00:00Z",
     "warnings":  {
                      "ACT":  [
-
+                             "BTC Season, meme altcoini bez katalizatora"
                              ],
                      "MEME":  [
-
+                              "BTC Season, meme sektor zaostaje za BTC-om"
                               ],
                      "ANIME":  [
-
+                               "BTC Season, meme altcoini bez katalizatora"
                                ],
                      "XRP":  [
-
                              ],
                      "BNB":  [
-
+                             "Konsolidacija, BTC dom 60.3%, altcoini pod pritiskom"
                              ],
                      "SUI":  [
-
+                             "BTC Season, kapital ostaje u BTC-u"
                              ],
                      "AVAX":  [
-
+                              "BTC Season, kapital ostaje u BTC-u"
                               ],
                      "PENGU":  [
-
+                               "BTC Season, meme altcoini bez katalizatora"
                                ],
                      "BOME":  [
-
+                              "BTC Season, meme sektor zaostaje za BTC-om"
                               ],
                      "DOGS":  [
-
+                              "BTC Season, meme altcoini bez katalizatora"
                               ],
                      "NOT":  [
-
+                             "BTC Season, meme altcoini bez katalizatora"
                              ],
                      "PEOPLE":  [
-
+                                "BTC Season, meme altcoini bez katalizatora"
                                 ],
                      "SOL":  [
-
+                             "BTC Season, kapital ostaje u BTC-u"
                              ],
                      "ADA":  [
-
+                             "BTC Season, kapital ostaje u BTC-u"
                              ],
                      "PNUT":  [
-
+                              "BTC Season, meme sektor zaostaje za BTC-om"
                               ],
                      "AIXBT":  [
-
                                ],
                      "ETH":  [
-
+                             "Konsolidacija, BTC dom 60.3%, altcoini pod pritiskom"
                              ],
                      "LINK":  [
-
+                              "BTC Season, kapital ostaje u BTC-u"
                               ],
                      "PUMP":  [
-
+                              "BTC Season, meme altcoini bez katalizatora"
                               ],
                      "TRUMP":  [
-
                                ],
                      "BTC":  [
-                         "Otpor na $81K; treći neuspjeli proboj $82K razine"
+                             "Treći neuspjeli proboj $82K, otpor jak",
+                             "$360M liq u 24h, rastući prinosi obveznica"
                              ]
                  },
     "catalysts":  {
                       "ACT":  [
-
                               ],
                       "MEME":  [
-
                                ],
                       "ANIME":  [
-
                                 ],
                       "XRP":  [
-                          "Sudska presuda smanjila regulatorni rizik XRP-a"
+                              "Povoljno sudsko rješenje smanjuje regulatorni rizik"
                               ],
                       "BNB":  [
-
                               ],
                       "SUI":  [
-
                               ],
                       "AVAX":  [
-
                                ],
                       "PENGU":  [
-
                                 ],
                       "BOME":  [
-
                                ],
                       "DOGS":  [
-
                                ],
                       "NOT":  [
-
                               ],
                       "PEOPLE":  [
-
                                  ],
                       "SOL":  [
-
                               ],
                       "ADA":  [
-
                               ],
                       "PNUT":  [
-
                                ],
                       "AIXBT":  [
-
+                                "AI blockchain infrastruktura privlači kapital"
                                 ],
                       "ETH":  [
-                          "Bitmine proširio ETH holdings na 5.21M ($13.4B)"
                               ],
                       "LINK":  [
-
                                ],
                       "PUMP":  [
-
                                ],
                       "TRUMP":  [
-                          "Crypto market structure bill napreduje u Senatu"
+                                "Trump gura kripto zakon u Kongres do srpnja"
                                 ],
                       "BTC":  [
-                          "Kitovi nakupili 16,622 BTC u svibnju; ETF priljevi"
+                              "CLARITY Act napreduje u Senatu prema glasanju"
                               ]
                   },
     "fearGreed":  49,
@@ -151,16 +132,16 @@
                            "SOL":  0,
                            "ADA":  0,
                            "PNUT":  0,
-                           "AIXBT":  0,
-                           "ETH":  1,
+                           "AIXBT":  1,
+                           "ETH":  0,
                            "LINK":  0,
                            "PUMP":  0,
                            "TRUMP":  1,
-                           "BTC":  1
+                           "BTC":  0
                        },
-    "aiSummary":  "DXY se zadržava na 99.27, gotovo nepromijenjeno od jučer, dok BTC konsolidira ispod $80K nakon trećeg neuspjelog proboja razine $82K. Fear & Greed indeks na 49 i BTC dominacija od 60.3% potvrđuju CRAB tržišni režim u kojemu altcoini zaostaju za Bitcoinom. Regulatorni sentiment je pozitivan zahvaljujući napretku crypto market structure billa u Senatu, no rastuće obveznice i inflacijski strahovi kratkoročno pritišću tržište.",
+    "aiSummary":  "DXY ostaje na 99.27 bez značajnih promjena, dok BTC konsolidira ispod $80K nakon trećeg uzastopnog neuspjelog proboja $82K uz $360M likvidacija dugih pozicija. Fear & Greed indeks na 49 i BTC dominacija od 60.3% potvrđuju CRAB režim — altcoini zaostaju, a Altcoin Season Index na 39/100 signalizira Bitcoin Season. Iranski rat drži naftu na ~$106 i pojačava inflacijske strahove, no napredak CLARITY Acta u Senatu donosi regulatorni optimizam za sektor.",
     "warActive":  true,
     "btcDom":  60.3,
-    "stableDom":  8.5,
-    "oil":  105.0
+    "stableDom":  11.8,
+    "oil":  106
 }
